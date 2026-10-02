@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oficina | HPR Print 3D</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#17142e">
+  <link rel="icon" href="assets/carretel.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="envoltorio">
+      <a class="marca" href="./">
+        <img class="marca-carretel" src="assets/carretel.svg" alt="">
+        Oficina
+      </a>
+      <nav aria-label="Seções da oficina" id="abas" hidden>
+        <button class="aba" type="button" data-aba="pecas" aria-current="page">Peças</button>
+        <button class="aba" type="button" data-aba="editor">Nova peça</button>
+        <button class="aba" type="button" data-aba="custos">Custos</button>
+        <button class="aba" type="button" data-aba="loja">Loja</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="envoltorio oficina">
+    <div id="aviso" class="aviso" role="status" hidden></div>
+
+    <!-- Conectar -->
+    <section id="tela-conectar" class="painel estreito" hidden>
+      <h1>Entrar na oficina</h1>
+      <p class="apoio">Aqui vocês cadastram peças e calculam custos. Os custos ficam num repositório privado; a vitrine só recebe nome, foto e preço.</p>
+      <form id="form-conectar" class="campos">
+        <label class="campo">Chave de acesso do GitHub
+          <input id="token" type="password" autocomplete="off" required placeholder="github_pat_...">
+        </label>
+        <details class="ajuda">
+          <summary>Como criar a chave</summary>
+          <ol>
+            <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
+            <li>Dê um nome (ex.: Oficina HPR) e escolha a validade.</li>
+            <li>Em <em>Repository access</em>, marque <em>Only select repositories</em> e escolha os dois repositórios da loja.</li>
+            <li>Em <em>Permissions</em>, dê <em>Contents: Read and write</em> e <em>Actions: Read and write</em>.</li>
+            <li>Gere, copie e cole aqui. A chave fica salva só neste aparelho.</li>
+          </ol>
+        </details>
+        <details class="ajuda">
+          <summary>Repositórios</summary>
+          <label class="campo">Site (público)<input id="repo-site" value="devhygor/hprprint3d"></label>
+          <label class="campo">Dados (privado)<input id="repo-dados" value="devhygor/hprprint3d-dados"></label>
+        </details>
+        <button class="botao botao-principal" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <!-- Lista de peças -->
+    <section id="tela-pecas" class="tela" hidden>
+      <div class="secao-cabeca">
+        <div>
+          <h1>Peças</h1>
+          <p class="apoio">Custos recalculados com os valores atuais da aba Custos.</p>
+        </div>
+        <button class="botao botao-principal" type="button" data-ir="editor">Cadastrar peça</button>
+      </div>
+      <div id="lista-pecas"></div>
+    </section>
+
+    <!-- Editor -->
+    <section id="tela-editor" class="tela" hidden>
+      <div class="secao-cabeca">
+        <h1 id="titulo-editor">Nova peça</h1>
+      </div>
+      <div class="editor">
+        <form id="form-peca" class="coluna-form" novalidate>
+          <fieldset class="painel">
+            <legend>MakerWorld</legend>
+            <div class="linha-busca">
+              <label class="campo">Link do modelo
+                <input id="p-makerworld" type="url" placeholder="https://makerworld.com/pt/models/...">
+              </label>
+              <button class="botao botao-contorno" type="button" id="buscar-mw">Buscar dados</button>
+            </div>
+            <p class="dica" id="status-mw">Busca foto, nome e os perfis de impressão (gramas e tempo). Leva cerca de 1 minuto.</p>
+            <label class="campo" id="campo-perfil" hidden>Perfil de impressão
+              <select id="p-perfil"></select>
+            </label>
+            <p class="dica alerta" id="licenca-mw" hidden></p>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Peça</legend>
+            <label class="campo">Nome<input id="p-nome" required></label>
+            <div class="duas">
+              <label class="campo">Categoria<input id="p-categoria" list="lista-categorias" placeholder="Decoração"></label>
+              <label class="campo">Ordem na vitrine<input id="p-ordem" type="number" inputmode="numeric" value="0"></label>
+            </div>
+            <datalist id="lista-categorias"></datalist>
+            <label class="campo">Descrição curta<textarea id="p-descricao" rows="2" maxlength="160"></textarea></label>
+            <div class="foto-campo">
+              <div class="foto-previa" id="foto-previa"><span>Sem foto</span></div>
+              <div>
+                <label class="botao botao-contorno botao-pequeno">Enviar foto
+                  <input id="p-foto-arquivo" type="file" accept="image/*" hidden>
+                </label>
+                <p class="dica">Fotos da peça impressa por vocês vendem mais que a foto do MakerWorld.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Impressão (do Bambu Studio)</legend>
+            <div class="tres">
+              <label class="campo">Filamento usado (g)<input id="p-gramas" type="number" inputmode="decimal" step="0.1" min="0"></label>
+              <label class="campo">Horas<input id="p-horas" type="number" inputmode="numeric" min="0" value="0"></label>
+              <label class="campo">Minutos<input id="p-minutos" type="number" inputmode="numeric" min="0" max="59" value="0"></label>
+            </div>
+            <div class="duas">
+              <label class="campo">Peças por impressão<input id="p-qtd" type="number" inputmode="numeric" min="1" value="1"></label>
+              <label class="campo">Reserva p/ falhas (%)<input id="p-falha" type="number" inputmode="decimal" placeholder="padrão"></label>
+            </div>
+            <p class="dica">Use o peso total do fatiador, com suportes e purga do AMS.</p>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Trabalho e materiais por peça</legend>
+            <div class="duas">
+              <label class="campo">Acabamento (min)<input id="p-trabalho" type="number" inputmode="numeric" min="0" value="0"></label>
+              <label class="campo">Tinta, cola, ímã (R$)<input id="p-acabamento" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
+              <label class="campo">Embalagem (R$)<input id="p-embalagem" type="number" inputmode="decimal" step="0.01" min="0" placeholder="padrão"></label>
+              <label class="campo">Licença do modelo (R$)<input id="p-licenca" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
+              <label class="campo">Outros (R$)<input id="p-outros" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
+              <label class="campo">Margem desta peça (%)<input id="p-margem" type="number" inputmode="decimal" placeholder="padrão"></label>
+            </div>
+          </fieldset>
+        </form>
+
+        <aside class="coluna-resultado">
+          <div class="painel resultado" id="resultado">
+            <p class="rotulo">Custo de produção por peça</p>
+            <p class="valor-grande" id="r-custo">R$ 0,00</p>
+            <dl class="decomposicao" id="r-itens"></dl>
+            <table class="canais">
+              <thead><tr><th>Canal</th><th>Preço sugerido</th><th>Você recebe</th><th>Lucro</th></tr></thead>
+              <tbody id="r-canais"></tbody>
+            </table>
+            <p class="dica" id="r-minimo"></p>
+            <label class="campo">Preço na vitrine (R$)
+              <input id="p-preco" type="number" inputmode="decimal" step="0.01" min="0">
+            </label>
+            <p class="dica" id="r-teste"></p>
+            <label class="marcar"><input id="p-ativo" type="checkbox" checked> Mostrar na vitrine</label>
+            <div class="acoes">
+              <button class="botao botao-principal" type="button" id="salvar-peca">Salvar peça</button>
+              <button class="botao botao-contorno" type="button" id="cancelar-peca">Cancelar</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Custos -->
+    <section id="tela-custos" class="tela" hidden>
+      <div class="secao-cabeca">
+        <div>
+          <h1>Custos da oficina</h1>
+          <p class="apoio">Valores padrão usados em todas as peças. Mudou o preço do filamento? Atualize aqui e todos os custos se ajustam.</p>
+        </div>
+      </div>
+      <form id="form-custos" class="grade-custos">
+        <fieldset class="painel">
+          <legend>Filamento</legend>
+          <label class="campo">Preço do rolo (R$)<input data-c="filamento.precoRolo" type="number" step="0.01" inputmode="decimal"></label>
+          <label class="campo">Peso do rolo (g)<input data-c="filamento.pesoRolo" type="number" inputmode="numeric"></label>
+          <p class="dica" id="c-preco-grama"></p>
+        </fieldset>
+        <fieldset class="painel">
+          <legend>Impressora e energia</legend>
+          <label class="campo">Impressora
+            <select id="c-modelo" data-c="impressora.modelo">
+              <option data-kw="0.10">Bambu Lab A1 mini</option>
+              <option data-kw="0.12">Bambu Lab A1</option>
+              <option data-kw="0.15">Bambu Lab P1S</option>
+              <option data-kw="0.18">Bambu Lab X1 Carbon</option>
+              <option data-kw="">Outra</option>
+            </select>
+          </label>
+          <label class="campo">Consumo médio (kW)<input data-c="impressora.consumoKw" type="number" step="0.01" inputmode="decimal"></label>
+          <label class="campo">Tarifa de energia (R$/kWh)<input data-c="impressora.tarifaKwh" type="number" step="0.01" inputmode="decimal"></label>
+          <label class="campo">Desgaste e manutenção (R$/hora)<input data-c="impressora.desgasteHora" type="number" step="0.01" inputmode="decimal"></label>
+          <p class="dica">Tarifa: divida o total da conta de luz pelos kWh consumidos nela.</p>
+        </fieldset>
+        <fieldset class="painel">
+          <legend>Trabalho e perdas</legend>
+          <label class="campo">Valor da hora de vocês (R$)<input data-c="trabalho.valorHora" type="number" step="0.01" inputmode="decimal"></label>
+          <label class="campo">Preparo por impressão (horas)<input data-c="trabalho.preparoHoras" type="number" step="0.05" inputmode="decimal"></label>
+          <label class="campo">Reserva para falhas (%)<input data-c="falhaPct" type="number" step="0.5" inputmode="decimal"></label>
+          <label class="campo">Embalagem por peça (R$)<input data-c="embalagemPeca" type="number" step="0.01" inputmode="decimal"></label>
+        </fieldset>
+        <fieldset class="painel">
+          <legend>Venda</legend>
+          <label class="campo">Margem de lucro desejada (%)<input data-c="margemPct" type="number" step="1" inputmode="decimal"></label>
+          <label class="campo">Impostos (%)<input data-c="impostoPct" type="number" step="0.1" inputmode="decimal"></label>
+          <label class="campo">Arredondar preço
+            <select data-c="arredondamento">
+              <option value="90">Terminar em ,90</option>
+              <option value="99">Terminar em ,99</option>
+              <option value="5">Múltiplo de R$ 5</option>
+              <option value="nenhum">Não arredondar</option>
+            </select>
+          </label>
+          <label class="campo">Taxa do cartão na venda direta (%)<input data-c="canais.direta.faixas.0.comissaoPct" type="number" step="0.1" inputmode="decimal"></label>
+        </fieldset>
+        <fieldset class="painel largo">
+          <legend>Taxas dos marketplaces</legend>
+          <p class="dica">Valores de 2026. As plataformas mudam as taxas com frequência, então confira no painel de vendedor.</p>
+          <div id="c-faixas"></div>
+        </fieldset>
+      </form>
+      <div class="acoes"><button class="botao botao-principal" type="button" id="salvar-custos">Salvar custos</button></div>
+    </section>
+
+    <!-- Loja -->
+    <section id="tela-loja" class="tela" hidden>
+      <div class="secao-cabeca"><h1>Dados da loja</h1></div>
+      <form id="form-loja" class="painel estreito campos">
+        <label class="campo">WhatsApp (com DDD)<input id="l-whatsapp" inputmode="tel" placeholder="61 99999-9999"></label>
+        <label class="campo">Instagram<input id="l-instagram" type="url"></label>
+        <label class="campo">Mensagem do pedido<input id="l-mensagem"></label>
+        <p class="dica">O nome da peça é colocado no fim da mensagem.</p>
+        <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
+        <hr>
+        <button class="botao botao-contorno botao-pequeno" type="button" id="sair">Sair deste aparelho</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="assets/precificador.js"></script>
+  <script src="assets/admin.js"></script>
+</body>
+</html>

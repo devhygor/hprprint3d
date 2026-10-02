@@ -1,0 +1,165 @@
+/* HPR Print 3D — estilos compartilhados (vitrine + área interna) */
+:root {
+  --noite: #17142e;
+  --noite-2: #201c3d;
+  --noite-3: #2a2550;
+  --linha: #3a3468;
+  --texto: #f3f0ff;
+  --texto-2: #b9b2dd;
+  --texto-3: #8b84b3;
+  --coral: #ff7a5c;
+  --menta: #42d9b4;
+  --sol: #ffcb47;
+  --lilas: #a98bff;
+  --erro: #ff6b81;
+  --raio-g: 22px;
+  --raio-m: 14px;
+  --raio-p: 8px;
+  --fonte-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --fonte-texto: "Figtree", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--noite);
+  color: var(--texto);
+  font-family: var(--fonte-texto);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--sol); outline-offset: 3px; border-radius: 4px; }
+
+.envoltorio { width: min(1160px, 100% - 32px); margin-inline: auto; }
+
+/* ---------- Topo ---------- */
+.topo {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--noite) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--linha);
+}
+.topo .envoltorio { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; }
+.marca { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--fonte-display); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; }
+.marca-carretel { width: 34px; height: 34px; flex: none; }
+.topo nav { display: flex; gap: 8px; align-items: center; }
+.topo nav a.discreto { text-decoration: none; color: var(--texto-2); padding: 8px 12px; border-radius: 999px; font-weight: 500; }
+.topo nav a.discreto:hover { color: var(--texto); background: var(--noite-2); }
+
+/* ---------- Botões ---------- */
+.botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 1rem/1 var(--fonte-texto);
+  padding: 14px 22px; border-radius: 999px; border: 0; cursor: pointer;
+  text-decoration: none; transition: transform .12s ease, background .15s ease;
+}
+.botao:active { transform: translateY(1px); }
+.botao-principal { background: var(--sol); color: #241a00; }
+.botao-principal:hover { background: #ffd66e; }
+.botao-contorno { background: transparent; color: var(--texto); box-shadow: inset 0 0 0 1.5px var(--linha); }
+.botao-contorno:hover { box-shadow: inset 0 0 0 1.5px var(--texto-2); }
+.botao-pequeno { padding: 9px 14px; font-size: .9rem; }
+.botao[disabled] { opacity: .5; cursor: not-allowed; }
+.botao svg { width: 18px; height: 18px; }
+
+/* ---------- Herói ---------- */
+.heroi { padding: clamp(48px, 9vw, 112px) 0 clamp(40px, 6vw, 72px); position: relative; overflow: hidden; }
+.heroi-grade { display: grid; grid-template-columns: 1.25fr .75fr; gap: 48px; align-items: end; }
+.heroi h1 {
+  font-family: var(--fonte-display);
+  font-weight: 800;
+  font-size: clamp(2.75rem, 7.4vw, 6.2rem);
+  line-height: .94;
+  letter-spacing: -0.035em;
+  margin: 0;
+  max-width: 11ch;
+  /* camadas de impressão: cada faixa horizontal é uma "layer" */
+  background: repeating-linear-gradient(
+    180deg,
+    var(--texto) 0 5px,
+    #d9d2ff 5px 6px
+  );
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.heroi h1 .camada { display: block; }
+.heroi-lado p { color: var(--texto-2); margin: 0 0 24px; max-width: 34ch; font-size: 1.125rem; }
+.heroi-acoes { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* A animação única da página: o título "imprime" de baixo pra cima, camada por camada */
+@media (prefers-reduced-motion: no-preference) {
+  .heroi h1 { animation: imprimir 1.6s steps(24, end) both; }
+  .bico { animation: bico 1.6s steps(24, end) both; }
+}
+@keyframes imprimir { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes bico { from { transform: translateY(var(--altura-h1, 260px)); opacity: 1; } 92% { opacity: 1; } to { transform: translateY(0); opacity: 0; } }
+.bico { position: absolute; left: 0; top: -14px; width: 100%; height: 3px; background: var(--coral); border-radius: 3px; box-shadow: 0 0 18px var(--coral); opacity: 0; pointer-events: none; }
+.heroi-titulo { position: relative; }
+
+.amostras { display: flex; gap: 8px; margin-top: 28px; }
+.amostras span { width: 22px; height: 22px; border-radius: 50%; }
+
+/* ---------- Seções ---------- */
+.secao { padding: clamp(40px, 6vw, 80px) 0; }
+.secao-cabeca { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 28px; }
+.secao h2 { font-family: var(--fonte-display); font-weight: 700; font-size: clamp(1.75rem, 3.6vw, 2.6rem); letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+.secao-cabeca p { margin: 6px 0 0; color: var(--texto-2); }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtro { font: 500 .95rem var(--fonte-texto); color: var(--texto-2); background: var(--noite-2); border: 1px solid var(--linha); border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.filtro[aria-pressed="true"] { background: var(--texto); color: var(--noite); border-color: var(--texto); }
+
+/* ---------- Grade de peças ---------- */
+.grade-pecas { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+.peca { background: var(--noite-2); border-radius: var(--raio-g); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--linha); }
+.peca-foto { aspect-ratio: 1 / 1; background: var(--noite-3); position: relative; }
+.peca-foto img { width: 100%; height: 100%; object-fit: cover; }
+.peca-foto .sem-foto { position: absolute; inset: 0; display: grid; place-items: center; color: var(--texto-3); }
+.peca-corpo { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.peca-categoria { font-size: .85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: var(--texto-2); }
+.peca-categoria::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--lilas)); }
+.peca h3 { font-family: var(--fonte-display); font-weight: 700; font-size: 1.25rem; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
+.peca-desc { color: var(--texto-2); font-size: .95rem; margin: 0; }
+.peca-rodape { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.preco { font-family: var(--fonte-display); font-weight: 700; font-size: 1.4rem; }
+.preco small { font-family: var(--fonte-texto); font-weight: 500; font-size: .8rem; color: var(--texto-3); display: block; }
+
+.vazio { border: 2px dashed var(--linha); border-radius: var(--raio-g); padding: 48px 24px; text-align: center; color: var(--texto-2); }
+.vazio strong { display: block; color: var(--texto); font-family: var(--fonte-display); font-size: 1.3rem; margin-bottom: 6px; }
+
+/* ---------- Como encomendar ---------- */
+.passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: passo; }
+.passos li { counter-increment: passo; padding: 24px; border-radius: var(--raio-m); background: var(--noite-2); border-top: 4px solid var(--cor); }
+.passos li::before { content: counter(passo); font-family: var(--fonte-display); font-weight: 800; font-size: 2.4rem; line-height: 1; color: var(--cor); display: block; margin-bottom: 10px; }
+.passos h3 { margin: 0 0 6px; font-family: var(--fonte-display); font-size: 1.2rem; }
+.passos p { margin: 0; color: var(--texto-2); }
+
+.sob-medida { background: var(--lilas); color: #1c1240; border-radius: var(--raio-g); padding: clamp(28px, 5vw, 56px); display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+.sob-medida h2 { color: #1c1240; }
+.sob-medida p { margin: 8px 0 0; max-width: 52ch; }
+.sob-medida .botao-principal { background: #1c1240; color: var(--texto); }
+
+.rodape { border-top: 1px solid var(--linha); padding: 28px 0 40px; color: var(--texto-3); font-size: .95rem; }
+.rodape .envoltorio { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.rodape a { color: var(--texto-2); }
+
+@media (max-width: 820px) {
+  .heroi-grade { grid-template-columns: 1fr; gap: 28px; }
+  .passos { grid-template-columns: 1fr; }
+  .sob-medida { grid-template-columns: 1fr; }
+  .topo nav a.discreto { display: none; }
+}
+
+@media (max-width: 560px) {
+  .grade-pecas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .peca { border-radius: var(--raio-m); }
+  .peca-corpo { padding: 12px; }
+  .peca h3 { font-size: 1.02rem; }
+  .peca-desc { display: none; }
+  .peca-rodape { flex-direction: column; align-items: stretch; gap: 8px; }
+  .preco { font-size: 1.15rem; }
+}
