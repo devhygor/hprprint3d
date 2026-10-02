@@ -25,7 +25,7 @@
         <a class="discreto" href="#pecas">Peças</a>
         <a class="discreto" href="#como-pedir">Como pedir</a>
         <a class="discreto" data-link="instagram" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Instagram</a>
-        <a class="botao botao-principal botao-pequeno" data-link="whatsapp" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Fazer pedido</a>
+        <a class="botao botao-principal botao-pequeno" href="#pedido">Fazer pedido</a>
       </nav>
     </div>
   </header>
@@ -45,7 +45,7 @@
           <p>Decoração, presentes e peças úteis que a gente imprime em 3D por encomenda. Escolha uma peça ou peça algo do seu jeito.</p>
           <div class="heroi-acoes">
             <a class="botao botao-principal" href="#pecas">Ver as peças</a>
-            <a class="botao botao-contorno" data-link="whatsapp" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Pedir um personalizado</a>
+            <a class="botao botao-contorno" href="#pedido">Pedir um personalizado</a>
           </div>
           <div class="amostras" aria-hidden="true">
             <span style="background:var(--coral)"></span>
@@ -71,6 +71,19 @@
       </div>
     </section>
 
+    <section class="secao" id="instagram" hidden>
+      <div class="envoltorio">
+        <div class="secao-cabeca">
+          <div>
+            <h2>Saiu da impressora</h2>
+            <p>Destaques do nosso Instagram.</p>
+          </div>
+          <a class="botao botao-contorno botao-pequeno" data-link="instagram" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Seguir @hprprint3d</a>
+        </div>
+        <div class="grade-insta" id="grade-insta"></div>
+      </div>
+    </section>
+
     <section class="secao" id="como-pedir">
       <div class="envoltorio">
         <div class="secao-cabeca"><h2>Como pedir</h2></div>
@@ -91,14 +104,26 @@
       </div>
     </section>
 
-    <section class="secao">
+    <section class="secao" id="pedido">
       <div class="envoltorio">
         <div class="sob-medida">
           <div>
-            <h2>Tem uma ideia diferente?</h2>
-            <p>Chaveiros com nome, canecas temáticas, lembrancinhas de festa, peças de reposição. Conta o que você precisa que a gente imprime.</p>
+            <h2>Faça seu pedido</h2>
+            <p>Preencha o que já sabe e toque em enviar. O WhatsApp abre com a mensagem pronta, é só mandar. Vale peça do catálogo ou uma ideia sua: chaveiro com nome, caneca temática, lembrancinha de festa, peça de reposição.</p>
           </div>
-          <a class="botao botao-principal" data-link="whatsapp" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Conversar com a gente</a>
+          <form id="form-pedido" class="pedido" novalidate>
+            <label class="campo-pedido">Seu nome<input name="nome" autocomplete="name" required></label>
+            <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
+            <div class="pedido-duas">
+              <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
+              <label class="campo-pedido">Cor preferida<input name="cor" placeholder="Ex.: azul e branco"></label>
+            </div>
+            <label class="campo-pedido">Cidade e bairro<input name="cidade" autocomplete="address-level2" placeholder="Pra combinar entrega ou envio"></label>
+            <label class="campo-pedido">Para quando?<input name="prazo" placeholder="Ex.: aniversário dia 20"></label>
+            <label class="campo-pedido">Detalhes<textarea name="detalhes" rows="3" placeholder="Tamanho, nome para personalizar, link de referência…"></textarea></label>
+            <p class="pedido-erro" id="pedido-erro" role="alert" hidden></p>
+            <button class="botao botao-principal" type="submit">Enviar pelo WhatsApp</button>
+          </form>
         </div>
       </div>
     </section>

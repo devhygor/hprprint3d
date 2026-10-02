@@ -33,7 +33,7 @@
   function desenharGrade() {
     const lista = pecas.filter((p) => filtroAtual === "Todas" || (p.categoria || "Outros") === filtroAtual);
     if (!lista.length) {
-      grade.innerHTML = `<div class="vazio" style="grid-column:1/-1"><strong>As peças estão na impressora</strong>Enquanto o catálogo não fica pronto, veja as novidades no nosso Instagram ou peça um orçamento.<br><br><a class="botao botao-principal" href="${esc(linkPedido())}" target="_blank" rel="noopener">Pedir orçamento</a></div>`;
+      grade.innerHTML = `<div class="vazio" style="grid-column:1/-1"><strong>As peças estão na impressora</strong>Enquanto o catálogo não fica pronto, veja as novidades no nosso Instagram ou peça um orçamento.<br><br><a class="botao botao-principal" href="#pedido">Pedir orçamento</a></div>`;
       return;
     }
     grade.innerHTML = lista
@@ -50,7 +50,7 @@
             ${p.descricao ? `<p class="peca-desc">${esc(p.descricao)}</p>` : ""}
             <div class="peca-rodape">
               ${preco}
-              <a class="botao botao-principal botao-pequeno" href="${esc(linkPedido(p.nome))}" target="_blank" rel="noopener">Pedir</a>
+              <a class="botao botao-principal botao-pequeno" href="#pedido" data-pedir="${esc(p.nome)}">Pedir</a>
             </div>
           </div>
         </article>`;
@@ -65,6 +65,63 @@
     desenharFiltros();
     desenharGrade();
   });
+
+  // ---------- Pedido pelo WhatsApp ----------
+  const numeroZap = () => String(site.whatsapp || "5561981592866").replace(/\D/g, "");
+
+  // Botão "Pedir" do card: leva ao formulário já com a peça preenchida
+  grade.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pedir]");
+    if (!b) return;
+    e.preventDefault();
+    const campo = document.getElementById("pedido-peca");
+    campo.value = b.dataset.pedir;
+    document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    setTimeout(() => document.querySelector('#form-pedido [name="nome"]').focus({ preventScroll: true }), 400);
+  });
+
+  document.getElementById("form-pedido").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const v = (k) => String(f.get(k) || "").trim();
+    const erro = document.getElementById("pedido-erro");
+    const faltando = [!v("nome") && "seu nome", !v("peca") && "a peça ou ideia"].filter(Boolean);
+    if (faltando.length) {
+      erro.textContent = "Preencha " + faltando.join(" e ") + " para enviar.";
+      erro.hidden = false;
+      e.target.querySelector(!v("nome") ? '[name="nome"]' : '[name="peca"]').focus();
+      return;
+    }
+    erro.hidden = true;
+    const detalhes = [
+      `*Pedido:* ${v("peca")}`,
+      `*Quantidade:* ${v("quantidade") || "1"}`,
+      v("cor") && `*Cor:* ${v("cor")}`,
+      v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,
+      v("prazo") && `*Para quando:* ${v("prazo")}`,
+      v("detalhes") && `*Detalhes:* ${v("detalhes")}`,
+    ].filter(Boolean);
+    const texto = [`Oi! Meu nome é ${v("nome")} e vi o site da HPR Print 3D.`, "", ...detalhes].join("\n");
+    window.open(`https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+  });
+
+  // ---------- Destaques do Instagram ----------
+  function desenharInstagram() {
+    const links = (site.destaquesInstagram || [])
+      .map((u) => String(u).trim())
+      .map((u) => u.match(/^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/))
+      .filter(Boolean)
+      .slice(0, 9);
+    if (!links.length) return;
+    document.getElementById("grade-insta").innerHTML = links
+      .map((m) => `<div class="insta-item"><blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/${m[2]}/${m[3]}/" data-instgrm-version="14"><a href="https://www.instagram.com/${m[2]}/${m[3]}/" target="_blank" rel="noopener">Ver no Instagram</a></blockquote></div>`)
+      .join("");
+    document.getElementById("instagram").hidden = false;
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.instagram.com/embed.js";
+    document.body.appendChild(s);
+  }
 
   // Ajusta o "bico" da animação do título à altura real do h1
   const h1 = document.querySelector(".heroi h1");
@@ -81,5 +138,6 @@
     document.querySelectorAll('[data-link="instagram"]').forEach((a) => (a.href = site.instagram || a.href));
     desenharFiltros();
     desenharGrade();
+    desenharInstagram();
   });
 })();

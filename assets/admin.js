@@ -449,7 +449,7 @@
   function preencherLoja() {
     $("#l-whatsapp").value = estado.site.whatsapp || "";
     $("#l-instagram").value = estado.site.instagram || "https://www.instagram.com/hprprint3d/";
-    $("#l-mensagem").value = estado.site.mensagemPedido || "Oi! Vi no site e quero saber sobre: ";
+    $("#l-destaques").value = (estado.site.destaquesInstagram || []).join("\n");
   }
   $("#salvar-loja").addEventListener("click", async () => {
     let zap = $("#l-whatsapp").value.replace(/\D/g, "");
@@ -459,11 +459,16 @@
       nome: estado.site.nome || "HPR Print 3D",
       whatsapp: zap,
       instagram: $("#l-instagram").value.trim(),
-      mensagemPedido: $("#l-mensagem").value,
+      destaquesInstagram: $("#l-destaques").value
+        .split(/\s+/)
+        .map((u) => u.trim().split("?")[0])
+        .filter((u) => /^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\//.test(u))
+        .slice(0, 9),
     };
     try {
       await gravarJson(estado.repoSite, ARQ.site, estado.site, "Atualiza dados da loja");
       $("#l-whatsapp").value = zap;
+      $("#l-destaques").value = estado.site.destaquesInstagram.join("\n");
       avisar("Dados da loja salvos.");
     } catch (e) { avisar("Não consegui salvar: " + e.message, true); }
   });
