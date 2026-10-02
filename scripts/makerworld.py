@@ -34,6 +34,42 @@ def baixar(url, cabecalhos=None, limite=15_000_000):
         return dados, r.headers.get("Content-Type", "")
 
 
+def baixar_pagina(url):
+    """O MakerWorld bloqueia robôs comuns. Tenta, em ordem:
+    1) curl_cffi imitando o Chrome (passa pela proteção na maioria das vezes);
+    2) leitor público r.jina.ai, que busca a página de outro servidor.
+    """
+    tentativas = []
+    try:
+        from curl_cffi import requests as cr  # instalado pelo workflow
+
+        r = cr.get(url, impersonate="chrome", timeout=40, headers={"Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8"})
+        if r.status_code == 200 and "<html" in r.text[:2000].lower():
+            return r.text, "curl_cffi"
+        tentativas.append(f"curl_cffi {r.status_code}")
+    except Exception as e:
+        tentativas.append(f"curl_cffi {type(e).__name__}")
+
+    try:
+        bruto, _ = baixar(
+            "https://r.jina.ai/" + url,
+            {"User-Agent": UA, "X-Return-Format": "html", "Accept": "text/html", "X-Timeout": "30"},
+        )
+        texto = bruto.decode("utf-8", "replace")
+        if "og:image" in texto or "__NEXT_DATA__" in texto:
+            return texto, "jina"
+        tentativas.append("jina sem dados")
+    except Exception as e:
+        tentativas.append(f"jina {e}")
+
+    try:
+        bruto, _ = baixar(url)
+        return bruto.decode("utf-8", "replace"), "direto"
+    except Exception as e:
+        tentativas.append(f"direto {e}")
+    raise RuntimeError("o MakerWorld bloqueou a busca (" + "; ".join(tentativas) + ")")
+
+
 def meta(pagina, prop):
     padroes = [
         rf'<meta[^>]+(?:property|name)=["\']{re.escape(prop)}["\'][^>]+content=["\']([^"\']*)["\']',
@@ -140,8 +176,8 @@ def main():
     try:
         if not re.match(r"^https?://(www\.)?makerworld\.com/", url, re.I):
             raise ValueError("o link não é do makerworld.com")
-        bruto, _ = baixar(url)
-        pagina = bruto.decode("utf-8", "replace")
+        pagina, fonte = baixar_pagina(url)
+        saida["fonte"] = fonte
 
         titulo = meta(pagina, "og:title")
         titulo = re.sub(r"\s*[-|]\s*(Free\s+)?3D Print Model.*$", "", titulo, flags=re.I).strip()
@@ -174,7 +210,7 @@ def main():
                 saida["avisoImagem"] = str(e)[:200]
 
         if not titulo and not saida.get("imagem"):
-            raise ValueError("o MakerWorld bloqueou ou o modelo não existe")
+            raise ValueError("não achei o modelo nesse link")
         saida["ok"] = True
     except Exception as e:
         saida["erro"] = str(e)[:200]

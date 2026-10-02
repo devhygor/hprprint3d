@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Instalar dependências
+        run: pip install --quiet curl_cffi
+
       - name: Buscar dados
         env:
           MW_URL: ${{ inputs.url }}
