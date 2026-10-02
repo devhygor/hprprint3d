@@ -1,0 +1,29 @@
+name: Manter banco de pedidos ativo
+
+# O Supabase gratuito pausa o projeto depois de 7 dias sem uso.
+# Este "toque" a cada 3 dias mantém o banco acordado. Não lê nem grava nenhum pedido.
+on:
+  schedule:
+    - cron: "17 12 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tocar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: assets/supabase-config.js
+          sparse-checkout-cone-mode: false
+
+      - name: Consultar o banco
+        run: |
+          URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' assets/supabase-config.js | head -1)
+          CHAVE=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' assets/supabase-config.js | head -1)
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" "$URL/rest/v1/pedidos?select=id&limit=1" -H "apikey: $CHAVE")
+          echo "Supabase respondeu $codigo"
+          test "$codigo" -lt 500

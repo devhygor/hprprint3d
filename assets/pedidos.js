@@ -2,7 +2,7 @@
 (function () {
   const O = window.Oficina;
   const P = window.Precificador;
-  const { estado, $, $$, brl, esc, avisar, mostrar, gravarJson } = O;
+  const { estado, $, $$, brl, esc, avisar, mostrar } = O;
 
   const STATUS = [
     { id: "novo", nome: "Novo", cor: "var(--lilas)" },
@@ -18,7 +18,93 @@
   let filtro = "abertos";
   let atual = null; // pedido em edição (cópia)
 
-  const salvarTudo = (msg) => gravarJson(estado.repoDados, O.ARQ.pedidos, estado.pedidos, msg);
+  // ---------- Supabase ----------
+  const cfg = window.HPR_SUPABASE || {};
+  const db = window.supabase && cfg.url ? window.supabase.createClient(cfg.url, cfg.chave) : null;
+  let canal = null;
+  const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "cidade", "peca", "peca_id",
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico"];
+  const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
+  function paraDb(p) {
+    const r = {};
+    const fonte = { ...p, peca_id: p.pecaId || null, criado_em: p.criadoEm, atualizado_em: p.atualizadoEm, entrega: p.entrega || null };
+    for (const c of COLUNAS) if (fonte[c] !== undefined) r[c] = fonte[c] === "" ? null : fonte[c];
+    return r;
+  }
+  function erroLegivel(e) {
+    const m = String(e?.message || e || "");
+    if (/fetch|network|Failed/i.test(m)) return "sem conexão com o banco. Se faz tempo que ninguém usa, o Supabase pode ter pausado o projeto";
+    if (/row-level security|permission|policy/i.test(m)) return "esse e-mail não está na lista da equipe no Supabase";
+    return m;
+  }
+  async function carregar() {
+    const { data, error } = await db.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(1000);
+    if (error) throw error;
+    estado.pedidos = (data || []).map(deDb);
+  }
+  async function salvarPedido(p) {
+    const { error } = await db.from("pedidos").upsert(paraDb(p));
+    if (error) throw error;
+  }
+  async function excluirPedido(id) {
+    const { error } = await db.from("pedidos").delete().eq("id", id);
+    if (error) throw error;
+  }
+  function ouvirMudancas() {
+    if (canal) return;
+    canal = db
+      .channel("pedidos")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, async (ev) => {
+        await carregar().catch(() => {});
+        if (!$("#tela-pedidos").hidden) desenharLista();
+        if (ev.eventType === "INSERT" && ev.new?.origem === "site") avisar(`Pedido novo pelo site: ${ev.new.id}`);
+      })
+      .subscribe();
+  }
+
+  // Tela de pedidos: pede login se ainda não entrou
+  async function abrirPedidos() {
+    const caixaLogin = $("#pedidos-login");
+    const conteudo = $("#pedidos-conteudo");
+    if (!db) {
+      caixaLogin.hidden = true; conteudo.hidden = false;
+      $("#lista-pedidos").innerHTML = `<div class="vazio"><strong>Banco de pedidos não configurado</strong>Confira o arquivo assets/supabase-config.js.</div>`;
+      return;
+    }
+    const { data } = await db.auth.getSession();
+    if (!data.session) { caixaLogin.hidden = false; conteudo.hidden = true; return; }
+    caixaLogin.hidden = true; conteudo.hidden = false;
+    $("#pedidos-quem").textContent = data.session.user.email;
+    $("#lista-pedidos").innerHTML = `<p class="dica">Carregando pedidos…</p>`;
+    try {
+      await carregar();
+      ouvirMudancas();
+      desenharLista();
+    } catch (e) {
+      $("#lista-pedidos").innerHTML = `<div class="vazio"><strong>Não consegui carregar os pedidos</strong>${esc(erroLegivel(e))}.</div>`;
+    }
+  }
+
+  $("#pedidos-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const botao = e.target.querySelector("button[type=submit]");
+    botao.disabled = true;
+    const { error } = await db.auth.signInWithPassword({ email: $("#lp-email").value.trim(), password: $("#lp-senha").value });
+    botao.disabled = false;
+    if (error) {
+      avisar(/invalid/i.test(error.message) ? "E-mail ou senha incorretos." : "Não consegui entrar: " + error.message, true, 6000);
+      return;
+    }
+    $("#lp-senha").value = "";
+    abrirPedidos();
+  });
+  $("#sair-pedidos").addEventListener("click", async () => {
+    if (canal) { db.removeChannel(canal); canal = null; }
+    await db.auth.signOut();
+    estado.pedidos = [];
+    abrirPedidos();
+  });
+  $("#atualizar-pedidos").addEventListener("click", () => abrirPedidos());
   const agora = () => new Date().toISOString();
   const dataCurta = (iso) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");
   const dataHora = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -32,7 +118,7 @@
   function novoCodigo() {
     const d = new Date();
     const letras = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    const s = Array.from(crypto.getRandomValues(new Uint8Array(3)), (n) => letras[n % letras.length]).join("");
+    const s = Array.from(crypto.getRandomValues(new Uint8Array(4)), (n) => letras[n % letras.length]).join("");
     return `HPR-${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${s}`;
   }
 
@@ -45,7 +131,7 @@
     };
     const nome = (t.match(/meu nome (?:é|e)\s+(.+?)\s+e vi o site/i) || [])[1] || "";
     return {
-      codigo: (t.match(/HPR-\d{4}-[A-Z0-9]{3}/i) || [""])[0].toUpperCase(),
+      codigo: (t.match(/HPR-\d{4}-[A-Z0-9]{3,6}/i) || [""])[0].toUpperCase(),
       cliente: nome.trim(),
       peca: campo("Pedido"),
       quantidade: parseInt(campo("Quantidade"), 10) || "",
@@ -144,12 +230,13 @@
     (p.historico ||= []).push({ status: sel.value, em: agora() });
     sel.disabled = true;
     try {
-      await salvarTudo(`Pedido ${p.id}: ${statusDe(sel.value).nome}`);
+      p.atualizadoEm = agora();
+      await salvarPedido(p);
       avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.`);
     } catch (err) {
       p.status = anterior;
       p.historico.pop();
-      avisar("Não consegui salvar: " + err.message, true);
+      avisar("Não consegui salvar: " + erroLegivel(err), true, 7000);
     }
     desenharLista();
   });
@@ -176,6 +263,7 @@
     $("#o-status-colar").className = "dica";
     $("#o-status-colar").textContent = "Funciona com as mensagens enviadas pelo formulário do site. Pedidos que chegam de outro jeito, preencha à mão.";
     $("#o-excluir").hidden = !existente;
+    $("#bloco-colar").hidden = !!existente;
     mostrar("pedido");
     atualizarLado();
   }
@@ -263,6 +351,7 @@
       ...atual,
       ...d,
       id,
+      origem: atual.origem || "manual",
       quantidade: Math.max(1, parseInt(d.quantidade, 10) || 1),
       valor: d.valor === "" ? null : P.num(d.valor),
       sinal: d.sinal === "" ? null : P.num(d.sinal),
@@ -275,12 +364,12 @@
     i >= 0 ? (estado.pedidos[i] = pedido) : estado.pedidos.unshift(pedido);
     $("#o-salvar").disabled = true;
     try {
-      await salvarTudo(`${i >= 0 ? "Atualiza" : "Novo"} pedido ${id}`);
+      await salvarPedido(pedido);
       avisar(`Pedido ${id} salvo.`);
       mostrar("pedidos");
     } catch (e) {
       estado.pedidos = antes;
-      avisar("Não consegui salvar: " + e.message, true, 8000);
+      avisar("Não consegui salvar: " + erroLegivel(e), true, 8000);
     } finally {
       $("#o-salvar").disabled = false;
     }
@@ -293,15 +382,15 @@
     const antes = estado.pedidos.slice();
     estado.pedidos = estado.pedidos.filter((p) => p.id !== atual.id);
     try {
-      await salvarTudo(`Remove pedido ${atual.id}`);
+      await excluirPedido(atual.id);
       avisar("Pedido excluído.");
       mostrar("pedidos");
     } catch (e) {
       estado.pedidos = antes;
-      avisar("Não consegui excluir: " + e.message, true);
+      avisar("Não consegui excluir: " + erroLegivel(e), true);
     }
   });
 
-  O.ganchos.pedidos = desenharLista;
+  O.ganchos.pedidos = abrirPedidos;
   O.lerMensagemPedido = lerMensagem; // usado nos testes
 })();

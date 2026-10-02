@@ -3,7 +3,8 @@
 Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), hospedado no GitHub Pages.
 
 - `index.html` — vitrine pública (lê `data/catalogo.json` e `data/site.json`)
-- `admin.html` — oficina: cadastro de peças e precificador (custos ficam no repositório privado `hprprint3d-dados`)
+- `admin.html` — oficina: pedidos, cadastro de peças e precificador (custos ficam no repositório privado `hprprint3d-dados`)
+- Pedidos ficam no Supabase (`docs/supabase.sql` cria a tabela e as regras). `.github/workflows/manter-supabase.yml` evita que o projeto gratuito pause
 
 ## Como o preço é calculado (por peça)
 

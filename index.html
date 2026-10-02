@@ -112,7 +112,10 @@
             <p>Preencha o que já sabe e toque em enviar. O WhatsApp abre com a mensagem pronta, é só mandar. Vale peça do catálogo ou uma ideia sua: chaveiro com nome, caneca temática, lembrancinha de festa, peça de reposição.</p>
           </div>
           <form id="form-pedido" class="pedido" novalidate>
-            <label class="campo-pedido">Seu nome<input name="nome" autocomplete="name" required></label>
+            <div class="pedido-duas">
+              <label class="campo-pedido">Seu nome<input name="nome" autocomplete="name" required></label>
+              <label class="campo-pedido">Seu WhatsApp<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="61 99999-9999"></label>
+            </div>
             <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
             <div class="pedido-duas">
               <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
@@ -137,6 +140,7 @@
     </div>
   </footer>
 
+  <script src="assets/supabase-config.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

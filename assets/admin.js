@@ -150,16 +150,15 @@
   async function conectar(novo) {
     try {
       avisar("Carregando dados da loja…", false, 20000);
-      const [config, pecas, pedidos, catalogo, site] = await Promise.all([
+      const [config, pecas, catalogo, site] = await Promise.all([
         lerJson(estado.repoDados, ARQ.config),
         lerJson(estado.repoDados, ARQ.pecas),
-        lerJson(estado.repoDados, ARQ.pedidos),
         lerJson(estado.repoSite, ARQ.catalogo),
         lerJson(estado.repoSite, ARQ.site),
       ]);
       estado.config = P.mesclar(P.CONFIG_PADRAO, config || {});
       estado.pecas = Array.isArray(pecas) ? pecas : [];
-      estado.pedidos = Array.isArray(pedidos) ? pedidos : [];
+      estado.pedidos = estado.pedidos || [];
       estado.catalogo = Array.isArray(catalogo) ? catalogo : [];
       estado.site = site || {};
       if (novo) {

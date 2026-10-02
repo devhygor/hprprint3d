@@ -96,7 +96,7 @@
     // Código curto pra vocês acharem o pedido depois: HPR-MMDD-XXX
     const hoje = new Date();
     const letras = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    const sorteio = Array.from(crypto.getRandomValues(new Uint8Array(3)), (n) => letras[n % letras.length]).join("");
+    const sorteio = Array.from(crypto.getRandomValues(new Uint8Array(4)), (n) => letras[n % letras.length]).join("");
     const codigo = `HPR-${String(hoje.getMonth() + 1).padStart(2, "0")}${String(hoje.getDate()).padStart(2, "0")}-${sorteio}`;
     const detalhes = [
       `*Código:* ${codigo}`,
@@ -112,8 +112,39 @@
     const ok = document.getElementById("pedido-ok");
     ok.innerHTML = `Pedido <strong>${codigo}</strong> pronto. Se o WhatsApp não abriu, <a href="${link}" target="_blank" rel="noopener">toque aqui para enviar</a>.`;
     ok.hidden = false;
+    // Abre o WhatsApp já (precisa ser no mesmo clique, senão o navegador bloqueia)
     window.open(link, "_blank", "noopener");
+    registrarPedido({
+      id: codigo,
+      origem: "site",
+      status: "novo",
+      cliente: v("nome").slice(0, 120),
+      telefone: v("telefone").replace(/[^\d+ ()-]/g, "").slice(0, 30),
+      cidade: v("cidade").slice(0, 160),
+      peca: v("peca").slice(0, 300),
+      quantidade: Math.min(10000, Math.max(1, parseInt(v("quantidade"), 10) || 1)),
+      cor: v("cor").slice(0, 120),
+      prazo: v("prazo").slice(0, 160),
+      detalhes: v("detalhes").slice(0, 2000),
+      mensagem: texto.slice(0, 4000),
+      historico: [{ status: "novo", em: new Date().toISOString() }],
+    });
   });
+
+  // Grava o pedido no Supabase em segundo plano. Se falhar, o pedido ainda chega
+  // pelo WhatsApp e pode ser registrado na oficina colando a mensagem.
+  function registrarPedido(pedido) {
+    const cfg = window.HPR_SUPABASE;
+    if (!cfg?.url || !cfg?.chave) return;
+    try {
+      fetch(`${cfg.url}/rest/v1/pedidos`, {
+        method: "POST",
+        keepalive: true,
+        headers: { apikey: cfg.chave, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify(pedido),
+      }).catch(() => {});
+    } catch {}
+  }
 
   // ---------- Destaques do Instagram ----------
   function desenharInstagram() {
