@@ -36,7 +36,6 @@
     editando: null, // id da peça em edição
     fotoNova: null, // { base64, ext, dataUrl }
     fotoAtual: "",
-    mw: null, // resultado da busca no MakerWorld
   };
 
   function lerLocal(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } }
@@ -240,7 +239,6 @@
     estado.fotoNova = null;
     estado.idBusca = null;
     estado.fotoAtual = p?.foto || "";
-    estado.mw = p?.makerworldInfo || null;
     precoEditadoManual = !!(p && p.precoVitrine);
     $("#titulo-editor").textContent = p ? "Editar peça" : "Nova peça";
     const dados = { ...PADRAO_PECA, ...(p || {}) };
@@ -248,9 +246,9 @@
     const pub = p && estado.catalogo.find((c) => c.id === p.id);
     $("#p-ativo").checked = p ? !!(pub && pub.ativo !== false) : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
-    $("#status-mw").className = "dica";
-    $("#status-mw").textContent = "Busca foto, nome e os perfis de impressão (gramas e tempo). Leva cerca de 1 minuto.";
-    desenharPerfis();
+    estado.fotoSalva = estado.fotoAtual;
+    $("#p-foto-url").value = /^https?:/.test(estado.fotoAtual) ? estado.fotoAtual : "";
+    $("#p-makerworld").dispatchEvent(new Event("input"));
     desenharFoto();
     mostrar("editor");
     $$(".aba").forEach((b) => (b.dataset.aba === "editor" ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
@@ -268,32 +266,6 @@
     $("#foto-previa").innerHTML = src ? `<img src="${esc(src)}" alt="Foto da peça">` : `<span>Sem foto</span>`;
   }
 
-  function desenharPerfis() {
-    const perfis = estado.mw?.perfis || [];
-    $("#campo-perfil").hidden = perfis.length < 1;
-    $("#p-perfil").innerHTML = perfis
-      .map((f, i) => {
-        const t = f.minutos ? ` · ${Math.floor(f.minutos / 60)}h${String(Math.round(f.minutos % 60)).padStart(2, "0")}` : "";
-        const g = f.gramas ? ` · ${f.gramas} g` : "";
-        return `<option value="${i}">${esc(f.nome || "Perfil " + (i + 1))}${g}${t}</option>`;
-      })
-      .join("");
-    const lic = estado.mw?.licenca;
-    $("#licenca-mw").hidden = !lic;
-    if (lic) $("#licenca-mw").textContent = `Licença do modelo: ${lic}. Confira se permite venda antes de anunciar.`;
-  }
-
-  function aplicarPerfil(i) {
-    const f = estado.mw?.perfis?.[i];
-    if (!f) return;
-    if (f.gramas) $("#p-gramas").value = f.gramas;
-    if (f.minutos) {
-      $("#p-horas").value = Math.floor(f.minutos / 60);
-      $("#p-minutos").value = Math.round(f.minutos % 60);
-    }
-    calcular();
-  }
-  $("#p-perfil").addEventListener("change", (e) => aplicarPerfil(Number(e.target.value)));
 
   function calcular() {
     const p = lerFormulario();
@@ -342,67 +314,28 @@
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
       const dataUrl = c.toDataURL("image/jpeg", 0.85);
       estado.fotoNova = { dataUrl, base64: dataUrl.split(",")[1], ext: "jpg" };
+      $("#p-foto-url").value = "";
       desenharFoto();
     } catch { avisar("Não consegui abrir essa imagem. Tente uma foto JPG ou PNG.", true); }
     e.target.value = "";
   });
 
-  // ---------- MakerWorld (via GitHub Actions) ----------
+  // ---------- Foto e link do MakerWorld ----------
   const novoId = (nome) =>
     (String(nome || "peca").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "peca") +
     "-" + Date.now().toString(36);
 
-  $("#buscar-mw").addEventListener("click", async () => {
-    const url = $("#p-makerworld").value.trim();
-    if (!/^https?:\/\/(www\.)?makerworld\.com\//i.test(url)) {
-      $("#status-mw").className = "dica erro";
-      $("#status-mw").textContent = "Cole um link de modelo do makerworld.com.";
-      return;
-    }
-    const id = estado.editando || (estado.idBusca ||= novoId("mw"));
-    const botao = $("#buscar-mw");
-    botao.disabled = true;
-    const status = $("#status-mw");
-    status.className = "dica";
-    status.textContent = "Pedindo pro GitHub buscar o modelo…";
-    try {
-      const inicio = new Date(Date.now() - 5000).toISOString();
-      await gh(`/repos/${estado.repoSite}/actions/workflows/makerworld.yml/dispatches`, {
-        method: "POST",
-        body: JSON.stringify({ ref: "main", inputs: { url, id } }),
-      });
-      const caminho = `data/makerworld/${id}.json`;
-      let info = null;
-      for (let t = 0; t < 40 && !info; t++) {
-        await new Promise((r) => setTimeout(r, 5000));
-        status.textContent = `Buscando no MakerWorld… (${(t + 1) * 5}s)`;
-        try {
-          const lido = await lerJson(estado.repoSite, caminho);
-          if (lido && lido.url === url && (!lido.atualizadoEm || lido.atualizadoEm >= inicio)) info = lido;
-        } catch {}
-        if (!info && t % 4 === 3) {
-          const runs = await gh(`/repos/${estado.repoSite}/actions/workflows/makerworld.yml/runs?per_page=1&event=workflow_dispatch&created=${encodeURIComponent(">=" + inicio)}`).catch(() => null);
-          const run = runs?.workflow_runs?.[0];
-          if (run && run.status === "completed" && run.conclusion !== "success") throw new Error("a automação falhou no GitHub");
-        }
-      }
-      if (!info) throw new Error("demorou demais");
-      if (!info.ok) throw new Error(info.erro || "o MakerWorld não respondeu");
-      estado.mw = info;
-      if (!estado.editando) estado.idBusca = id;
-      if (info.titulo && !$("#p-nome").value) $("#p-nome").value = info.titulo;
-      if (info.imagem && !estado.fotoNova && !estado.fotoAtual) { estado.fotoAtual = info.imagem; desenharFoto(); }
-      desenharPerfis();
-      if (info.perfis?.length) aplicarPerfil(0);
-      status.className = "dica";
-      const achou = [info.imagem && "foto", info.titulo && "nome", info.perfis?.some((f) => f.gramas) && "gramas", info.perfis?.some((f) => f.minutos) && "tempo"].filter(Boolean);
-      status.textContent = achou.length ? `Encontrei: ${achou.join(", ")}. Confira os valores com o seu fatiador.` : "Não achei dados nesse link. Preencha manualmente.";
-    } catch (e) {
-      status.className = "dica erro";
-      status.textContent = `Não consegui buscar (${e.message}). Preencha os dados e envie uma foto manualmente.`;
-    } finally {
-      botao.disabled = false;
-    }
+  const ehUrlFoto = (u) => /^https:\/\/\S+$/i.test(u);
+  $("#p-foto-url").addEventListener("input", (e) => {
+    const u = e.target.value.trim();
+    if (u && !ehUrlFoto(u)) return;
+    estado.fotoNova = null;
+    estado.fotoAtual = u || estado.fotoSalva || "";
+    desenharFoto();
+  });
+  $("#p-makerworld").addEventListener("input", (e) => {
+    const u = e.target.value.trim();
+    $("#abrir-mw").href = /^https?:\/\/(www\.)?makerworld\.com\//i.test(u) ? u : "https://makerworld.com/";
   });
 
   // ---------- Salvar peça ----------
@@ -424,7 +357,6 @@
         ...f,
         id,
         foto,
-        makerworldInfo: estado.mw || undefined,
         custoNoCadastro: Math.round(r.custo.total * 100) / 100,
         atualizadoEm: new Date().toISOString(),
       };

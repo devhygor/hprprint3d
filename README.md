@@ -4,7 +4,6 @@ Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), hospedado no 
 
 - `index.html` — vitrine pública (lê `data/catalogo.json` e `data/site.json`)
 - `admin.html` — oficina: cadastro de peças e precificador (custos ficam no repositório privado `hprprint3d-dados`)
-- `.github/workflows/makerworld.yml` + `scripts/makerworld.py` — busca foto, nome e perfis de impressão de um link do MakerWorld
 
 ## Como o preço é calculado (por peça)
 

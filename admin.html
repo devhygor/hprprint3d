@@ -46,7 +46,7 @@
             <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
             <li>Dê um nome (ex.: Oficina HPR) e escolha a validade.</li>
             <li>Em <em>Repository access</em>, marque <em>Only select repositories</em> e escolha os dois repositórios da loja.</li>
-            <li>Em <em>Permissions</em>, dê <em>Contents: Read and write</em> e <em>Actions: Read and write</em>.</li>
+            <li>Em <em>Permissions</em>, dê <em>Contents: Read and write</em>.</li>
             <li>Gere, copie e cole aqui. A chave fica salva só neste aparelho.</li>
           </ol>
         </details>
@@ -84,13 +84,13 @@
               <label class="campo">Link do modelo
                 <input id="p-makerworld" type="url" placeholder="https://makerworld.com/pt/models/...">
               </label>
-              <button class="botao botao-contorno" type="button" id="buscar-mw">Buscar dados</button>
+              <a class="botao botao-contorno" id="abrir-mw" href="https://makerworld.com/" target="_blank" rel="noopener">Abrir modelo</a>
             </div>
-            <p class="dica" id="status-mw">Busca foto, nome e os perfis de impressão (gramas e tempo). Leva cerca de 1 minuto.</p>
-            <label class="campo" id="campo-perfil" hidden>Perfil de impressão
-              <select id="p-perfil"></select>
+            <label class="campo">Link da foto (opcional)
+              <input id="p-foto-url" type="url" placeholder="https://makerworld.bblmw.com/...jpg">
             </label>
-            <p class="dica alerta" id="licenca-mw" hidden></p>
+            <p class="dica">No MakerWorld, clique com o botão direito na foto e escolha "Copiar endereço da imagem". Depois abra o modelo no Bambu Studio, fatie com as configurações de vocês e copie as gramas e o tempo aqui embaixo.</p>
+            <p class="dica alerta">Antes de vender, confira se a licença do modelo permite uso comercial.</p>
           </fieldset>
 
           <fieldset class="painel">
