@@ -21,7 +21,8 @@
         Oficina
       </a>
       <nav aria-label="Seções da oficina" id="abas" hidden>
-        <button class="aba" type="button" data-aba="pecas" aria-current="page">Peças</button>
+        <button class="aba" type="button" data-aba="pedidos" aria-current="page">Pedidos</button>
+        <button class="aba" type="button" data-aba="pecas">Peças</button>
         <button class="aba" type="button" data-aba="editor">Nova peça</button>
         <button class="aba" type="button" data-aba="custos">Custos</button>
         <button class="aba" type="button" data-aba="loja">Loja</button>
@@ -57,6 +58,89 @@
         </details>
         <button class="botao botao-principal" type="submit">Entrar</button>
       </form>
+    </section>
+
+    <!-- Pedidos -->
+    <section id="tela-pedidos" class="tela" hidden>
+      <div class="secao-cabeca">
+        <div>
+          <h1>Pedidos</h1>
+          <p class="apoio">Cole a mensagem que chegou no WhatsApp para registrar. Depois é só ir mudando o status.</p>
+        </div>
+        <button class="botao botao-principal" type="button" id="novo-pedido">Registrar pedido</button>
+      </div>
+      <div class="filtros" id="filtros-pedidos" role="group" aria-label="Filtrar por status"></div>
+      <div id="lista-pedidos" class="lista-pedidos"></div>
+    </section>
+
+    <!-- Um pedido -->
+    <section id="tela-pedido" class="tela" hidden>
+      <div class="secao-cabeca"><h1 id="titulo-pedido">Registrar pedido</h1></div>
+      <div class="editor">
+        <form id="form-pedido-adm" class="coluna-form" novalidate>
+          <fieldset class="painel" id="bloco-colar">
+            <legend>Mensagem do WhatsApp</legend>
+            <label class="campo">Cole aqui a mensagem do cliente
+              <textarea id="o-mensagem" rows="6" placeholder="Oi! Meu nome é ... *Código:* HPR-..."></textarea>
+            </label>
+            <div class="acoes"><button class="botao botao-contorno botao-pequeno" type="button" id="o-preencher">Preencher com a mensagem</button></div>
+            <p class="dica" id="o-status-colar">Funciona com as mensagens enviadas pelo formulário do site. Pedidos que chegam de outro jeito, preencha à mão.</p>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Cliente</legend>
+            <div class="duas">
+              <label class="campo">Nome<input id="o-cliente" required></label>
+              <label class="campo">WhatsApp do cliente<input id="o-telefone" inputmode="tel" placeholder="61 99999-9999"></label>
+            </div>
+            <label class="campo">Cidade e bairro<input id="o-cidade"></label>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Pedido</legend>
+            <label class="campo">Peça ou ideia<input id="o-peca" list="o-lista-pecas" required></label>
+            <datalist id="o-lista-pecas"></datalist>
+            <p class="dica" id="o-peca-ligada"></p>
+            <div class="duas">
+              <label class="campo">Quantidade<input id="o-quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
+              <label class="campo">Cor<input id="o-cor"></label>
+              <label class="campo">Prazo pedido pelo cliente<input id="o-prazo"></label>
+              <label class="campo">Entrega combinada<input id="o-entrega" type="date"></label>
+            </div>
+            <label class="campo">Detalhes<textarea id="o-detalhes" rows="3"></textarea></label>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Combinado</legend>
+            <div class="duas">
+              <label class="campo">Valor total (R$)<input id="o-valor" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Sinal recebido (R$)<input id="o-sinal" type="number" inputmode="decimal" step="0.01" min="0"></label>
+            </div>
+            <label class="campo">Anotações internas<textarea id="o-notas" rows="2" placeholder="Ex.: filamento azul acabando, imprimir na A1"></textarea></label>
+          </fieldset>
+        </form>
+
+        <aside class="coluna-resultado">
+          <div class="painel resultado">
+            <label class="campo">Status
+              <select id="o-status"></select>
+            </label>
+            <p class="rotulo">Código</p>
+            <p class="codigo-pedido" id="o-codigo">—</p>
+            <dl class="decomposicao" id="o-contas"></dl>
+            <div class="acoes">
+              <button class="botao botao-principal" type="button" id="o-salvar">Salvar pedido</button>
+              <button class="botao botao-contorno" type="button" id="o-cancelar">Voltar</button>
+            </div>
+            <a class="botao botao-contorno botao-pequeno" id="o-zap" href="#" target="_blank" rel="noopener" hidden>Conversar com o cliente</a>
+            <div id="o-historico-bloco" hidden>
+              <p class="rotulo">Histórico</p>
+              <ol class="historico" id="o-historico"></ol>
+            </div>
+            <button class="botao-texto" type="button" id="o-excluir" hidden>Excluir pedido</button>
+          </div>
+        </aside>
+      </div>
     </section>
 
     <!-- Lista de peças -->
@@ -244,5 +328,6 @@
 
   <script src="assets/precificador.js"></script>
   <script src="assets/admin.js"></script>
+  <script src="assets/pedidos.js"></script>
 </body>
 </html>

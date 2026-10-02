@@ -99,3 +99,28 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
   .tabela-pecas .ocultar-celular { display: none; }
   .linha-busca { grid-template-columns: 1fr; }
 }
+
+/* ---------- Pedidos ---------- */
+#filtros-pedidos { margin-bottom: 18px; }
+.filtro .contagem { font-variant-numeric: tabular-nums; opacity: .7; margin-left: 4px; }
+.lista-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.cartao-pedido { background: var(--noite-2); border: 1px solid var(--linha); border-left: 5px solid var(--cor); border-radius: var(--raio-m); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cp-topo { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--texto-3); }
+.cp-codigo { font-weight: 700; color: var(--texto-2); letter-spacing: .02em; }
+.cartao-pedido h3 { margin: 0; font-family: var(--fonte-display); font-size: 1.15rem; line-height: 1.2; overflow-wrap: anywhere; }
+.cp-qtd { color: var(--texto-2); font-weight: 600; }
+.cp-cliente { margin: 0; color: var(--texto-2); }
+.cp-info { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .9rem; color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.atrasado { color: var(--erro); font-weight: 600; }
+.cp-acoes { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.cp-status { flex: 1; min-width: 0; }
+.cp-status select { width: 100%; font: 600 .92rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--cor); border-radius: 999px; padding: 8px 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.codigo-pedido { margin: -6px 0 0; font-family: var(--fonte-display); font-weight: 700; font-size: 1.5rem; color: var(--sol); }
+.historico { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: .9rem; }
+.historico li { display: flex; justify-content: space-between; gap: 10px; padding-left: 12px; border-left: 3px solid var(--cor); }
+.historico span { color: var(--texto-3); font-variant-numeric: tabular-nums; }
+.botao-texto { background: none; border: 0; color: var(--erro); font: 600 .9rem var(--fonte-texto); cursor: pointer; padding: 6px 0; align-self: flex-start; }
+.neg { color: var(--erro); }
+.pos { color: var(--menta); }
+@media (max-width: 640px) { .lista-pedidos { grid-template-columns: 1fr; } }

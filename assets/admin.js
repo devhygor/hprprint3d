@@ -10,6 +10,7 @@
     catalogo: "data/catalogo.json",
     site: "data/site.json",
     pecas: "pecas.json",
+    pedidos: "pedidos.json",
     config: "config.json",
   };
   const COR_ITENS = {
@@ -116,7 +117,10 @@
 
   // ---------- Navegação ----------
   function mostrar(aba) {
-    ["conectar", "pecas", "editor", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
+    ["conectar", "pedidos", "pedido", "pecas", "editor", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
+    const abaMenu = aba === "pedido" ? "pedidos" : aba;
+    $$(".aba").forEach((b) => (b.dataset.aba === abaMenu ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+    window.Oficina?.ganchos?.[aba]?.();
     $$(".aba").forEach((b) => (b.dataset.aba === aba ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
     if (aba === "pecas") desenharLista();
     if (aba === "custos") preencherCustos();
@@ -146,14 +150,16 @@
   async function conectar(novo) {
     try {
       avisar("Carregando dados da loja…", false, 20000);
-      const [config, pecas, catalogo, site] = await Promise.all([
+      const [config, pecas, pedidos, catalogo, site] = await Promise.all([
         lerJson(estado.repoDados, ARQ.config),
         lerJson(estado.repoDados, ARQ.pecas),
+        lerJson(estado.repoDados, ARQ.pedidos),
         lerJson(estado.repoSite, ARQ.catalogo),
         lerJson(estado.repoSite, ARQ.site),
       ]);
       estado.config = P.mesclar(P.CONFIG_PADRAO, config || {});
       estado.pecas = Array.isArray(pecas) ? pecas : [];
+      estado.pedidos = Array.isArray(pedidos) ? pedidos : [];
       estado.catalogo = Array.isArray(catalogo) ? catalogo : [];
       estado.site = site || {};
       if (novo) {
@@ -163,7 +169,7 @@
       }
       $("#abas").hidden = false;
       $("#aviso").hidden = true;
-      mostrar("pecas");
+      mostrar("pedidos");
     } catch (e) {
       $("#abas").hidden = true;
       mostrar("conectar");
@@ -479,6 +485,10 @@
     $("#token").value = "";
     mostrar("conectar");
   });
+
+  // ---------- API para outros módulos (pedidos.js) ----------
+  window.Oficina = Object.assign(window.Oficina || {}, { estado, ARQ, gravarJson, lerJson, avisar, mostrar, brl, esc, $, $$ });
+  window.Oficina.ganchos = window.Oficina.ganchos || {};
 
   // ---------- Início ----------
   $("#repo-site").value = estado.repoSite;

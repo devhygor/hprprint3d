@@ -67,7 +67,7 @@
   });
 
   // ---------- Pedido pelo WhatsApp ----------
-  const numeroZap = () => String(site.whatsapp || "5561981592866").replace(/\D/g, "");
+  const numeroZap = () => String(site.whatsapp || "5561981600889").replace(/\D/g, "");
 
   // Botão "Pedir" do card: leva ao formulário já com a peça preenchida
   grade.addEventListener("click", (e) => {
@@ -93,7 +93,13 @@
       return;
     }
     erro.hidden = true;
+    // Código curto pra vocês acharem o pedido depois: HPR-MMDD-XXX
+    const hoje = new Date();
+    const letras = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    const sorteio = Array.from(crypto.getRandomValues(new Uint8Array(3)), (n) => letras[n % letras.length]).join("");
+    const codigo = `HPR-${String(hoje.getMonth() + 1).padStart(2, "0")}${String(hoje.getDate()).padStart(2, "0")}-${sorteio}`;
     const detalhes = [
+      `*Código:* ${codigo}`,
       `*Pedido:* ${v("peca")}`,
       `*Quantidade:* ${v("quantidade") || "1"}`,
       v("cor") && `*Cor:* ${v("cor")}`,
@@ -102,7 +108,11 @@
       v("detalhes") && `*Detalhes:* ${v("detalhes")}`,
     ].filter(Boolean);
     const texto = [`Oi! Meu nome é ${v("nome")} e vi o site da HPR Print 3D.`, "", ...detalhes].join("\n");
-    window.open(`https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+    const link = `https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`;
+    const ok = document.getElementById("pedido-ok");
+    ok.innerHTML = `Pedido <strong>${codigo}</strong> pronto. Se o WhatsApp não abriu, <a href="${link}" target="_blank" rel="noopener">toque aqui para enviar</a>.`;
+    ok.hidden = false;
+    window.open(link, "_blank", "noopener");
   });
 
   // ---------- Destaques do Instagram ----------

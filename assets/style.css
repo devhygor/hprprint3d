@@ -193,3 +193,5 @@ a { color: inherit; }
   .pedido-duas { grid-template-columns: 1fr; }
 }
 section[id] { scroll-margin-top: 76px; }
+.pedido-ok { margin: 0; background: #e3f9f1; color: #0b5a45; border-radius: var(--raio-p); padding: 10px 12px; font-size: .95rem; }
+.pedido-ok a { color: #0b5a45; font-weight: 700; }
