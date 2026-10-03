@@ -36,26 +36,10 @@
     <!-- Conectar -->
     <section id="tela-conectar" class="painel estreito" hidden>
       <h1>Entrar na oficina</h1>
-      <p class="apoio">Aqui vocês cadastram peças e calculam custos. Os custos ficam num repositório privado; a vitrine só recebe nome, foto e preço.</p>
+      <p class="apoio">Pedidos, peças, custos e dados da loja. Use o e-mail e a senha criados no Supabase. O login fica salvo neste aparelho.</p>
       <form id="form-conectar" class="campos">
-        <label class="campo">Chave de acesso do GitHub
-          <input id="token" type="password" autocomplete="off" required placeholder="github_pat_...">
-        </label>
-        <details class="ajuda">
-          <summary>Como criar a chave</summary>
-          <ol>
-            <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
-            <li>Dê um nome (ex.: Oficina HPR) e escolha a validade.</li>
-            <li>Em <em>Repository access</em>, marque <em>Only select repositories</em> e escolha os dois repositórios da loja.</li>
-            <li>Em <em>Permissions</em>, dê <em>Contents: Read and write</em>.</li>
-            <li>Gere, copie e cole aqui. A chave fica salva só neste aparelho.</li>
-          </ol>
-        </details>
-        <details class="ajuda">
-          <summary>Repositórios</summary>
-          <label class="campo">Site (público)<input id="repo-site" value="devhygor/hprprint3d"></label>
-          <label class="campo">Dados (privado)<input id="repo-dados" value="devhygor/hprprint3d-dados"></label>
-        </details>
+        <label class="campo">E-mail<input id="lp-email" type="email" autocomplete="username" required></label>
+        <label class="campo">Senha<input id="lp-senha" type="password" autocomplete="current-password" required></label>
         <button class="botao botao-principal" type="submit">Entrar</button>
       </form>
     </section>
@@ -69,19 +53,11 @@
         </div>
         <button class="botao botao-principal" type="button" id="novo-pedido">Registrar pedido</button>
       </div>
-      <form id="pedidos-login" class="painel estreito campos" hidden>
-        <h2 class="titulo-painel">Entrar nos pedidos</h2>
-        <p class="apoio">Use o e-mail e a senha criados no Supabase (Authentication &gt; Users). O login fica salvo neste aparelho.</p>
-        <label class="campo">E-mail<input id="lp-email" type="email" autocomplete="username" required></label>
-        <label class="campo">Senha<input id="lp-senha" type="password" autocomplete="current-password" required></label>
-        <button class="botao botao-principal" type="submit">Entrar</button>
-      </form>
-      <div id="pedidos-conteudo" hidden>
+      <div id="pedidos-conteudo">
         <div class="barra-pedidos">
           <div class="filtros" id="filtros-pedidos" role="group" aria-label="Filtrar por status"></div>
           <div class="barra-pedidos-acoes">
             <button class="botao botao-contorno botao-pequeno" type="button" id="atualizar-pedidos">Atualizar</button>
-            <button class="botao-texto discreto-texto" type="button" id="sair-pedidos">Sair (<span id="pedidos-quem"></span>)</button>
           </div>
         </div>
         <div id="lista-pedidos" class="lista-pedidos"></div>
@@ -336,6 +312,7 @@
         <p class="dica">Um link por linha, até 9. No Instagram, abra o post, toque nos três pontinhos e em "Copiar link". Eles aparecem na vitrine na ordem desta lista.</p>
         <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
         <hr>
+        <p class="dica">Conectado como <strong id="quem"></strong>.</p>
         <button class="botao botao-contorno botao-pequeno" type="button" id="sair">Sair deste aparelho</button>
       </form>
     </section>

@@ -168,10 +168,18 @@
   const h1 = document.querySelector(".heroi h1");
   if (h1) document.documentElement.style.setProperty("--altura-h1", h1.offsetHeight + "px");
 
+  // Dados vêm do Supabase; se ele não responder, usa os arquivos do próprio site como reserva.
   const semCache = "?v=" + Date.now();
+  const sb = window.HPR_SUPABASE || {};
+  const lerSupabase = (caminho) =>
+    fetch(`${sb.url}/rest/v1/${caminho}`, { headers: { apikey: sb.chave } }).then((r) => {
+      if (!r.ok) throw new Error("supabase " + r.status);
+      return r.json();
+    });
+  const reserva = (arquivo, padrao) => fetch(arquivo + semCache).then((r) => r.json()).catch(() => padrao);
   Promise.all([
-    fetch("data/site.json" + semCache).then((r) => r.json()).catch(() => ({})),
-    fetch("data/catalogo.json" + semCache).then((r) => r.json()).catch(() => []),
+    lerSupabase("ajustes?select=valor&chave=eq.site").then((l) => l[0]?.valor || reserva("data/site.json", {})).catch(() => reserva("data/site.json", {})),
+    lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem&ativo=eq.true&order=ordem.asc,nome.asc").catch(() => reserva("data/catalogo.json", [])),
   ]).then(([s, c]) => {
     site = s || {};
     pecas = (Array.isArray(c) ? c : []).filter((p) => p.ativo !== false).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));

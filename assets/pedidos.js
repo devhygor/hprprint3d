@@ -2,7 +2,7 @@
 (function () {
   const O = window.Oficina;
   const P = window.Precificador;
-  const { estado, $, $$, brl, esc, avisar, mostrar } = O;
+  const { estado, $, $$, brl, esc, avisar, mostrar, db, erroLegivel } = O;
 
   const STATUS = [
     { id: "novo", nome: "Novo", cor: "var(--lilas)" },
@@ -19,8 +19,6 @@
   let atual = null; // pedido em edição (cópia)
 
   // ---------- Supabase ----------
-  const cfg = window.HPR_SUPABASE || {};
-  const db = window.supabase && cfg.url ? window.supabase.createClient(cfg.url, cfg.chave) : null;
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "cidade", "peca", "peca_id",
     "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico"];
@@ -30,12 +28,6 @@
     const fonte = { ...p, peca_id: p.pecaId || null, criado_em: p.criadoEm, atualizado_em: p.atualizadoEm, entrega: p.entrega || null };
     for (const c of COLUNAS) if (fonte[c] !== undefined) r[c] = fonte[c] === "" ? null : fonte[c];
     return r;
-  }
-  function erroLegivel(e) {
-    const m = String(e?.message || e || "");
-    if (/fetch|network|Failed/i.test(m)) return "sem conexão com o banco. Se faz tempo que ninguém usa, o Supabase pode ter pausado o projeto";
-    if (/row-level security|permission|policy/i.test(m)) return "esse e-mail não está na lista da equipe no Supabase";
-    return m;
   }
   async function carregar() {
     const { data, error } = await db.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(1000);
@@ -62,19 +54,7 @@
       .subscribe();
   }
 
-  // Tela de pedidos: pede login se ainda não entrou
   async function abrirPedidos() {
-    const caixaLogin = $("#pedidos-login");
-    const conteudo = $("#pedidos-conteudo");
-    if (!db) {
-      caixaLogin.hidden = true; conteudo.hidden = false;
-      $("#lista-pedidos").innerHTML = `<div class="vazio"><strong>Banco de pedidos não configurado</strong>Confira o arquivo assets/supabase-config.js.</div>`;
-      return;
-    }
-    const { data } = await db.auth.getSession();
-    if (!data.session) { caixaLogin.hidden = false; conteudo.hidden = true; return; }
-    caixaLogin.hidden = true; conteudo.hidden = false;
-    $("#pedidos-quem").textContent = data.session.user.email;
     $("#lista-pedidos").innerHTML = `<p class="dica">Carregando pedidos…</p>`;
     try {
       await carregar();
@@ -84,26 +64,8 @@
       $("#lista-pedidos").innerHTML = `<div class="vazio"><strong>Não consegui carregar os pedidos</strong>${esc(erroLegivel(e))}.</div>`;
     }
   }
+  O.ganchos.sair = () => { if (canal) { db.removeChannel(canal); canal = null; } };
 
-  $("#pedidos-login").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const botao = e.target.querySelector("button[type=submit]");
-    botao.disabled = true;
-    const { error } = await db.auth.signInWithPassword({ email: $("#lp-email").value.trim(), password: $("#lp-senha").value });
-    botao.disabled = false;
-    if (error) {
-      avisar(/invalid/i.test(error.message) ? "E-mail ou senha incorretos." : "Não consegui entrar: " + error.message, true, 6000);
-      return;
-    }
-    $("#lp-senha").value = "";
-    abrirPedidos();
-  });
-  $("#sair-pedidos").addEventListener("click", async () => {
-    if (canal) { db.removeChannel(canal); canal = null; }
-    await db.auth.signOut();
-    estado.pedidos = [];
-    abrirPedidos();
-  });
   $("#atualizar-pedidos").addEventListener("click", () => abrirPedidos());
   const agora = () => new Date().toISOString();
   const dataCurta = (iso) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "");

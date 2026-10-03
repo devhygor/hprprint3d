@@ -1,4 +1,4 @@
-// Oficina HPR Print 3D: cadastro de peças e precificação, salvando direto no GitHub.
+// Oficina HPR Print 3D: pedidos, peças, custos e loja. Tudo salvo no Supabase com login por e-mail e senha.
 (function () {
   const P = window.Precificador;
   const $ = (s) => document.querySelector(s);
@@ -6,13 +6,6 @@
   const brl = (v) => (Number.isFinite(v) ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—");
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  const ARQ = {
-    catalogo: "data/catalogo.json",
-    site: "data/site.json",
-    pecas: "pecas.json",
-    pedidos: "pedidos.json",
-    config: "config.json",
-  };
   const COR_ITENS = {
     filamento: ["Filamento", "var(--coral)"],
     energia: ["Energia", "var(--sol)"],
@@ -26,21 +19,15 @@
 
   // ---------- Estado ----------
   const estado = {
-    token: lerLocal("hpr_token"),
-    repoSite: lerLocal("hpr_repo_site") || "devhygor/hprprint3d",
-    repoDados: lerLocal("hpr_repo_dados") || "devhygor/hprprint3d-dados",
     config: P.mesclar(P.CONFIG_PADRAO, {}),
     pecas: [],
-    catalogo: [],
+    pedidos: [],
     site: {},
-    sha: {},
     editando: null, // id da peça em edição
     fotoNova: null, // { base64, ext, dataUrl }
     fotoAtual: "",
   };
 
-  function lerLocal(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } }
-  function gravarLocal(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} }
 
   let timerAviso;
   function avisar(msg, erro = false, ms = 3800) {
@@ -52,68 +39,40 @@
     timerAviso = setTimeout(() => (el.hidden = true), ms);
   }
 
-  // ---------- GitHub ----------
-  const b64enc = (str) => btoa(unescape(encodeURIComponent(str)));
-  const b64dec = (b64) => decodeURIComponent(escape(atob(b64.replace(/\n/g, ""))));
+  // ---------- Supabase ----------
+  const cfgSb = window.HPR_SUPABASE || {};
+  const db = window.supabase && cfgSb.url ? window.supabase.createClient(cfgSb.url, cfgSb.chave) : null;
 
-  async function gh(caminho, opcoes = {}) {
-    const r = await fetch("https://api.github.com" + caminho, {
-      ...opcoes,
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: "Bearer " + estado.token,
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(opcoes.body ? { "Content-Type": "application/json" } : {}),
-      },
-      cache: "no-store",
-    });
-    if (r.status === 204) return null;
-    const corpo = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const e = new Error(corpo.message || "Erro " + r.status);
-      e.status = r.status;
-      throw e;
-    }
-    return corpo;
+  function erroLegivel(e) {
+    const m = String(e?.message || e || "");
+    if (/fetch|network|Failed to/i.test(m)) return "sem conexão com o banco. Confira a internet; se faz tempo que ninguém usa, o Supabase pode ter pausado o projeto";
+    if (/row-level security|permission|policy|violates/i.test(m)) return "esse login não tem permissão. Confira se o e-mail está na lista da equipe no Supabase";
+    if (/relation .* does not exist|Could not find the table/i.test(m)) return "as tabelas ainda não foram criadas. Rode o docs/supabase.sql no SQL Editor do Supabase";
+    return m;
   }
-
-  async function lerJson(repo, caminho) {
-    try {
-      const r = await gh(`/repos/${repo}/contents/${caminho}?ref=main&t=${Date.now()}`);
-      estado.sha[repo + ":" + caminho] = r.sha;
-      return JSON.parse(b64dec(r.content));
-    } catch (e) {
-      if (e.status === 404) { estado.sha[repo + ":" + caminho] = undefined; return null; }
-      throw e;
-    }
+  async function lerAjuste(chave) {
+    const { data, error } = await db.from("ajustes").select("valor").eq("chave", chave).maybeSingle();
+    if (error) throw error;
+    return data?.valor || null;
   }
-
-  async function gravarArquivo(repo, caminho, base64, mensagem) {
-    const chave = repo + ":" + caminho;
-    const tentar = () =>
-      gh(`/repos/${repo}/contents/${caminho}`, {
-        method: "PUT",
-        body: JSON.stringify({ message: mensagem, content: base64, branch: "main", ...(estado.sha[chave] ? { sha: estado.sha[chave] } : {}) }),
-      });
-    let r;
-    try {
-      r = await tentar();
-    } catch (e) {
-      if (e.status !== 409 && e.status !== 422) throw e;
-      // Alguém salvou antes: pega a versão nova e tenta de novo
-      try {
-        const atual = await gh(`/repos/${repo}/contents/${caminho}?ref=main&t=${Date.now()}`);
-        estado.sha[chave] = atual.sha;
-      } catch (e2) { if (e2.status === 404) estado.sha[chave] = undefined; else throw e2; }
-      r = await tentar();
-    }
-    estado.sha[chave] = r.content.sha;
-    return r;
+  async function gravarAjuste(chave, valor) {
+    const { error } = await db.from("ajustes").upsert({ chave, valor, atualizado_em: new Date().toISOString() });
+    if (error) throw error;
   }
-
-  const gravarJson = (repo, caminho, dados, msg) => gravarArquivo(repo, caminho, b64enc(JSON.stringify(dados, null, 2) + "\n"), msg);
-  const urlBruta = (caminho) => `https://raw.githubusercontent.com/${estado.repoSite}/main/${caminho}`;
-  const urlFoto = (caminho) => (!caminho ? "" : /^https?:/.test(caminho) ? caminho : urlBruta(caminho));
+  // Linha da tabela "pecas" -> objeto usado pela oficina
+  const deLinhaPeca = (r) => ({
+    ...(r.interno || {}),
+    id: r.id, nome: r.nome, categoria: r.categoria || "", descricao: r.descricao || "", foto: r.foto || "",
+    ordem: r.ordem ?? 0, precoVitrine: r.preco ?? "", ativo: r.ativo !== false,
+  });
+  async function enviarFoto(id, dataUrl) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const caminho = `pecas/${id}-${Date.now().toString(36)}.jpg`;
+    const { error } = await db.storage.from("fotos").upload(caminho, blob, { contentType: "image/jpeg", upsert: true });
+    if (error) throw error;
+    return db.storage.from("fotos").getPublicUrl(caminho).data.publicUrl;
+  }
+  const urlFoto = (c) => c || "";
 
   // ---------- Navegação ----------
   function mostrar(aba) {
@@ -138,42 +97,57 @@
     if (b) abrirEditor(null);
   });
 
-  // ---------- Conectar ----------
+  // ---------- Entrar ----------
   $("#form-conectar").addEventListener("submit", async (e) => {
     e.preventDefault();
-    estado.token = $("#token").value.trim();
-    estado.repoSite = $("#repo-site").value.trim();
-    estado.repoDados = $("#repo-dados").value.trim();
-    await conectar(true);
+    const botao = e.target.querySelector("button[type=submit]");
+    botao.disabled = true;
+    const { error } = await db.auth.signInWithPassword({ email: $("#lp-email").value.trim(), password: $("#lp-senha").value });
+    botao.disabled = false;
+    if (error) {
+      avisar(/invalid/i.test(error.message) ? "E-mail ou senha incorretos." : "Não consegui entrar: " + erroLegivel(error), true, 6000);
+      return;
+    }
+    $("#lp-senha").value = "";
+    conectar();
   });
 
-  async function conectar(novo) {
+  async function conectar() {
+    if (!db) {
+      mostrar("conectar");
+      avisar("Não consegui carregar o Supabase. Confira a internet e recarregue a página.", true, 10000);
+      return;
+    }
+    const { data } = await db.auth.getSession();
+    if (!data.session) { $("#abas").hidden = true; mostrar("conectar"); return; }
     try {
       avisar("Carregando dados da loja…", false, 20000);
-      const [config, pecas, catalogo, site] = await Promise.all([
-        lerJson(estado.repoDados, ARQ.config),
-        lerJson(estado.repoDados, ARQ.pecas),
-        lerJson(estado.repoSite, ARQ.catalogo),
-        lerJson(estado.repoSite, ARQ.site),
+      const { data: daEquipe, error: erroEquipe } = await db.rpc("eh_equipe");
+      if (erroEquipe) throw erroEquipe;
+      if (!daEquipe) {
+        await db.auth.signOut();
+        $("#abas").hidden = true;
+        mostrar("conectar");
+        avisar(`O e-mail ${data.session.user.email} não está na lista da equipe. Adicione na tabela "equipe" do Supabase.`, true, 10000);
+        return;
+      }
+      const [config, site, pecas] = await Promise.all([
+        lerAjuste("config"),
+        lerAjuste("site"),
+        db.from("pecas").select("*").order("ordem").then(({ data, error }) => { if (error) throw error; return data; }),
       ]);
       estado.config = P.mesclar(P.CONFIG_PADRAO, config || {});
-      estado.pecas = Array.isArray(pecas) ? pecas : [];
-      estado.pedidos = estado.pedidos || [];
-      estado.catalogo = Array.isArray(catalogo) ? catalogo : [];
       estado.site = site || {};
-      if (novo) {
-        gravarLocal("hpr_token", estado.token);
-        gravarLocal("hpr_repo_site", estado.repoSite);
-        gravarLocal("hpr_repo_dados", estado.repoDados);
-      }
+      estado.pecas = (pecas || []).map(deLinhaPeca);
+      estado.usuario = data.session.user.email;
+      $("#quem").textContent = estado.usuario;
       $("#abas").hidden = false;
       $("#aviso").hidden = true;
       mostrar("pedidos");
     } catch (e) {
       $("#abas").hidden = true;
       mostrar("conectar");
-      const msg = e.status === 401 ? "Chave inválida ou vencida. Crie uma nova chave." : e.status === 404 ? "Repositório não encontrado. Confira os nomes e se a chave tem acesso aos dois." : "Não consegui conectar: " + e.message;
-      avisar(msg, true, 8000);
+      avisar("Não consegui carregar: " + erroLegivel(e), true, 10000);
     }
   }
 
@@ -188,7 +162,6 @@
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || String(a.nome).localeCompare(b.nome))
       .map((p) => {
         const r = P.precificar(p, estado.config);
-        const pub = estado.catalogo.find((c) => c.id === p.id);
         const preco = P.num(p.precoVitrine, NaN);
         const lucro = Number.isFinite(preco) ? P.analisar(preco, r.custo.total, estado.config.canais.direta, P.num(estado.config.impostoPct)).lucro : NaN;
         return `<tr>
@@ -198,7 +171,7 @@
           <td class="num ocultar-celular">${brl(r.canais.direta.sugerido)}</td>
           <td class="num">${brl(preco)}</td>
           <td class="num ocultar-celular ${lucro < 0 ? "neg" : ""}">${brl(lucro)}</td>
-          <td class="ocultar-celular"><span class="etiqueta ${pub && pub.ativo !== false ? "ativa" : ""}">${pub && pub.ativo !== false ? "Na vitrine" : "Oculta"}</span></td>
+          <td class="ocultar-celular"><span class="etiqueta ${p.ativo ? "ativa" : ""}">${p.ativo ? "Na vitrine" : "Oculta"}</span></td>
           <td><div class="botoes-linha">
             <button class="botao botao-contorno botao-pequeno" type="button" data-editar="${esc(p.id)}">Editar</button>
             <button class="botao botao-contorno botao-pequeno" type="button" data-excluir="${esc(p.id)}" aria-label="Excluir ${esc(p.nome)}">Excluir</button>
@@ -219,13 +192,12 @@
     const p = estado.pecas.find((x) => x.id === ex.dataset.excluir);
     if (!p || !confirm(`Excluir "${p.nome}"? Ela sai da vitrine também.`)) return;
     try {
+      const { error } = await db.from("pecas").delete().eq("id", p.id);
+      if (error) throw error;
       estado.pecas = estado.pecas.filter((x) => x.id !== p.id);
-      estado.catalogo = estado.catalogo.filter((x) => x.id !== p.id);
-      await gravarJson(estado.repoDados, ARQ.pecas, estado.pecas, `Remove peça: ${p.nome}`);
-      await gravarJson(estado.repoSite, ARQ.catalogo, estado.catalogo, `Remove da vitrine: ${p.nome}`);
       desenharLista();
       avisar("Peça excluída.");
-    } catch (err) { avisar("Não consegui excluir: " + err.message, true); }
+    } catch (err) { avisar("Não consegui excluir: " + erroLegivel(err), true, 7000); }
   });
 
   // ---------- Editor ----------
@@ -248,8 +220,7 @@
     $("#titulo-editor").textContent = p ? "Editar peça" : "Nova peça";
     const dados = { ...PADRAO_PECA, ...(p || {}) };
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = dados[k] ?? "";
-    const pub = p && estado.catalogo.find((c) => c.id === p.id);
-    $("#p-ativo").checked = p ? !!(pub && pub.ativo !== false) : true;
+    $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
     estado.fotoSalva = estado.fotoAtual;
     $("#p-foto-url").value = /^https?:/.test(estado.fotoAtual) ? estado.fotoAtual : "";
@@ -353,41 +324,33 @@
       const id = estado.editando || estado.idBusca || novoId(f.nome);
       let foto = estado.fotoAtual;
       if (estado.fotoNova) {
-        foto = `img/pecas/${id}.${estado.fotoNova.ext}`;
         avisar("Enviando foto…", false, 20000);
-        await gravarArquivo(estado.repoSite, foto, estado.fotoNova.base64, `Foto: ${f.nome}`);
+        foto = await enviarFoto(id, estado.fotoNova.dataUrl);
       }
       const r = P.precificar(f, estado.config);
-      const interno = {
-        ...f,
+      const { nome, categoria, descricao, ordem, precoVitrine, ...calculo } = f;
+      const linha = {
         id,
-        foto,
-        custoNoCadastro: Math.round(r.custo.total * 100) / 100,
-        atualizadoEm: new Date().toISOString(),
-      };
-      const publico = {
-        id,
-        nome: f.nome,
-        categoria: f.categoria || "",
-        descricao: f.descricao || "",
-        foto,
-        preco: P.num(f.precoVitrine, 0) || null,
+        nome,
+        categoria: categoria || null,
+        descricao: descricao || null,
+        foto: foto || null,
+        preco: P.num(precoVitrine, 0) || null,
         ativo: $("#p-ativo").checked,
-        ordem: P.num(f.ordem, 0),
+        ordem: Math.round(P.num(ordem, 0)),
+        interno: { ...calculo, custoNoCadastro: Math.round(r.custo.total * 100) / 100 },
+        atualizado_em: new Date().toISOString(),
       };
-      const i = estado.pecas.findIndex((x) => x.id === id);
-      i >= 0 ? (estado.pecas[i] = interno) : estado.pecas.push(interno);
-      const j = estado.catalogo.findIndex((x) => x.id === id);
-      j >= 0 ? (estado.catalogo[j] = publico) : estado.catalogo.push(publico);
-
       avisar("Salvando…", false, 20000);
-      await gravarJson(estado.repoDados, ARQ.pecas, estado.pecas, `${i >= 0 ? "Atualiza" : "Nova"} peça: ${f.nome}`);
-      await gravarJson(estado.repoSite, ARQ.catalogo, estado.catalogo, `Vitrine: ${f.nome}`);
+      const { error } = await db.from("pecas").upsert(linha);
+      if (error) throw error;
+      const i = estado.pecas.findIndex((x) => x.id === id);
+      i >= 0 ? (estado.pecas[i] = deLinhaPeca(linha)) : estado.pecas.push(deLinhaPeca(linha));
       estado.idBusca = null;
-      avisar("Peça salva. A vitrine atualiza em cerca de 1 minuto.");
+      avisar(linha.ativo ? "Peça salva. Já aparece na vitrine." : "Peça salva (oculta na vitrine).");
       mostrar("pecas");
     } catch (e) {
-      avisar("Não consegui salvar: " + e.message, true, 8000);
+      avisar("Não consegui salvar: " + erroLegivel(e), true, 8000);
     } finally {
       botao.disabled = false;
     }
@@ -445,9 +408,9 @@
   });
   $("#salvar-custos").addEventListener("click", async () => {
     try {
-      await gravarJson(estado.repoDados, ARQ.config, estado.config, "Atualiza custos da oficina");
+      await gravarAjuste("config", estado.config);
       avisar("Custos salvos.");
-    } catch (e) { avisar("Não consegui salvar: " + e.message, true); }
+    } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
   });
 
   // ---------- Loja ----------
@@ -471,27 +434,24 @@
         .slice(0, 9),
     };
     try {
-      await gravarJson(estado.repoSite, ARQ.site, estado.site, "Atualiza dados da loja");
+      await gravarAjuste("site", estado.site);
       $("#l-whatsapp").value = zap;
       $("#l-destaques").value = estado.site.destaquesInstagram.join("\n");
       avisar("Dados da loja salvos.");
-    } catch (e) { avisar("Não consegui salvar: " + e.message, true); }
+    } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
   });
-  $("#sair").addEventListener("click", () => {
-    gravarLocal("hpr_token", "");
-    estado.token = "";
+  $("#sair").addEventListener("click", async () => {
+    window.Oficina?.ganchos?.sair?.();
+    await db.auth.signOut();
+    estado.pecas = []; estado.pedidos = [];
     $("#abas").hidden = true;
-    $("#token").value = "";
     mostrar("conectar");
   });
 
   // ---------- API para outros módulos (pedidos.js) ----------
-  window.Oficina = Object.assign(window.Oficina || {}, { estado, ARQ, gravarJson, lerJson, avisar, mostrar, brl, esc, $, $$ });
+  window.Oficina = Object.assign(window.Oficina || {}, { estado, db, erroLegivel, avisar, mostrar, brl, esc, $, $$ });
   window.Oficina.ganchos = window.Oficina.ganchos || {};
 
   // ---------- Início ----------
-  $("#repo-site").value = estado.repoSite;
-  $("#repo-dados").value = estado.repoDados;
-  if (estado.token) conectar(false);
-  else mostrar("conectar");
+  conectar();
 })();

@@ -1,5 +1,6 @@
 -- HPR Print 3D: tabela de pedidos e regras de segurança.
 -- Cole tudo no Supabase em: SQL Editor > New query > Run.
+-- Se você já rodou uma versão anterior, rode esta de novo: ela só acrescenta o que falta.
 -- Pode rodar de novo sem problema (não apaga pedidos existentes).
 
 -- 1) Quem é da equipe (só esses e-mails conseguem ver e mudar pedidos)
@@ -86,7 +87,72 @@ create policy "equipe exclui pedidos" on public.pedidos for delete to authentica
 grant insert on public.pedidos to anon;
 grant select, insert, update, delete on public.pedidos to authenticated;
 
--- 3) Pedidos novos aparecem na hora na oficina (tempo real)
+-- 3) Peças: a vitrine (anon) só enxerga as colunas públicas das peças ativas.
+--    Os custos ficam na coluna "interno", que só a equipe lê.
+create table if not exists public.pecas (
+  id            text primary key,
+  nome          text not null,
+  categoria     text,
+  descricao     text,
+  foto          text,
+  preco         numeric(10,2),
+  ativo         boolean not null default true,
+  ordem         integer not null default 0,
+  interno       jsonb not null default '{}'::jsonb,
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+alter table public.pecas enable row level security;
+
+drop policy if exists "vitrine le pecas ativas" on public.pecas;
+drop policy if exists "equipe gerencia pecas" on public.pecas;
+create policy "vitrine le pecas ativas" on public.pecas for select to anon using (ativo);
+create policy "equipe gerencia pecas" on public.pecas for all to authenticated using (public.eh_equipe()) with check (public.eh_equipe());
+
+revoke all on public.pecas from anon;
+grant select (id, nome, categoria, descricao, foto, preco, ativo, ordem) on public.pecas to anon;
+grant select, insert, update, delete on public.pecas to authenticated;
+
+-- 4) Ajustes: "site" (WhatsApp, Instagram) é público; "config" (custos) só a equipe.
+create table if not exists public.ajustes (
+  chave         text primary key,
+  valor         jsonb not null default '{}'::jsonb,
+  atualizado_em timestamptz not null default now()
+);
+alter table public.ajustes enable row level security;
+
+drop policy if exists "vitrine le dados da loja" on public.ajustes;
+drop policy if exists "equipe gerencia ajustes" on public.ajustes;
+create policy "vitrine le dados da loja" on public.ajustes for select to anon using (chave = 'site');
+create policy "equipe gerencia ajustes" on public.ajustes for all to authenticated using (public.eh_equipe()) with check (public.eh_equipe());
+
+revoke all on public.ajustes from anon;
+grant select on public.ajustes to anon;
+grant select, insert, update, delete on public.ajustes to authenticated;
+
+insert into public.ajustes (chave, valor) values
+  ('site', '{"nome":"HPR Print 3D","instagram":"https://www.instagram.com/hprprint3d/","whatsapp":"5561981600889","destaquesInstagram":[]}')
+on conflict (chave) do nothing;
+
+-- A oficina pergunta se quem entrou é da equipe
+grant execute on function public.eh_equipe() to authenticated;
+
+-- 5) Fotos das peças (armazenamento público para leitura, só a equipe envia)
+insert into storage.buckets (id, name, public)
+values ('fotos', 'fotos', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "equipe envia fotos" on storage.objects;
+drop policy if exists "equipe altera fotos" on storage.objects;
+drop policy if exists "equipe apaga fotos" on storage.objects;
+create policy "equipe envia fotos" on storage.objects for insert to authenticated
+  with check (bucket_id = 'fotos' and public.eh_equipe());
+create policy "equipe altera fotos" on storage.objects for update to authenticated
+  using (bucket_id = 'fotos' and public.eh_equipe());
+create policy "equipe apaga fotos" on storage.objects for delete to authenticated
+  using (bucket_id = 'fotos' and public.eh_equipe());
+
+-- 6) Pedidos novos aparecem na hora na oficina (tempo real)
 do $$
 begin
   alter publication supabase_realtime add table public.pedidos;
