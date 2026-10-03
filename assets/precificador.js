@@ -67,18 +67,25 @@
     const horas = num(peca.horas) + num(peca.minutos) / 60;
     const gramas = num(peca.gramas);
 
-    const filamento = (gramas / Math.max(1, num(cfg.filamento.pesoRolo, 1000))) * num(cfg.filamento.precoRolo);
+    // Valor da própria peça, se preenchido; senão o padrão da aba Custos. 0 tira o item da conta.
+    const valor = (campo, padrao) => (peca[campo] !== undefined && peca[campo] !== null && peca[campo] !== "" ? num(peca[campo]) : num(padrao));
+    const precoRolo = valor("precoRolo", cfg.filamento.precoRolo);
+    const desgasteHora = valor("desgasteHora", cfg.impressora.desgasteHora);
+    const valorHora = valor("valorHora", cfg.trabalho.valorHora);
+    const preparoHoras = valor("preparoMinutos", num(cfg.trabalho.preparoHoras) * 60) / 60;
+
+    const filamento = (gramas / Math.max(1, num(cfg.filamento.pesoRolo, 1000))) * precoRolo;
     const energia = horas * num(cfg.impressora.consumoKw) * num(cfg.impressora.tarifaKwh);
-    const desgaste = horas * num(cfg.impressora.desgasteHora);
-    const falhaPct = peca.falhaPct !== undefined && peca.falhaPct !== "" ? num(peca.falhaPct) : num(cfg.falhaPct);
+    const desgaste = horas * desgasteHora;
+    const falhaPct = valor("falhaPct", cfg.falhaPct);
     const falha = (filamento + energia + desgaste) * (falhaPct / 100);
-    const preparo = num(cfg.trabalho.preparoHoras) * num(cfg.trabalho.valorHora);
+    const preparo = preparoHoras * valorHora;
 
     const porImpressao = { filamento, energia, desgaste, falha, preparo };
     const lote = filamento + energia + desgaste + falha + preparo;
 
-    const maoDeObra = num(peca.trabalhoMinutos) / 60 * num(cfg.trabalho.valorHora);
-    const embalagem = peca.embalagem !== undefined && peca.embalagem !== "" ? num(peca.embalagem) : num(cfg.embalagemPeca);
+    const maoDeObra = (num(peca.trabalhoMinutos) / 60) * valorHora;
+    const embalagem = valor("embalagem", cfg.embalagemPeca);
     const acabamento = num(peca.acabamento);
     const licenca = num(peca.licenca);
     const outros = num(peca.outros);

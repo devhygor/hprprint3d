@@ -206,7 +206,36 @@
     gramas: "#p-gramas", horas: "#p-horas", minutos: "#p-minutos", pecasPorImpressao: "#p-qtd", falhaPct: "#p-falha",
     trabalhoMinutos: "#p-trabalho", acabamento: "#p-acabamento", embalagem: "#p-embalagem", licenca: "#p-licenca",
     outros: "#p-outros", margemPct: "#p-margem", precoVitrine: "#p-preco",
+    precoRolo: "#p-preco-rolo", desgasteHora: "#p-desgaste", valorHora: "#p-valor-hora", preparoMinutos: "#p-preparo",
   };
+  // Padrões vindos da aba Custos para os campos marcados com data-padrao
+  const padroes = () => ({
+    precoRolo: P.num(estado.config.filamento.precoRolo),
+    desgasteHora: P.num(estado.config.impressora.desgasteHora),
+    falhaPct: P.num(estado.config.falhaPct),
+    valorHora: P.num(estado.config.trabalho.valorHora),
+    preparoMinutos: Math.round(P.num(estado.config.trabalho.preparoHoras) * 60),
+    embalagem: P.num(estado.config.embalagemPeca),
+    margemPct: P.num(estado.config.margemPct),
+  });
+  function preencherPadroes(p, forcar) {
+    const pad = padroes();
+    $$("#form-peca [data-padrao]").forEach((el) => {
+      const k = el.dataset.padrao;
+      const proprio = !forcar && p && p[k] !== undefined && p[k] !== null && p[k] !== "";
+      el.value = proprio ? p[k] : pad[k];
+    });
+    marcarPersonalizados();
+  }
+  function marcarPersonalizados() {
+    const pad = padroes();
+    $$("#form-peca [data-padrao]").forEach((el) => {
+      const diferente = el.value !== "" && P.num(el.value, NaN) !== pad[el.dataset.padrao];
+      el.classList.toggle("personalizado", diferente);
+      el.title = diferente ? `Padrão da aba Custos: ${pad[el.dataset.padrao]}` : "";
+    });
+  }
+  $("#p-restaurar").addEventListener("click", () => { preencherPadroes(null, true); calcular(); });
   const PADRAO_PECA = { horas: 0, minutos: 0, pecasPorImpressao: 1, trabalhoMinutos: 0, acabamento: 0, licenca: 0, outros: 0, ordem: 0 };
   let precoEditadoManual = false;
 
@@ -220,6 +249,7 @@
     $("#titulo-editor").textContent = p ? "Editar peça" : "Nova peça";
     const dados = { ...PADRAO_PECA, ...(p || {}) };
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = dados[k] ?? "";
+    preencherPadroes(p, false);
     $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
     estado.fotoSalva = estado.fotoAtual;
@@ -268,7 +298,7 @@
     } else $("#r-teste").textContent = "";
     return r;
   }
-  $("#form-peca").addEventListener("input", calcular);
+  $("#form-peca").addEventListener("input", () => { marcarPersonalizados(); calcular(); });
   $("#p-preco").addEventListener("input", () => { precoEditadoManual = $("#p-preco").value !== ""; calcular(); });
 
   // Foto enviada: reduz para no máximo 1200 px antes de salvar
@@ -329,6 +359,9 @@
       }
       const r = P.precificar(f, estado.config);
       const { nome, categoria, descricao, ordem, precoVitrine, ...calculo } = f;
+      // Guarda só o que é diferente da aba Custos; o resto acompanha o padrão quando ele mudar
+      const pad = padroes();
+      for (const k of Object.keys(pad)) if (calculo[k] === "" || P.num(calculo[k], NaN) === pad[k]) calculo[k] = "";
       const linha = {
         id,
         nome,

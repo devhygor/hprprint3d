@@ -195,23 +195,27 @@
               <label class="campo">Horas<input id="p-horas" type="number" inputmode="numeric" min="0" value="0"></label>
               <label class="campo">Minutos<input id="p-minutos" type="number" inputmode="numeric" min="0" max="59" value="0"></label>
             </div>
-            <div class="duas">
-              <label class="campo">Peças por impressão<input id="p-qtd" type="number" inputmode="numeric" min="1" value="1"></label>
-              <label class="campo">Reserva p/ falhas (%)<input id="p-falha" type="number" inputmode="decimal" placeholder="padrão"></label>
-            </div>
+            <label class="campo">Peças por impressão<input id="p-qtd" type="number" inputmode="numeric" min="1" value="1"></label>
             <p class="dica">Use o peso total do fatiador, com suportes e purga do AMS.</p>
           </fieldset>
 
           <fieldset class="painel">
-            <legend>Trabalho e materiais por peça</legend>
+            <legend>Valores usados na conta</legend>
+            <p class="dica">Vêm preenchidos com a aba Custos. Mude só para esta peça, ou coloque 0 para tirar da conta.</p>
             <div class="duas">
-              <label class="campo">Acabamento (min)<input id="p-trabalho" type="number" inputmode="numeric" min="0" value="0"></label>
+              <label class="campo">Preço do rolo (R$)<input id="p-preco-rolo" data-padrao="precoRolo" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Desgaste da impressora (R$/h)<input id="p-desgaste" data-padrao="desgasteHora" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Reserva p/ falhas (%)<input id="p-falha" data-padrao="falhaPct" type="number" inputmode="decimal" step="0.5" min="0"></label>
+              <label class="campo">Valor da hora de vocês (R$)<input id="p-valor-hora" data-padrao="valorHora" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Preparo da impressão (min)<input id="p-preparo" data-padrao="preparoMinutos" type="number" inputmode="numeric" min="0"></label>
+              <label class="campo">Acabamento por peça (min)<input id="p-trabalho" type="number" inputmode="numeric" min="0" value="0"></label>
+              <label class="campo">Embalagem (R$)<input id="p-embalagem" data-padrao="embalagem" type="number" inputmode="decimal" step="0.01" min="0"></label>
               <label class="campo">Tinta, cola, ímã (R$)<input id="p-acabamento" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
-              <label class="campo">Embalagem (R$)<input id="p-embalagem" type="number" inputmode="decimal" step="0.01" min="0" placeholder="padrão"></label>
               <label class="campo">Licença do modelo (R$)<input id="p-licenca" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
               <label class="campo">Outros (R$)<input id="p-outros" type="number" inputmode="decimal" step="0.01" min="0" value="0"></label>
-              <label class="campo">Margem desta peça (%)<input id="p-margem" type="number" inputmode="decimal" placeholder="padrão"></label>
+              <label class="campo">Margem de lucro (%)<input id="p-margem" data-padrao="margemPct" type="number" inputmode="decimal" step="1" min="0"></label>
             </div>
+            <button class="botao-texto discreto-texto" type="button" id="p-restaurar">Voltar aos valores da aba Custos</button>
           </fieldset>
         </form>
 

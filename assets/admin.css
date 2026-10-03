@@ -130,3 +130,5 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
 .barra-pedidos #filtros-pedidos { margin-bottom: 0; }
 .barra-pedidos-acoes { display: flex; align-items: center; gap: 12px; }
 .discreto-texto { color: var(--texto-3); font-weight: 500; }
+.campo input.personalizado { border-color: var(--sol); }
+#p-restaurar { align-self: flex-start; }
