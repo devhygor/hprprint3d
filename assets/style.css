@@ -1,21 +1,25 @@
 /* HPR Print 3D — estilos compartilhados (vitrine + área interna) */
 :root {
-  --noite: #17142e;
-  --noite-2: #201c3d;
-  --noite-3: #2a2550;
-  --linha: #3a3468;
-  --texto: #f3f0ff;
-  --texto-2: #b9b2dd;
-  --texto-3: #8b84b3;
-  --coral: #ff7a5c;
-  --menta: #42d9b4;
-  --sol: #ffcb47;
-  --lilas: #a98bff;
+  /* Cores tiradas da logo: fundo roxo-noite, roxo neon e branco cromado */
+  --noite: #110628;
+  --noite-2: #1b0d3d;
+  --noite-3: #261552;
+  --linha: #3b2575;
+  --texto: #f6f2ff;
+  --texto-2: #c4b8e8;
+  --texto-3: #9284c2;
+  --neon: #8b3dff;
+  --neon-claro: #b98aff;
+  --brilho: 0 0 24px rgba(139, 61, 255, .55);
+  --coral: #ff7a8f;
+  --menta: #5ee0c8;
+  --sol: #b98aff;
+  --lilas: #a463ff;
   --erro: #ff6b81;
   --raio-g: 22px;
   --raio-m: 14px;
   --raio-p: 8px;
-  --fonte-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --fonte-display: "Exo 2", system-ui, sans-serif;
   --fonte-texto: "Figtree", system-ui, sans-serif;
   color-scheme: dark;
 }
@@ -33,7 +37,7 @@ body {
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; }
-:focus-visible { outline: 3px solid var(--sol); outline-offset: 3px; border-radius: 4px; }
+:focus-visible { outline: 3px solid var(--neon-claro); outline-offset: 3px; border-radius: 4px; }
 
 .envoltorio { width: min(1160px, 100% - 32px); margin-inline: auto; }
 
@@ -59,8 +63,8 @@ a { color: inherit; }
   text-decoration: none; transition: transform .12s ease, background .15s ease;
 }
 .botao:active { transform: translateY(1px); }
-.botao-principal { background: var(--sol); color: #241a00; }
-.botao-principal:hover { background: #ffd66e; }
+.botao-principal { background: var(--neon); color: #fff; box-shadow: var(--brilho); }
+.botao-principal:hover { background: #9b55ff; }
 .botao-contorno { background: transparent; color: var(--texto); box-shadow: inset 0 0 0 1.5px var(--linha); }
 .botao-contorno:hover { box-shadow: inset 0 0 0 1.5px var(--texto-2); }
 .botao-pequeno { padding: 9px 14px; font-size: .9rem; }
@@ -72,17 +76,18 @@ a { color: inherit; }
 .heroi-grade { display: grid; grid-template-columns: 1.25fr .75fr; gap: 48px; align-items: end; }
 .heroi h1 {
   font-family: var(--fonte-display);
-  font-weight: 800;
-  font-size: clamp(2.75rem, 7.4vw, 6.2rem);
-  line-height: .94;
-  letter-spacing: -0.035em;
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(2.6rem, 7vw, 5.9rem);
+  line-height: .98;
+  letter-spacing: -0.02em;
   margin: 0;
   max-width: 11ch;
   /* camadas de impressão: cada faixa horizontal é uma "layer" */
   background: repeating-linear-gradient(
     180deg,
-    var(--texto) 0 5px,
-    #d9d2ff 5px 6px
+    #ffffff 0 5px,
+    #cdb4ff 5px 6px
   );
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
@@ -97,7 +102,7 @@ a { color: inherit; }
 }
 @keyframes imprimir { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes bico { from { transform: translateY(var(--altura-h1, 260px)); opacity: 1; } 92% { opacity: 1; } to { transform: translateY(0); opacity: 0; } }
-.bico { position: absolute; left: 0; top: -14px; width: 100%; height: 3px; background: var(--coral); border-radius: 3px; box-shadow: 0 0 18px var(--coral); opacity: 0; pointer-events: none; }
+.bico { position: absolute; left: 0; top: -14px; width: 100%; height: 3px; background: var(--neon-claro); border-radius: 3px; box-shadow: 0 0 18px var(--neon); opacity: 0; pointer-events: none; }
 .heroi-titulo { position: relative; }
 
 .amostras { display: flex; gap: 8px; margin-top: 28px; }
@@ -138,10 +143,11 @@ a { color: inherit; }
 .passos h3 { margin: 0 0 6px; font-family: var(--fonte-display); font-size: 1.2rem; }
 .passos p { margin: 0; color: var(--texto-2); }
 
-.sob-medida { background: var(--lilas); color: #1c1240; border-radius: var(--raio-g); padding: clamp(28px, 5vw, 56px); display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
-.sob-medida h2 { color: #1c1240; }
+.sob-medida { background: radial-gradient(120% 140% at 0% 0%, #3a1680 0%, #1b0d3d 60%); border: 1.5px solid var(--neon); box-shadow: var(--brilho); color: var(--texto); border-radius: var(--raio-g); padding: clamp(28px, 5vw, 56px); display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+.sob-medida h2 { color: var(--texto); }
+.sob-medida p { color: var(--texto-2); }
 .sob-medida p { margin: 8px 0 0; max-width: 52ch; }
-.sob-medida .botao-principal { background: #1c1240; color: var(--texto); }
+
 
 .rodape { border-top: 1px solid var(--linha); padding: 28px 0 40px; color: var(--texto-3); font-size: .95rem; }
 .rodape .envoltorio { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
@@ -174,11 +180,11 @@ a { color: inherit; }
   border: 1.5px solid #d6ccf5; border-radius: var(--raio-p); padding: 11px 12px; width: 100%; min-width: 0; resize: vertical;
 }
 .campo-pedido input::placeholder, .campo-pedido textarea::placeholder { color: #9a90bf; }
-.campo-pedido input:focus, .campo-pedido textarea:focus { outline: none; border-color: #1c1240; }
-.pedido .botao-principal { background: #1c1240; color: var(--texto); margin-top: 4px; }
-.pedido .botao-principal:hover { background: #2e2163; }
+.campo-pedido input:focus, .campo-pedido textarea:focus { outline: none; border-color: var(--neon); }
+.pedido .botao-principal { background: var(--neon); color: #fff; margin-top: 4px; }
+.pedido .botao-principal:hover { background: #7a2bf0; }
 .pedido-erro { margin: 0; color: #b0153a; font-weight: 600; font-size: .92rem; }
-.pedido :focus-visible { outline-color: #1c1240; }
+.pedido :focus-visible { outline-color: var(--neon); }
 
 /* ---------- Destaques do Instagram ---------- */
 .grade-insta { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; align-items: start; }
@@ -211,3 +217,9 @@ section[id] { scroll-margin-top: 76px; }
 @media (hover: none) { .insta-legenda { display: none; } }
 @media (max-width: 560px) { .grade-insta-auto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
 .marca-foto { border-radius: 50%; object-fit: cover; }
+
+/* ---------- Logo ---------- */
+.marca-carretel { border-radius: 50%; box-shadow: 0 0 14px rgba(139, 61, 255, .6); }
+.heroi-logo { width: min(260px, 70%); height: auto; aspect-ratio: 1; margin: 0 0 24px; border-radius: 50%; filter: drop-shadow(0 0 28px rgba(139, 61, 255, .55)); }
+.heroi { background: radial-gradient(60% 80% at 85% 30%, rgba(139, 61, 255, .22), transparent 70%); }
+@media (max-width: 820px) { .heroi-logo { width: 150px; margin-bottom: 18px; } }
