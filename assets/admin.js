@@ -131,13 +131,15 @@
         avisar(`O e-mail ${data.session.user.email} não está na lista da equipe. Adicione na tabela "equipe" do Supabase.`, true, 10000);
         return;
       }
-      const [config, site, pecas] = await Promise.all([
+      const [config, site, ia, pecas] = await Promise.all([
         lerAjuste("config"),
         lerAjuste("site"),
+        lerAjuste("ia").catch(() => null),
         db.from("pecas").select("*").order("ordem").then(({ data, error }) => { if (error) throw error; return data; }),
       ]);
       estado.config = P.mesclar(P.CONFIG_PADRAO, config || {});
       estado.site = site || {};
+      estado.ia = ia || {};
       estado.pecas = (pecas || []).map(deLinhaPeca);
       estado.usuario = data.session.user.email;
       $("#quem").textContent = estado.usuario;
@@ -344,6 +346,86 @@
     $("#abrir-mw").href = /^https?:\/\/(www\.)?makerworld\.com\//i.test(u) ? u : "https://makerworld.com/";
   });
 
+  // ---------- Descrição com IA (OpenAI) ----------
+  const MODELOS_RESERVA = ["gpt-5.4-nano", "gpt-5-nano", "gpt-4.1-mini", "gpt-4o-mini"];
+  async function pedirDescricao(modelo, conteudo) {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + estado.ia.chave },
+      body: JSON.stringify({
+        model: modelo,
+        max_completion_tokens: 1200,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você escreve descrições curtas para a vitrine de uma pequena loja brasileira de peças impressas em 3D, a HPR Print 3D. " +
+              "Escreva em português do Brasil, em 1 ou 2 frases, com no máximo 150 caracteres. Tom simples e acolhedor, falando com o cliente. " +
+              "Diga o que é a peça e para que serve ou por que é legal. Não invente medidas, materiais, cores ou preço. Sem emojis, sem hashtags, sem aspas. " +
+              "Responda só com a descrição.",
+          },
+          { role: "user", content: conteudo },
+        ],
+      }),
+    });
+    const corpo = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const e = new Error(corpo?.error?.message || "Erro " + r.status);
+      e.status = r.status;
+      e.codigo = corpo?.error?.code || "";
+      throw e;
+    }
+    return String(corpo.choices?.[0]?.message?.content || "").trim().replace(/^["“]|["”]$/g, "");
+  }
+
+  $("#gerar-descricao").addEventListener("click", async () => {
+    const st = $("#status-ia");
+    st.hidden = false;
+    st.className = "dica";
+    if (!estado.ia?.chave) {
+      st.className = "dica erro";
+      st.textContent = "Cadastre a chave da OpenAI na aba Loja para usar a IA.";
+      return;
+    }
+    const nome = $("#p-nome").value.trim();
+    if (!nome) { st.className = "dica erro"; st.textContent = "Escreva o nome da peça primeiro."; $("#p-nome").focus(); return; }
+    const categoria = $("#p-categoria").value.trim();
+    const texto = `Peça: ${nome}${categoria ? `\nCategoria: ${categoria}` : ""}${$("#p-descricao").value.trim() ? `\nIdeia atual da descrição: ${$("#p-descricao").value.trim()}` : ""}`;
+    const foto = estado.fotoNova?.dataUrl || urlFoto(estado.fotoAtual);
+    const comFoto = foto ? [{ type: "text", text: texto + "\nUse a foto para entender a peça." }, { type: "image_url", image_url: { url: foto, detail: "low" } }] : texto;
+    const botao = $("#gerar-descricao");
+    botao.disabled = true;
+    st.textContent = "Escrevendo a descrição…";
+    const modelos = [...new Set([estado.ia.modelo, ...MODELOS_RESERVA].filter(Boolean))];
+    let resultado = "", ultimoErro = null;
+    try {
+      for (const m of modelos) {
+        try {
+          resultado = await pedirDescricao(m, comFoto);
+        } catch (e) {
+          ultimoErro = e;
+          // Foto inacessível para a OpenAI: tenta só com o texto
+          if (foto && /image|url|download/i.test(e.message) && e.status === 400) {
+            try { resultado = await pedirDescricao(m, texto); } catch (e2) { ultimoErro = e2; }
+          }
+          if (!resultado && (e.status === 401 || e.status === 429 || e.codigo === "insufficient_quota")) break;
+        }
+        if (resultado) break;
+      }
+      if (!resultado) throw ultimoErro || new Error("a IA não respondeu");
+      $("#p-descricao").value = resultado.slice(0, 160);
+      st.textContent = "Pronto. Revise e ajuste se quiser; clicar de novo gera outra opção.";
+    } catch (e) {
+      st.className = "dica erro";
+      st.textContent =
+        e.status === 401 ? "A chave da OpenAI foi recusada. Confira ou gere uma nova na aba Loja." :
+        e.status === 429 || e.codigo === "insufficient_quota" ? "A OpenAI recusou por limite ou falta de crédito na conta." :
+        "Não consegui gerar: " + e.message;
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
   // ---------- Salvar peça ----------
   $("#salvar-peca").addEventListener("click", async () => {
     const f = lerFormulario();
@@ -448,10 +530,22 @@
 
   // ---------- Loja ----------
   function preencherLoja() {
+    $("#l-ia-chave").value = estado.ia?.chave || "";
+    $("#l-ia-modelo").value = estado.ia?.modelo || "";
     $("#l-whatsapp").value = estado.site.whatsapp || "";
     $("#l-instagram").value = estado.site.instagram || "https://www.instagram.com/hprprint3d/";
     $("#l-destaques").value = (estado.site.destaquesInstagram || []).join("\n");
   }
+  $("#salvar-ia").addEventListener("click", async () => {
+    const chave = $("#l-ia-chave").value.trim();
+    if (chave && !/^sk-[A-Za-z0-9_-]{20,}$/.test(chave)) { avisar("Essa chave não parece da OpenAI. Ela começa com sk-.", true); return; }
+    estado.ia = { chave, modelo: $("#l-ia-modelo").value.trim() };
+    try {
+      await gravarAjuste("ia", estado.ia);
+      avisar(chave ? "Chave da IA salva." : "Chave da IA removida.");
+    } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
+  });
+
   $("#salvar-loja").addEventListener("click", async () => {
     let zap = $("#l-whatsapp").value.replace(/\D/g, "");
     if (zap && zap.length <= 11) zap = "55" + zap;

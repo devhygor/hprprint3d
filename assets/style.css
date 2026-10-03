@@ -195,3 +195,19 @@ a { color: inherit; }
 section[id] { scroll-margin-top: 76px; }
 .pedido-ok { margin: 0; background: #e3f9f1; color: #0b5a45; border-radius: var(--raio-p); padding: 10px 12px; font-size: .95rem; }
 .pedido-ok a { color: #0b5a45; font-weight: 700; }
+
+/* ---------- Posts automáticos do Instagram ---------- */
+.grade-insta-auto { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.insta-post { position: relative; display: block; aspect-ratio: 1; border-radius: var(--raio-m); overflow: hidden; background: var(--noite-2); text-decoration: none; }
+.insta-post img { width: 100%; height: 100%; object-fit: cover; }
+.insta-tipo { position: absolute; top: 10px; left: 10px; font-size: .78rem; font-weight: 600; background: rgba(23, 20, 46, .8); color: var(--texto); padding: 4px 9px; border-radius: 999px; }
+.insta-legenda {
+  position: absolute; inset: auto 0 0 0; padding: 28px 14px 12px; font-size: .88rem; line-height: 1.35; color: #fff;
+  background: linear-gradient(to top, rgba(12, 10, 26, .88), transparent);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  opacity: 0; transition: opacity .2s ease;
+}
+.insta-post:hover .insta-legenda, .insta-post:focus-visible .insta-legenda { opacity: 1; }
+@media (hover: none) { .insta-legenda { display: none; } }
+@media (max-width: 560px) { .grade-insta-auto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
+.marca-foto { border-radius: 50%; object-fit: cover; }

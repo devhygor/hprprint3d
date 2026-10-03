@@ -147,7 +147,35 @@
   }
 
   // ---------- Destaques do Instagram ----------
-  function desenharInstagram() {
+  // Posts automáticos (data/instagram.json, atualizado 1x por dia). Sem eles, usa os links colados na oficina.
+  async function desenharInstagram() {
+    try {
+      const r = await fetch("data/instagram.json" + semCache);
+      if (r.ok) {
+        const dados = await r.json();
+        // Enquanto não houver um arquivo de logo próprio, usa a foto do perfil do Instagram
+        if (dados.perfil?.foto && !document.querySelector(".marca-carretel[data-logo-fixo]")) {
+          document.querySelectorAll(".marca-carretel").forEach((img) => { img.src = dados.perfil.foto; img.classList.add("marca-foto"); });
+        }
+        const posts = (dados.posts || []).filter((p) => p.imagem && /^https:\/\/(www\.)?instagram\.com\//.test(p.link)).slice(0, 6);
+        if (posts.length) {
+          document.getElementById("grade-insta").className = "grade-insta-auto";
+          document.getElementById("grade-insta").innerHTML = posts
+            .map((p) => `<a class="insta-post" href="${esc(p.link)}" target="_blank" rel="noopener">
+              <img src="${esc(p.imagem)}" alt="${esc(p.legenda ? p.legenda.slice(0, 120) : "Post do Instagram da HPR Print 3D")}" loading="lazy">
+              ${p.tipo === "VIDEO" ? `<span class="insta-tipo">Vídeo</span>` : ""}
+              ${p.legenda ? `<span class="insta-legenda">${esc(p.legenda)}</span>` : ""}
+            </a>`)
+            .join("");
+          document.getElementById("instagram").hidden = false;
+          return;
+        }
+      }
+    } catch {}
+    desenharDestaquesManuais();
+  }
+
+  function desenharDestaquesManuais() {
     const links = (site.destaquesInstagram || [])
       .map((u) => String(u).trim())
       .map((u) => u.match(/^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/))

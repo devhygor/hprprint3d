@@ -1,0 +1,44 @@
+name: Atualizar posts do Instagram
+
+# Uma vez por dia busca os 6 últimos posts (via Behold) e guarda no site.
+on:
+  schedule:
+    - cron: "41 10 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - data/instagram-fonte.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Buscar posts
+        run: python scripts/instagram.py
+
+      - name: Salvar no site
+        run: |
+          git config user.name "hpr-oficina"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/instagram.json img/insta img/perfil-instagram.jpg 2>/dev/null || true
+          git diff --cached --quiet && { echo "Nada mudou."; exit 0; }
+          git commit -m "Instagram: posts atualizados"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((i * 3))
+          done
+          exit 1

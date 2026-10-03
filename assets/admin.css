@@ -132,3 +132,5 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
 .discreto-texto { color: var(--texto-3); font-weight: 500; }
 .campo input.personalizado { border-color: var(--sol); }
 #p-restaurar { align-self: flex-start; }
+.campo-com-acao { display: flex; flex-direction: column; gap: 8px; }
+.campo-com-acao .botao { align-self: flex-start; }

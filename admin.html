@@ -176,7 +176,11 @@
               <label class="campo">Ordem na vitrine<input id="p-ordem" type="number" inputmode="numeric" value="0"></label>
             </div>
             <datalist id="lista-categorias"></datalist>
-            <label class="campo">Descrição curta<textarea id="p-descricao" rows="2" maxlength="160"></textarea></label>
+            <div class="campo-com-acao">
+              <label class="campo">Descrição curta<textarea id="p-descricao" rows="2" maxlength="160"></textarea></label>
+              <button class="botao botao-contorno botao-pequeno" type="button" id="gerar-descricao">Gerar com IA</button>
+              <p class="dica" id="status-ia" hidden></p>
+            </div>
             <div class="foto-campo">
               <div class="foto-previa" id="foto-previa"><span>Sem foto</span></div>
               <div>
@@ -315,6 +319,12 @@
         </label>
         <p class="dica">Um link por linha, até 9. No Instagram, abra o post, toque nos três pontinhos e em "Copiar link". Eles aparecem na vitrine na ordem desta lista.</p>
         <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
+        <hr>
+        <h2 class="titulo-painel">Descrição com IA</h2>
+        <label class="campo">Chave da API da OpenAI<input id="l-ia-chave" type="password" autocomplete="off" placeholder="sk-proj-..."></label>
+        <label class="campo">Modelo<input id="l-ia-modelo" placeholder="gpt-5.4-nano"></label>
+        <p class="dica">A chave fica guardada no Supabase e só vocês, logados, conseguem ler. Ela nunca aparece no site público. Defina um limite de gastos no painel da OpenAI.</p>
+        <button class="botao botao-contorno" type="button" id="salvar-ia">Salvar chave da IA</button>
         <hr>
         <p class="dica">Conectado como <strong id="quem"></strong>.</p>
         <button class="botao botao-contorno botao-pequeno" type="button" id="sair">Sair deste aparelho</button>
