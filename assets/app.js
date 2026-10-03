@@ -196,6 +196,16 @@
       return;
     }
     erro.hidden = true;
+    // O WhatsApp abre sozinho no fim. No computador, reservamos a aba agora (no clique),
+    // porque o navegador bloqueia abas abertas depois de uma espera. No celular, o app abre direto.
+    const celular = matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    let aba = null;
+    if (!celular) {
+      try {
+        aba = window.open("", "_blank");
+        if (aba) aba.document.write('<!doctype html><meta charset="utf-8"><title>Abrindo o WhatsApp…</title><body style="margin:0;display:grid;place-items:center;height:100vh;background:#110628;color:#f6f2ff;font:600 18px system-ui,sans-serif">Registrando seu pedido e abrindo o WhatsApp…</body>');
+      } catch { aba = null; }
+    }
     const botao = document.getElementById("pedido-enviar");
     botao.disabled = true;
     botao.textContent = refs.length ? "Enviando imagens…" : "Enviando…";
@@ -245,11 +255,20 @@
     const link = `https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`;
     ok.innerHTML = `<strong>Pedido ${codigo} ${gravado ? "registrado" : "pronto"}!</strong> ` +
       (gravado && pedido.email ? `Você vai receber o andamento em ${esc(pedido.email)}. ` : "") +
-      `Agora é só mandar no WhatsApp:<a class="botao botao-principal pedido-zap" href="${link}" target="_blank" rel="noopener">Abrir o WhatsApp com o pedido</a>`;
+      `Estamos abrindo o WhatsApp com a mensagem pronta, é só tocar em enviar. Se não abriu:<a class="botao botao-principal pedido-zap" href="${link}" target="_blank" rel="noopener">Abrir o WhatsApp com o pedido</a>`;
     ok.hidden = false;
     botao.textContent = "Enviar pedido";
     botao.disabled = false;
     ok.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+    // Abre o WhatsApp com a mensagem pronta
+    if (aba && !aba.closed) {
+      aba.location.href = link;
+    } else if (celular) {
+      window.location.href = link;
+    } else {
+      window.open(link, "_blank", "noopener");
+    }
     if (gravado) {
       form.reset();
       refs.forEach((r) => URL.revokeObjectURL(r.url));

@@ -42,6 +42,7 @@
     const [titulo, mensagem] = TEXTOS[status] || TEXTOS.novo;
     const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
+      keepalive: true,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         service_id: cfg.servico,
