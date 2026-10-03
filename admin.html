@@ -85,6 +85,7 @@
               <label class="campo">Nome<input id="o-cliente" required></label>
               <label class="campo">WhatsApp do cliente<input id="o-telefone" inputmode="tel" placeholder="61 99999-9999"></label>
             </div>
+            <label class="campo">E-mail do cliente<input id="o-email" type="email" placeholder="Para avisar o andamento"></label>
             <label class="campo">Cidade e bairro<input id="o-cidade"></label>
           </fieldset>
 
@@ -100,6 +101,10 @@
               <label class="campo">Entrega combinada<input id="o-entrega" type="date"></label>
             </div>
             <label class="campo">Detalhes<textarea id="o-detalhes" rows="3"></textarea></label>
+            <div id="o-refs-bloco" hidden>
+              <p class="rotulo">Imagens de referência do cliente</p>
+              <div class="refs-adm" id="o-refs"></div>
+            </div>
           </fieldset>
 
           <fieldset class="painel">
@@ -117,6 +122,7 @@
             <label class="campo">Status
               <select id="o-status"></select>
             </label>
+            <label class="marcar" id="o-avisar-campo"><input id="o-avisar" type="checkbox" checked> Avisar o cliente por e-mail ao mudar o status</label>
             <p class="rotulo">Código</p>
             <p class="codigo-pedido" id="o-codigo">—</p>
             <dl class="decomposicao" id="o-contas"></dl>
@@ -321,6 +327,18 @@
         <p class="dica">Um link por linha, até 9. No Instagram, abra o post, toque nos três pontinhos e em "Copiar link". Eles aparecem na vitrine na ordem desta lista.</p>
         <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
         <hr>
+        <h2 class="titulo-painel">E-mails para clientes (EmailJS)</h2>
+        <div class="duas">
+          <label class="campo">Service ID<input id="l-email-servico" placeholder="service_..."></label>
+          <label class="campo">Template ID<input id="l-email-template" placeholder="template_..."></label>
+        </div>
+        <label class="campo">Public Key<input id="l-email-chave" placeholder="Em Account > General"></label>
+        <p class="dica">Com isso preenchido, o cliente recebe um e-mail quando faz o pedido e a cada mudança de status. Plano gratuito: 200 e-mails por mês.</p>
+        <div class="acoes">
+          <button class="botao botao-contorno" type="button" id="salvar-email">Salvar e-mail</button>
+          <button class="botao botao-contorno" type="button" id="testar-email">Mandar e-mail de teste para mim</button>
+        </div>
+        <hr>
         <h2 class="titulo-painel">Descrição com IA</h2>
         <label class="campo">Chave da API da OpenAI<input id="l-ia-chave" type="password" autocomplete="off" placeholder="sk-proj-..."></label>
         <label class="campo">Modelo<input id="l-ia-modelo" placeholder="gpt-5.4-nano"></label>
@@ -337,6 +355,7 @@
   <script src="assets/supabase-config.js"></script>
   <script src="assets/precificador.js"></script>
   <script src="assets/admin.js"></script>
+  <script src="assets/email.js"></script>
   <script src="assets/pedidos.js"></script>
 </body>
 </html>

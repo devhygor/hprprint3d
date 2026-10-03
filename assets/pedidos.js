@@ -20,7 +20,7 @@
 
   // ---------- Supabase ----------
   let canal = null;
-  const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "cidade", "peca", "peca_id",
+  const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "cliente_id", "referencias", "cidade", "peca", "peca_id",
     "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
@@ -161,6 +161,7 @@
           <p class="cp-cliente">${esc(p.cliente || "Cliente sem nome")}${p.cidade ? `, ${esc(p.cidade)}` : ""}</p>
           <div class="cp-info">
             ${entrega}
+            ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
             ${Number.isFinite(c.valor) ? `<span>${brl(c.valor)}${c.falta > 0.004 ? `, falta ${brl(c.falta)}` : c.valor > 0 ? ", pago" : ""}</span>` : ""}
           </div>
           <div class="cp-acoes">
@@ -181,6 +182,14 @@
     desenharLista();
   });
 
+  // E-mail para o cliente quando o status muda (EmailJS, configurado na aba Loja)
+  async function avisarCliente(p) {
+    const cfg = estado.site?.email;
+    if (!window.HPR_EMAIL?.configurado(cfg) || !p.email) return "";
+    const r = await window.HPR_EMAIL.enviarEmailPedido({ ...cfg, whatsapp: estado.site.whatsapp }, p, p.status).catch((e) => ({ ok: false, motivo: e.message }));
+    return r.ok ? ` E-mail enviado para ${p.email}.` : " (o e-mail para o cliente falhou)";
+  }
+
   // Mudar status direto na lista
   $("#lista-pedidos").addEventListener("change", async (e) => {
     const sel = e.target.closest("[data-status]");
@@ -195,6 +204,8 @@
       p.atualizadoEm = agora();
       await salvarPedido(p);
       avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.`);
+      const extra = await avisarCliente(p);
+      if (extra) avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.${extra}`, extra.includes("falhou"), 6000);
     } catch (err) {
       p.status = anterior;
       p.historico.pop();
@@ -210,7 +221,7 @@
 
   // ---------- Editor de pedido ----------
   const CAMPOS = {
-    cliente: "#o-cliente", telefone: "#o-telefone", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
+    cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
     cor: "#o-cor", prazo: "#o-prazo", entrega: "#o-entrega", detalhes: "#o-detalhes", valor: "#o-valor", sinal: "#o-sinal",
     notas: "#o-notas", mensagem: "#o-mensagem", status: "#o-status",
   };
@@ -226,8 +237,26 @@
     $("#o-status-colar").textContent = "Funciona com as mensagens enviadas pelo formulário do site. Pedidos que chegam de outro jeito, preencha à mão.";
     $("#o-excluir").hidden = !existente;
     $("#bloco-colar").hidden = !!existente;
+    const comEmail = window.HPR_EMAIL?.configurado(estado.site?.email);
+    $("#o-avisar-campo").hidden = !comEmail;
+    $("#o-avisar").checked = true;
+    desenharReferencias(atual.referencias || []);
     mostrar("pedido");
     atualizarLado();
+  }
+
+  // Imagens de referência: ficam num armazenamento privado, então geramos links temporários
+  async function desenharReferencias(caminhos) {
+    const bloco = $("#o-refs-bloco");
+    bloco.hidden = !caminhos.length;
+    if (!caminhos.length) return;
+    $("#o-refs").innerHTML = `<p class="dica">Carregando imagens…</p>`;
+    const { data, error } = await db.storage.from("referencias").createSignedUrls(caminhos, 3600);
+    if (error || !data) { $("#o-refs").innerHTML = `<p class="dica erro">Não consegui abrir as imagens: ${esc(erroLegivel(error))}</p>`; return; }
+    $("#o-refs").innerHTML = data
+      .filter((d) => d.signedUrl)
+      .map((d, i) => `<a href="${esc(d.signedUrl)}" target="_blank" rel="noopener"><img src="${esc(d.signedUrl)}" alt="Referência ${i + 1} enviada pelo cliente"></a>`)
+      .join("");
   }
 
   function lerForm() {
@@ -327,7 +356,9 @@
     $("#o-salvar").disabled = true;
     try {
       await salvarPedido(pedido);
-      avisar(`Pedido ${id} salvo.`);
+      const mudouStatus = !existente || existente.status !== pedido.status;
+      const extra = mudouStatus && existente && $("#o-avisar").checked ? await avisarCliente(pedido) : "";
+      avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
       mostrar("pedidos");
     } catch (e) {
       estado.pedidos = antes;

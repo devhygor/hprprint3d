@@ -80,24 +80,133 @@
     setTimeout(() => document.querySelector('#form-pedido [name="nome"]').focus({ preventScroll: true }), 400);
   });
 
-  document.getElementById("form-pedido").addEventListener("submit", (e) => {
+  // ---------- Sessão do cliente (se ele entrou em "Meus pedidos") ----------
+  function sessaoCliente() {
+    try {
+      const ref = (window.HPR_SUPABASE?.url || "").match(/https:\/\/([a-z0-9]+)\./)?.[1];
+      const s = JSON.parse(localStorage.getItem(`sb-${ref}-auth-token`) || "null");
+      if (!s?.access_token || !s.user || (s.expires_at && s.expires_at * 1000 < Date.now() + 60000)) return null;
+      return { token: s.access_token, id: s.user.id, email: s.user.email, nome: s.user.user_metadata?.full_name || s.user.user_metadata?.name || "" };
+    } catch { return null; }
+  }
+  const cliente = sessaoCliente();
+  if (cliente) {
+    const form = document.getElementById("form-pedido");
+    if (!form.email.value) form.email.value = cliente.email || "";
+    if (!form.nome.value) form.nome.value = cliente.nome || "";
+    document.getElementById("link-conta").textContent = "Minha conta";
+  }
+
+  // ---------- Imagens de referência ----------
+  const MAX_REFS = 3;
+  let refs = []; // { blob, url }
+  const caixaRefs = document.getElementById("referencias");
+  const botaoAdd = document.getElementById("ref-adicionar");
+
+  async function reduzir(arquivo) {
+    const img = await new Promise((ok, falha) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = falha;
+      i.src = URL.createObjectURL(arquivo);
+    });
+    const fator = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * fator);
+    c.height = Math.round(img.height * fator);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    return await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+  }
+  function desenharRefs() {
+    caixaRefs.querySelectorAll(".ref-item").forEach((el) => el.remove());
+    refs.forEach((r, i) => {
+      const el = document.createElement("div");
+      el.className = "ref-item";
+      el.innerHTML = `<img src="${r.url}" alt="Imagem de referência ${i + 1}"><button type="button" aria-label="Remover imagem ${i + 1}" data-remover="${i}">×</button>`;
+      caixaRefs.insertBefore(el, botaoAdd);
+    });
+    botaoAdd.hidden = refs.length >= MAX_REFS;
+  }
+  document.getElementById("ref-arquivos").addEventListener("change", async (e) => {
+    const erro = document.getElementById("pedido-erro");
+    for (const arq of [...e.target.files].slice(0, MAX_REFS - refs.length)) {
+      try {
+        const blob = await reduzir(arq);
+        refs.push({ blob, url: URL.createObjectURL(blob) });
+      } catch {
+        erro.textContent = `Não consegui abrir "${arq.name}". Use foto JPG, PNG ou WEBP.`;
+        erro.hidden = false;
+      }
+    }
+    e.target.value = "";
+    desenharRefs();
+  });
+  caixaRefs.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-remover]");
+    if (!b) return;
+    const [r] = refs.splice(Number(b.dataset.remover), 1);
+    URL.revokeObjectURL(r.url);
+    desenharRefs();
+  });
+
+  // ---------- Envio do pedido ----------
+  const sb = window.HPR_SUPABASE || {};
+  const cabecalhos = (extra = {}) => ({ apikey: sb.chave, ...(cliente ? { Authorization: "Bearer " + cliente.token } : {}), ...extra });
+  const comTempo = (promessa, ms) => Promise.race([promessa, new Promise((_, falha) => setTimeout(() => falha(new Error("tempo esgotado")), ms))]);
+
+  async function enviarReferencias(codigo) {
+    const caminhos = [];
+    for (let i = 0; i < refs.length; i++) {
+      const caminho = `${codigo}/${i + 1}-${Date.now().toString(36)}.jpg`;
+      try {
+        const r = await comTempo(fetch(`${sb.url}/storage/v1/object/referencias/${caminho}`, {
+          method: "POST", headers: cabecalhos({ "Content-Type": "image/jpeg" }), body: refs[i].blob,
+        }), 20000);
+        if (r.ok) caminhos.push(caminho);
+      } catch {}
+    }
+    return caminhos;
+  }
+  async function registrarPedido(pedido) {
+    if (!sb.url || !sb.chave) return false;
+    try {
+      const r = await comTempo(fetch(`${sb.url}/rest/v1/pedidos`, {
+        method: "POST",
+        headers: cabecalhos({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+        body: JSON.stringify(pedido),
+      }), 12000);
+      return r.ok;
+    } catch { return false; }
+  }
+
+  document.getElementById("form-pedido").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const f = new FormData(e.target);
+    const form = e.target;
+    const f = new FormData(form);
     const v = (k) => String(f.get(k) || "").trim();
     const erro = document.getElementById("pedido-erro");
+    const ok = document.getElementById("pedido-ok");
     const faltando = [!v("nome") && "seu nome", !v("peca") && "a peça ou ideia"].filter(Boolean);
-    if (faltando.length) {
-      erro.textContent = "Preencha " + faltando.join(" e ") + " para enviar.";
+    const emailRuim = v("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("email"));
+    if (faltando.length || emailRuim) {
+      erro.textContent = faltando.length ? "Preencha " + faltando.join(" e ") + " para enviar." : "Confira o e-mail: parece que falta alguma coisa.";
       erro.hidden = false;
-      e.target.querySelector(!v("nome") ? '[name="nome"]' : '[name="peca"]').focus();
+      form.querySelector(!v("nome") ? '[name="nome"]' : !v("peca") ? '[name="peca"]' : '[name="email"]').focus();
       return;
     }
     erro.hidden = true;
-    // Código curto pra vocês acharem o pedido depois: HPR-MMDD-XXX
+    const botao = document.getElementById("pedido-enviar");
+    botao.disabled = true;
+    botao.textContent = refs.length ? "Enviando imagens…" : "Enviando…";
+
+    // Código curto pra vocês acharem o pedido depois: HPR-MMDD-XXXX
     const hoje = new Date();
     const letras = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     const sorteio = Array.from(crypto.getRandomValues(new Uint8Array(4)), (n) => letras[n % letras.length]).join("");
     const codigo = `HPR-${String(hoje.getMonth() + 1).padStart(2, "0")}${String(hoje.getDate()).padStart(2, "0")}-${sorteio}`;
+
+    const caminhos = refs.length ? await enviarReferencias(codigo) : [];
     const detalhes = [
       `*Código:* ${codigo}`,
       `*Pedido:* ${v("peca")}`,
@@ -106,20 +215,16 @@
       v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,
       v("prazo") && `*Para quando:* ${v("prazo")}`,
       v("detalhes") && `*Detalhes:* ${v("detalhes")}`,
+      caminhos.length && `*Imagens de referência:* ${caminhos.length} enviada${caminhos.length > 1 ? "s" : ""} pelo site`,
     ].filter(Boolean);
     const texto = [`Oi! Meu nome é ${v("nome")} e vi o site da HPR Print 3D.`, "", ...detalhes].join("\n");
-    const link = `https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`;
-    const ok = document.getElementById("pedido-ok");
-    ok.innerHTML = `Pedido <strong>${codigo}</strong> pronto. Se o WhatsApp não abriu, <a href="${link}" target="_blank" rel="noopener">toque aqui para enviar</a>.`;
-    ok.hidden = false;
-    // Abre o WhatsApp já (precisa ser no mesmo clique, senão o navegador bloqueia)
-    window.open(link, "_blank", "noopener");
-    registrarPedido({
+    const pedido = {
       id: codigo,
       origem: "site",
       status: "novo",
       cliente: v("nome").slice(0, 120),
       telefone: v("telefone").replace(/[^\d+ ()-]/g, "").slice(0, 30),
+      email: v("email").toLowerCase().slice(0, 200) || null,
       cidade: v("cidade").slice(0, 160),
       peca: v("peca").slice(0, 300),
       quantidade: Math.min(10000, Math.max(1, parseInt(v("quantidade"), 10) || 1)),
@@ -127,24 +232,32 @@
       prazo: v("prazo").slice(0, 160),
       detalhes: v("detalhes").slice(0, 2000),
       mensagem: texto.slice(0, 4000),
+      referencias: caminhos,
       historico: [{ status: "novo", em: new Date().toISOString() }],
-    });
-  });
+      ...(cliente ? { cliente_id: cliente.id } : {}),
+    };
+    botao.textContent = "Registrando…";
+    const gravado = await registrarPedido(pedido);
+    if (gravado && pedido.email && window.HPR_EMAIL?.configurado(site.email)) {
+      window.HPR_EMAIL.enviarEmailPedido({ ...site.email, whatsapp: site.whatsapp }, pedido, "novo").catch(() => {});
+    }
 
-  // Grava o pedido no Supabase em segundo plano. Se falhar, o pedido ainda chega
-  // pelo WhatsApp e pode ser registrado na oficina colando a mensagem.
-  function registrarPedido(pedido) {
-    const cfg = window.HPR_SUPABASE;
-    if (!cfg?.url || !cfg?.chave) return;
-    try {
-      fetch(`${cfg.url}/rest/v1/pedidos`, {
-        method: "POST",
-        keepalive: true,
-        headers: { apikey: cfg.chave, "Content-Type": "application/json", Prefer: "return=minimal" },
-        body: JSON.stringify(pedido),
-      }).catch(() => {});
-    } catch {}
-  }
+    const link = `https://wa.me/${numeroZap()}?text=${encodeURIComponent(texto)}`;
+    ok.innerHTML = `<strong>Pedido ${codigo} ${gravado ? "registrado" : "pronto"}!</strong> ` +
+      (gravado && pedido.email ? `Você vai receber o andamento em ${esc(pedido.email)}. ` : "") +
+      `Agora é só mandar no WhatsApp:<a class="botao botao-principal pedido-zap" href="${link}" target="_blank" rel="noopener">Abrir o WhatsApp com o pedido</a>`;
+    ok.hidden = false;
+    botao.textContent = "Enviar pedido";
+    botao.disabled = false;
+    ok.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (gravado) {
+      form.reset();
+      refs.forEach((r) => URL.revokeObjectURL(r.url));
+      refs = [];
+      desenharRefs();
+      if (cliente) { form.email.value = cliente.email || ""; form.nome.value = cliente.nome || ""; }
+    }
+  });
 
   // ---------- Destaques do Instagram ----------
   // Posts automáticos (data/instagram.json, atualizado 1x por dia). Sem eles, usa os links colados na oficina.
@@ -198,7 +311,6 @@
 
   // Dados vêm do Supabase; se ele não responder, usa os arquivos do próprio site como reserva.
   const semCache = "?v=" + Date.now();
-  const sb = window.HPR_SUPABASE || {};
   const lerSupabase = (caminho) =>
     fetch(`${sb.url}/rest/v1/${caminho}`, { headers: { apikey: sb.chave } }).then((r) => {
       if (!r.ok) throw new Error("supabase " + r.status);

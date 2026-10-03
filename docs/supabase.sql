@@ -50,6 +50,9 @@ create table if not exists public.pedidos (
   mensagem      text,
   historico     jsonb not null default '[]'::jsonb
 );
+alter table public.pedidos add column if not exists email       text;
+alter table public.pedidos add column if not exists cliente_id  uuid references auth.users(id) on delete set null;
+alter table public.pedidos add column if not exists referencias jsonb not null default '[]'::jsonb;
 alter table public.pedidos enable row level security;
 
 drop policy if exists "site registra pedido" on public.pedidos;
@@ -60,6 +63,10 @@ drop policy if exists "equipe exclui pedidos" on public.pedidos;
 
 -- O formulário do site só consegue CRIAR um pedido novo, com campos limitados.
 -- Não consegue ler, alterar nem apagar nada.
+drop function if exists public.pedido_do_site_valido(public.pedidos);
+drop policy if exists "cliente registra pedido" on public.pedidos;
+
+-- Visitante sem login
 create policy "site registra pedido" on public.pedidos
   for insert to anon
   with check (
@@ -69,6 +76,7 @@ create policy "site registra pedido" on public.pedidos
     and valor is null and sinal is null and notas is null and peca_id is null and entrega is null
     and char_length(coalesce(cliente, ''))  <= 120
     and char_length(coalesce(telefone, '')) <= 30
+    and char_length(coalesce(email, ''))    <= 200
     and char_length(coalesce(cidade, ''))   <= 160
     and char_length(coalesce(peca, ''))     <= 300
     and char_length(coalesce(cor, ''))      <= 120
@@ -76,6 +84,30 @@ create policy "site registra pedido" on public.pedidos
     and char_length(coalesce(detalhes, '')) <= 2000
     and char_length(coalesce(mensagem, '')) <= 4000
     and jsonb_array_length(historico) <= 1
+    and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
+    and cliente_id is null
+  );
+
+-- Cliente logado: o pedido fica ligado à conta dele
+create policy "cliente registra pedido" on public.pedidos
+  for insert to authenticated
+  with check (
+    origem = 'site'
+    and status = 'novo'
+    and id ~ '^HPR-[0-9]{4}-[A-Z0-9]{3,6}$'
+    and valor is null and sinal is null and notas is null and peca_id is null and entrega is null
+    and char_length(coalesce(cliente, ''))  <= 120
+    and char_length(coalesce(telefone, '')) <= 30
+    and char_length(coalesce(email, ''))    <= 200
+    and char_length(coalesce(cidade, ''))   <= 160
+    and char_length(coalesce(peca, ''))     <= 300
+    and char_length(coalesce(cor, ''))      <= 120
+    and char_length(coalesce(prazo, ''))    <= 160
+    and char_length(coalesce(detalhes, '')) <= 2000
+    and char_length(coalesce(mensagem, '')) <= 4000
+    and jsonb_array_length(historico) <= 1
+    and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
+    and cliente_id = auth.uid()
   );
 
 -- A equipe (logada com e-mail e senha) faz tudo.
@@ -152,7 +184,55 @@ create policy "equipe altera fotos" on storage.objects for update to authenticat
 create policy "equipe apaga fotos" on storage.objects for delete to authenticated
   using (bucket_id = 'fotos' and public.eh_equipe());
 
--- 6) Pedidos novos aparecem na hora na oficina (tempo real)
+-- 6) Área do cliente: cada cliente vê só os próprios pedidos, sem anotações internas.
+--    Vale para pedidos feitos logado ou com o mesmo e-mail (se o e-mail da conta foi confirmado).
+create or replace function public.meu_email_confirmado()
+returns text
+language sql stable security definer
+set search_path = ''
+as $$
+  select lower(email) from auth.users
+  where id = auth.uid() and email_confirmed_at is not null;
+$$;
+
+create or replace function public.meus_pedidos()
+returns table (
+  id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
+  cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer
+)
+language sql stable security definer
+set search_path = ''
+as $$
+  select p.id, p.criado_em, p.atualizado_em, p.status, p.peca, p.quantidade, p.cor, p.prazo, p.entrega,
+         p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias)
+  from public.pedidos p
+  where auth.uid() is not null
+    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+  order by p.criado_em desc
+  limit 100;
+$$;
+revoke all on function public.meus_pedidos() from public, anon;
+grant execute on function public.meus_pedidos() to authenticated;
+revoke all on function public.meu_email_confirmado() from public, anon;
+grant execute on function public.meu_email_confirmado() to authenticated;
+
+-- 7) Imagens de referência que o cliente manda no pedido (privadas: só a equipe vê)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('referencias', 'referencias', false, 5242880, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public = false, file_size_limit = 5242880,
+  allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+
+drop policy if exists "site envia referencias" on storage.objects;
+drop policy if exists "equipe ve referencias" on storage.objects;
+drop policy if exists "equipe apaga referencias" on storage.objects;
+create policy "site envia referencias" on storage.objects for insert to anon, authenticated
+  with check (bucket_id = 'referencias' and (storage.foldername(name))[1] ~ '^HPR-[0-9]{4}-[A-Z0-9]{3,6}$');
+create policy "equipe ve referencias" on storage.objects for select to authenticated
+  using (bucket_id = 'referencias' and public.eh_equipe());
+create policy "equipe apaga referencias" on storage.objects for delete to authenticated
+  using (bucket_id = 'referencias' and public.eh_equipe());
+
+-- 8) Pedidos novos aparecem na hora na oficina (tempo real)
 do $$
 begin
   alter publication supabase_realtime add table public.pedidos;

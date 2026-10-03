@@ -531,11 +531,33 @@
   // ---------- Loja ----------
   function preencherLoja() {
     $("#l-ia-chave").value = estado.ia?.chave || "";
+    $("#l-email-servico").value = estado.site.email?.servico || "";
+    $("#l-email-template").value = estado.site.email?.template || "";
+    $("#l-email-chave").value = estado.site.email?.chave || "";
     $("#l-ia-modelo").value = estado.ia?.modelo || "";
     $("#l-whatsapp").value = estado.site.whatsapp || "";
     $("#l-instagram").value = estado.site.instagram || "https://www.instagram.com/hprprint3d/";
     $("#l-destaques").value = (estado.site.destaquesInstagram || []).join("\n");
   }
+  function lerEmailForm() {
+    return { servico: $("#l-email-servico").value.trim(), template: $("#l-email-template").value.trim(), chave: $("#l-email-chave").value.trim() };
+  }
+  $("#salvar-email").addEventListener("click", async () => {
+    estado.site = { ...estado.site, email: lerEmailForm() };
+    try {
+      await gravarAjuste("site", estado.site);
+      avisar("Configuração de e-mail salva.");
+    } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
+  });
+  $("#testar-email").addEventListener("click", async () => {
+    const r = await window.HPR_EMAIL.enviarEmailPedido(
+      { ...lerEmailForm(), whatsapp: estado.site.whatsapp },
+      { id: "HPR-TESTE", cliente: "Equipe HPR", email: estado.usuario, peca: "Peça de teste" },
+      "imprimindo"
+    ).catch((e) => ({ ok: false, motivo: e.message }));
+    avisar(r.ok ? `E-mail de teste enviado para ${estado.usuario}. Confira a caixa de entrada e o spam.` : "Não enviou: " + r.motivo, !r.ok, 9000);
+  });
+
   $("#salvar-ia").addEventListener("click", async () => {
     const chave = $("#l-ia-chave").value.trim();
     if (chave && !/^sk-[A-Za-z0-9_-]{20,}$/.test(chave)) { avisar("Essa chave não parece da OpenAI. Ela começa com sk-.", true); return; }

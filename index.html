@@ -28,6 +28,7 @@
         <a class="discreto" href="#pecas">Peças</a>
         <a class="discreto" href="#como-pedir">Como pedir</a>
         <a class="discreto" data-link="instagram" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Instagram</a>
+        <a class="discreto" href="conta.html" id="link-conta">Meus pedidos</a>
         <a class="botao botao-principal botao-pequeno" href="#pedido">Fazer pedido</a>
       </nav>
     </div>
@@ -107,13 +108,14 @@
         <div class="sob-medida">
           <div>
             <h2>Faça seu pedido</h2>
-            <p>Preencha o que já sabe e toque em enviar. O WhatsApp abre com a mensagem pronta, é só mandar. Vale peça do catálogo ou uma ideia sua: chaveiro com nome, caneca temática, lembrancinha de festa, peça de reposição.</p>
+            <p>Preencha o que já sabe e toque em enviar. O pedido fica registrado aqui no site e o WhatsApp abre com a mensagem pronta, é só mandar. Com e-mail, você acompanha cada etapa em <a href="conta.html">Meus pedidos</a>. Vale peça do catálogo ou uma ideia sua: chaveiro com nome, caneca temática, lembrancinha de festa, peça de reposição.</p>
           </div>
           <form id="form-pedido" class="pedido" novalidate>
             <div class="pedido-duas">
               <label class="campo-pedido">Seu nome<input name="nome" autocomplete="name" required></label>
               <label class="campo-pedido">Seu WhatsApp<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="61 99999-9999"></label>
             </div>
+            <label class="campo-pedido">Seu e-mail<input name="email" type="email" autocomplete="email" placeholder="Pra receber o andamento do pedido"></label>
             <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
             <div class="pedido-duas">
               <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
@@ -122,9 +124,19 @@
             <label class="campo-pedido">Cidade e bairro<input name="cidade" autocomplete="address-level2" placeholder="Pra combinar entrega ou envio"></label>
             <label class="campo-pedido">Para quando?<input name="prazo" placeholder="Ex.: aniversário dia 20"></label>
             <label class="campo-pedido">Detalhes<textarea name="detalhes" rows="3" placeholder="Tamanho, nome para personalizar, link de referência…"></textarea></label>
+            <div class="campo-pedido">
+              <span>Imagens de referência <small>(opcional, até 3)</small></span>
+              <div class="referencias" id="referencias">
+                <label class="ref-adicionar" id="ref-adicionar">
+                  <input type="file" id="ref-arquivos" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                  <span aria-hidden="true">+</span> Adicionar foto
+                </label>
+              </div>
+              <small class="ref-dica">Um print, uma foto ou um modelo que você viu. Só a gente vê essas imagens.</small>
+            </div>
             <p class="pedido-erro" id="pedido-erro" role="alert" hidden></p>
             <p class="pedido-ok" id="pedido-ok" role="status" hidden></p>
-            <button class="botao botao-principal" type="submit">Enviar pelo WhatsApp</button>
+            <button class="botao botao-principal" type="submit" id="pedido-enviar">Enviar pedido</button>
           </form>
         </div>
       </div>
@@ -139,6 +151,7 @@
   </footer>
 
   <script src="assets/supabase-config.js"></script>
+  <script src="assets/email.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
