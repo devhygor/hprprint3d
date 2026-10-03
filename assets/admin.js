@@ -93,6 +93,8 @@
     else mostrar(b.dataset.aba);
   });
   document.addEventListener("click", (e) => {
+    const ir = e.target.closest("[data-aba-ir]");
+    if (ir) { mostrar(ir.dataset.abaIr); return; }
     const b = e.target.closest("[data-ir]");
     if (b) abrirEditor(null);
   });
@@ -539,14 +541,28 @@
     $("#l-instagram").value = estado.site.instagram || "https://www.instagram.com/hprprint3d/";
     $("#l-destaques").value = (estado.site.destaquesInstagram || []).join("\n");
   }
+  // Mensagens de erro do EmailJS em português
+  function traduzirEmailJS(m) {
+    m = String(m || "");
+    if (/recipients address is empty|recipient/i.test(m)) return "no template do EmailJS, o campo To Email precisa ser {{to_email}}.";
+    if (/service ID is invalid|service.*not found/i.test(m)) return "o Service ID está errado.";
+    if (/template ID is invalid|template.*not found/i.test(m)) return "o Template ID está errado.";
+    if (/public key is invalid|user.*invalid/i.test(m)) return "a Public Key está errada (Account > General).";
+    if (/insufficient authentication scopes|Gmail_API/i.test(m)) return "reconecte o Gmail no EmailJS e marque a permissão para enviar e-mails em seu nome.";
+    if (/origin|domain/i.test(m)) return "o EmailJS está bloqueando este site: libere devhygor.github.io nos domínios permitidos.";
+    if (/limit|quota/i.test(m)) return "o limite gratuito de e-mails do mês acabou.";
+    return m;
+  }
   function lerEmailForm() {
     return { servico: $("#l-email-servico").value.trim(), template: $("#l-email-template").value.trim(), chave: $("#l-email-chave").value.trim() };
   }
   $("#salvar-email").addEventListener("click", async () => {
-    estado.site = { ...estado.site, email: lerEmailForm() };
+    const cfg = lerEmailForm();
+    if (!window.HPR_EMAIL.configurado(cfg)) { avisar("Preencha Service ID, Template ID e Public Key.", true); return; }
+    estado.site = { ...estado.site, email: cfg };
     try {
       await gravarAjuste("site", estado.site);
-      avisar("Configuração de e-mail salva.");
+      avisar("Configuração de e-mail salva. Os clientes já passam a receber os e-mails.");
     } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
   });
   $("#testar-email").addEventListener("click", async () => {
@@ -555,7 +571,11 @@
       { id: "HPR-TESTE", cliente: "Equipe HPR", email: estado.usuario, peca: "Peça de teste" },
       "imprimindo"
     ).catch((e) => ({ ok: false, motivo: e.message }));
-    avisar(r.ok ? `E-mail de teste enviado para ${estado.usuario}. Confira a caixa de entrada e o spam.` : "Não enviou: " + r.motivo, !r.ok, 9000);
+    if (r.ok && !window.HPR_EMAIL.configurado(estado.site.email)) {
+      estado.site = { ...estado.site, email: lerEmailForm() };
+      await gravarAjuste("site", estado.site).catch(() => {});
+    }
+    avisar(r.ok ? `E-mail de teste enviado para ${estado.usuario}. A configuração ficou salva. Confira a caixa de entrada e o spam.` : "Não enviou: " + traduzirEmailJS(r.motivo), !r.ok, 12000);
   });
 
   $("#salvar-ia").addEventListener("click", async () => {

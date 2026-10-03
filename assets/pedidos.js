@@ -55,6 +55,7 @@
   }
 
   async function abrirPedidos() {
+    $("#aviso-email").hidden = !!window.HPR_EMAIL?.configurado(estado.site?.email);
     $("#lista-pedidos").innerHTML = `<p class="dica">Carregando pedidos…</p>`;
     try {
       await carregar();
