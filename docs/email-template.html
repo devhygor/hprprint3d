@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <title>{{titulo}}</title>
+</head>
+<body style="margin:0;padding:0;background:#0b0420;">
+  <!-- Texto que aparece na prévia da caixa de entrada -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#0b0420;">{{mensagem}}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0b0420" style="background:#0b0420;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding:0 0 20px;">
+              <a href="https://devhygor.github.io/hprprint3d/" style="text-decoration:none;">
+                <img src="https://devhygor.github.io/hprprint3d/img/logo-192.png" width="96" height="96" alt="HPR Print 3D" style="display:block;width:96px;height:96px;border:0;border-radius:48px;">
+              </a>
+            </td>
+          </tr>
+
+          <!-- Cartão -->
+          <tr>
+            <td bgcolor="#1b0d3d" style="background:#1b0d3d;border:1px solid #3b2575;border-radius:20px;padding:32px 28px;">
+
+              <p style="margin:0 0 6px;font:600 13px Arial,Helvetica,sans-serif;color:#b98aff;letter-spacing:.5px;">Pedido {{codigo}}</p>
+              <h1 style="margin:0 0 16px;font:italic 900 28px/1.15 'Arial Black',Arial,Helvetica,sans-serif;color:#ffffff;">{{titulo}}</h1>
+
+              <p style="margin:0 0 6px;font:400 16px/1.55 Arial,Helvetica,sans-serif;color:#e9e2ff;">Oi, {{to_name}}!</p>
+              <p style="margin:0 0 24px;font:400 16px/1.55 Arial,Helvetica,sans-serif;color:#c4b8e8;">{{mensagem}}</p>
+
+              <!-- Andamento -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#140930" style="background:#140930;border-radius:14px;">
+                <tr>
+                  <td style="padding:18px 14px 16px;">
+                    {{{progresso}}}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Resumo -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 26px;">
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #3b2575;font:400 14px Arial,Helvetica,sans-serif;color:#9284c2;">Peça</td>
+                  <td align="right" style="padding:10px 0;border-bottom:1px solid #3b2575;font:600 14px Arial,Helvetica,sans-serif;color:#ffffff;">{{peca}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #3b2575;font:400 14px Arial,Helvetica,sans-serif;color:#9284c2;">Etapa atual</td>
+                  <td align="right" style="padding:10px 0;border-bottom:1px solid #3b2575;font:600 14px Arial,Helvetica,sans-serif;color:#b98aff;">{{etapa}}</td>
+                </tr>
+              </table>
+
+              <!-- Botões -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" bgcolor="#8b3dff" style="border-radius:999px;background:#8b3dff;">
+                    <a href="{{link_conta}}" style="display:block;padding:14px 22px;font:700 16px Arial,Helvetica,sans-serif;color:#ffffff;text-decoration:none;border-radius:999px;">Acompanhar meu pedido</a>
+                  </td>
+                </tr>
+                <tr><td height="12" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+                <tr>
+                  <td align="center" style="border-radius:999px;border:1.5px solid #3b2575;">
+                    <a href="{{whatsapp}}" style="display:block;padding:12px 22px;font:600 15px Arial,Helvetica,sans-serif;color:#e9e2ff;text-decoration:none;border-radius:999px;">Falar com a gente no WhatsApp</a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Rodapé -->
+          <tr>
+            <td align="center" style="padding:22px 12px 0;font:400 13px/1.6 Arial,Helvetica,sans-serif;color:#7d70ad;">
+              HPR Print 3D, peças impressas em 3D feitas por encomenda<br>
+              <a href="https://www.instagram.com/hprprint3d/" style="color:#b98aff;text-decoration:none;">@hprprint3d</a>
+              &nbsp;·&nbsp;
+              <a href="https://devhygor.github.io/hprprint3d/" style="color:#b98aff;text-decoration:none;">nosso site</a><br>
+              <span style="color:#5b4a8f;">Você recebeu este e-mail porque fez um pedido com a gente.</span>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

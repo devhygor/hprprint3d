@@ -12,7 +12,7 @@ alter table public.equipe enable row level security;
 
 insert into public.equipe (email) values
   ('hygor.k92@gmail.com'),
-  ('EMAIL_DA_PATRICCYA@exemplo.com')   -- troque pelo e-mail dela
+  ('patriccya.sousa@gmail.com')
 on conflict do nothing;
 
 create or replace function public.eh_equipe()
