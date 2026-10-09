@@ -37,12 +37,20 @@
     <!-- Conectar -->
     <section id="tela-conectar" class="painel estreito" hidden>
       <h1>Entrar na oficina</h1>
-      <p class="apoio">Pedidos, peças, custos e dados da loja. Use o e-mail e a senha criados no Supabase. O login fica salvo neste aparelho.</p>
-      <form id="form-conectar" class="campos">
-        <label class="campo">E-mail<input id="lp-email" type="email" autocomplete="username" required></label>
-        <label class="campo">Senha<input id="lp-senha" type="password" autocomplete="current-password" required></label>
-        <button class="botao botao-principal" type="submit">Entrar</button>
-      </form>
+      <p class="apoio">Pedidos, peças, custos e dados da loja. O login fica salvo neste aparelho.</p>
+      <div id="estado-banco" class="estado-banco" role="status" hidden></div>
+      <div class="campos" id="entrada-campos">
+        <button class="botao botao-google" type="button" id="entrar-google">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12s4.4 9.8 9.8 9.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z"/></svg>
+          Entrar com Google
+        </button>
+        <div class="ou"><span>ou com e-mail e senha</span></div>
+        <form id="form-conectar" class="campos">
+          <label class="campo">E-mail<input id="lp-email" type="email" autocomplete="username" required></label>
+          <label class="campo">Senha<input id="lp-senha" type="password" autocomplete="current-password" required></label>
+          <button class="botao botao-principal" type="submit">Entrar</button>
+        </form>
+      </div>
     </section>
 
     <!-- Pedidos -->
@@ -198,6 +206,40 @@
                 <p class="dica">Fotos da peça impressa por vocês vendem mais que a foto do MakerWorld.</p>
               </div>
             </div>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Cores disponíveis</legend>
+            <p class="dica">Toque nas cores que vocês fazem dessa peça. Elas aparecem na vitrine e no pedido do cliente.</p>
+            <div class="cores-opcoes" id="cores-opcoes" role="group" aria-label="Cores disponíveis"></div>
+            <div class="cor-nova">
+              <input type="color" id="cor-nova-hex" value="#8b3dff" aria-label="Escolher a cor">
+              <input id="cor-nova-nome" placeholder="Outra cor (ex.: Azul bebê, Seda dourada)" aria-label="Nome da outra cor">
+              <button class="botao botao-contorno botao-pequeno" type="button" id="cor-adicionar">Adicionar</button>
+            </div>
+            <label class="marcar"><input id="p-cor-personalizada" type="checkbox"> Aceita outras cores sob encomenda</label>
+          </fieldset>
+
+          <fieldset class="painel">
+            <legend>Características</legend>
+            <p class="dica">Medidas e peso da peça pronta. Aparecem para o cliente na vitrine.</p>
+            <div class="tres">
+              <label class="campo">Largura (cm)<input id="c-largura" type="number" inputmode="decimal" step="0.1" min="0"></label>
+              <label class="campo">Altura (cm)<input id="c-altura" type="number" inputmode="decimal" step="0.1" min="0"></label>
+              <label class="campo">Profundidade (cm)<input id="c-profundidade" type="number" inputmode="decimal" step="0.1" min="0"></label>
+            </div>
+            <div class="duas">
+              <label class="campo">Peso da peça (g)<input id="c-peso" type="number" inputmode="decimal" step="1" min="0" placeholder="sem suportes"></label>
+              <label class="campo">Material
+                <input id="c-material" list="lista-materiais" placeholder="PLA">
+              </label>
+            </div>
+            <datalist id="lista-materiais">
+              <option value="PLA"><option value="PLA Silk"><option value="PLA Matte"><option value="PETG"><option value="ABS"><option value="ASA"><option value="TPU (flexível)"><option value="Resina">
+            </datalist>
+            <p class="rotulo">Outras características</p>
+            <div id="c-extras" class="c-extras"></div>
+            <button class="botao-texto discreto-texto" type="button" id="c-extra-adicionar">+ Adicionar característica (ex.: Articulado, Encaixe para celular)</button>
           </fieldset>
 
           <fieldset class="painel">

@@ -137,8 +137,19 @@
     </article>`;
   }
 
+  const comLimite = (promessa, ms) =>
+    Promise.race([promessa, new Promise((_, falha) => setTimeout(() => falha(new Error("tempo esgotado")), ms))]);
+
   async function carregar() {
-    const { data } = await db.auth.getSession();
+    let noAr = false;
+    try { noAr = (await comLimite(fetch(`${cfg.url}/auth/v1/health`, { headers: { apikey: cfg.chave } }), 8000)).status < 500; } catch {}
+    if (!noAr) {
+      mostrar("entrar");
+      avisar("Estamos com uma instabilidade e não dá para entrar agora. Tente de novo em alguns minutos ou fale com a gente no WhatsApp.", true, 15000);
+      return;
+    }
+    let data = { session: null };
+    try { ({ data } = await comLimite(db.auth.getSession(), 10000)); } catch {}
     const sessao = data.session;
     if (!sessao) { mostrar("entrar"); return; }
     mostrar("pedidos");

@@ -238,3 +238,11 @@ section[id] { scroll-margin-top: 76px; }
 .pedido-zap { display: flex; margin-top: 10px; width: 100%; }
 .pedido-ok { line-height: 1.45; }
 .pedido-ok a.pedido-zap { color: #fff; }
+
+/* ---------- Cores e características na vitrine ---------- */
+.peca-carac { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.peca-carac li { font-size: .8rem; color: var(--texto-2); background: var(--noite-3); border-radius: 999px; padding: 3px 10px; }
+.peca-cores { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.peca-cor { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .35); }
+.peca-cores-mais { font-size: .8rem; color: var(--texto-3); }
+@media (max-width: 560px) { .peca-carac li { font-size: .74rem; padding: 2px 8px; } .peca-cor { width: 15px; height: 15px; } }

@@ -119,7 +119,8 @@
             <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
             <div class="pedido-duas">
               <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
-              <label class="campo-pedido">Cor preferida<input name="cor" placeholder="Ex.: azul e branco"></label>
+              <label class="campo-pedido">Cor preferida<input name="cor" list="cores-sugeridas" placeholder="Ex.: azul e branco"></label>
+              <datalist id="cores-sugeridas"></datalist>
             </div>
             <label class="campo-pedido">Cidade e bairro<input name="cidade" autocomplete="address-level2" placeholder="Pra combinar entrega ou envio"></label>
             <label class="campo-pedido">Para quando?<input name="prazo" placeholder="Ex.: aniversário dia 20"></label>

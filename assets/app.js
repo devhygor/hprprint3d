@@ -30,6 +30,19 @@
       .join("");
   }
 
+  const amostraCor = (hex) => (hex === "transparente"
+    ? "background:repeating-conic-gradient(#d9d2ff 0 25%, #fff 0 50%) 0 0/8px 8px"
+    : `background:${/^#[0-9a-f]{3,8}$/i.test(hex) ? hex : "#999"}`);
+  const fmt = (n) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  function resumoCaracteristicas(c = {}) {
+    const itens = [];
+    const medidas = [c.largura, c.altura, c.profundidade].filter((x) => Number(x) > 0);
+    if (medidas.length) itens.push(`${medidas.map(fmt).join(" × ")} cm`);
+    if (Number(c.peso) > 0) itens.push(`${fmt(c.peso)} g`);
+    if (c.material) itens.push(c.material);
+    return itens;
+  }
+
   function desenharGrade() {
     const lista = pecas.filter((p) => filtroAtual === "Todas" || (p.categoria || "Outros") === filtroAtual);
     if (!lista.length) {
@@ -48,9 +61,24 @@
             <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
             <h3>${esc(p.nome)}</h3>
             ${p.descricao ? `<p class="peca-desc">${esc(p.descricao)}</p>` : ""}
+            ${(() => {
+              const c = p.caracteristicas || {};
+              const resumo = resumoCaracteristicas(c);
+              const extras = (c.extras || []).slice(0, 4);
+              if (!resumo.length && !extras.length) return "";
+              return `<ul class="peca-carac" aria-label="Características">
+                ${resumo.map((t) => `<li>${esc(t)}</li>`).join("")}
+                ${extras.map((x) => `<li>${esc(x.nome)}${x.valor ? `: ${esc(x.valor)}` : ""}</li>`).join("")}
+              </ul>`;
+            })()}
+            ${(p.cores || []).length ? `<div class="peca-cores" aria-label="Cores disponíveis: ${esc(p.cores.map((c) => c.nome).join(", "))}">
+              ${p.cores.slice(0, 10).map((c) => `<span class="peca-cor" style="${amostraCor(c.hex)}" title="${esc(c.nome)}"></span>`).join("")}
+              ${p.cores.length > 10 ? `<span class="peca-cores-mais">+${p.cores.length - 10}</span>` : ""}
+              ${p.caracteristicas?.outrasCores ? `<span class="peca-cores-mais">e outras sob encomenda</span>` : ""}
+            </div>` : ""}
             <div class="peca-rodape">
               ${preco}
-              <a class="botao botao-principal botao-pequeno" href="#pedido" data-pedir="${esc(p.nome)}">Pedir</a>
+              <a class="botao botao-principal botao-pequeno" href="#pedido" data-pedir="${esc(p.nome)}" data-id="${esc(p.id)}">Pedir</a>
             </div>
           </div>
         </article>`;
@@ -76,6 +104,11 @@
     e.preventDefault();
     const campo = document.getElementById("pedido-peca");
     campo.value = b.dataset.pedir;
+    // Sugere as cores da peça no campo de cor do pedido
+    const peca = pecas.find((x) => x.id === b.dataset.id);
+    const cores = (peca?.cores || []).map((c) => c.nome);
+    document.getElementById("cores-sugeridas").innerHTML = cores.map((n) => `<option value="${esc(n)}">`).join("");
+    document.querySelector('#form-pedido [name="cor"]').placeholder = cores.length ? `Disponível: ${cores.slice(0, 4).join(", ")}${cores.length > 4 ? "…" : ""}` : "Ex.: azul e branco";
     document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     setTimeout(() => document.querySelector('#form-pedido [name="nome"]').focus({ preventScroll: true }), 400);
   });
@@ -338,7 +371,10 @@
   const reserva = (arquivo, padrao) => fetch(arquivo + semCache).then((r) => r.json()).catch(() => padrao);
   Promise.all([
     lerSupabase("ajustes?select=valor&chave=eq.site").then((l) => l[0]?.valor || reserva("data/site.json", {})).catch(() => reserva("data/site.json", {})),
-    lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem&ativo=eq.true&order=ordem.asc,nome.asc").catch(() => reserva("data/catalogo.json", [])),
+    // Tenta com cores e características; se o banco ainda não tiver essas colunas, busca sem elas
+    lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem,cores,caracteristicas&ativo=eq.true&order=ordem.asc,nome.asc")
+      .catch(() => lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem&ativo=eq.true&order=ordem.asc,nome.asc"))
+      .catch(() => reserva("data/catalogo.json", [])),
   ]).then(([s, c]) => {
     site = s || {};
     pecas = (Array.isArray(c) ? c : []).filter((p) => p.ativo !== false).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));

@@ -48,6 +48,8 @@
     if (/fetch|network|Failed to/i.test(m)) return "sem conexão com o banco. Confira a internet; se faz tempo que ninguém usa, o Supabase pode ter pausado o projeto";
     if (/row-level security|permission|policy|violates/i.test(m)) return "esse login não tem permissão. Confira se o e-mail está na lista da equipe no Supabase";
     if (/relation .* does not exist|Could not find the table/i.test(m)) return "as tabelas ainda não foram criadas. Rode o docs/supabase.sql no SQL Editor do Supabase";
+    if (/Could not find the '.*' column|column .* does not exist/i.test(m)) return "o banco está desatualizado. Rode o docs/supabase.sql de novo no SQL Editor do Supabase";
+    if (/tempo esgotado|demorou/i.test(m)) return m + ". O Supabase pode estar pausado";
     return m;
   }
   async function lerAjuste(chave) {
@@ -64,6 +66,8 @@
     ...(r.interno || {}),
     id: r.id, nome: r.nome, categoria: r.categoria || "", descricao: r.descricao || "", foto: r.foto || "",
     ordem: r.ordem ?? 0, precoVitrine: r.preco ?? "", ativo: r.ativo !== false,
+    cores: Array.isArray(r.cores) ? r.cores : [],
+    caracteristicas: r.caracteristicas && typeof r.caracteristicas === "object" ? r.caracteristicas : {},
   });
   async function enviarFoto(id, dataUrl) {
     const blob = await (await fetch(dataUrl)).blob();
@@ -100,6 +104,10 @@
   });
 
   // ---------- Entrar ----------
+  $("#entrar-google").addEventListener("click", async () => {
+    const { error } = await db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+    if (error) avisar(/not enabled|Unsupported provider/i.test(error.message) ? "O login com Google ainda não foi ativado no Supabase." : "Não consegui abrir o Google: " + erroLegivel(error), true, 8000);
+  });
   $("#form-conectar").addEventListener("submit", async (e) => {
     e.preventDefault();
     const botao = e.target.querySelector("button[type=submit]");
@@ -114,17 +122,61 @@
     conectar();
   });
 
+  // Promessa com limite de tempo: se o banco não responder, a tela não fica travada
+  const comLimite = (promessa, ms, motivo) =>
+    Promise.race([promessa, new Promise((_, falha) => setTimeout(() => falha(new Error(motivo || "tempo esgotado")), ms))]);
+
+  // Confere se o Supabase está no ar antes de tudo (o projeto gratuito pausa quando fica parado)
+  async function bancoNoAr() {
+    try {
+      const r = await comLimite(fetch(`${cfgSb.url}/auth/v1/health`, { headers: { apikey: cfgSb.chave } }), 8000);
+      return r.status < 500;
+    } catch { return false; }
+  }
+
+  function mostrarBancoFora() {
+    $("#abas").hidden = true;
+    mostrar("conectar");
+    $("#entrada-campos").hidden = true;
+    $("#estado-banco").hidden = false;
+    $("#estado-banco").className = "estado-banco erro";
+    $("#estado-banco").innerHTML = `<strong>O banco de dados não está respondendo</strong>
+      <span>O mais provável é que o Supabase tenha pausado o projeto por falta de uso. Para voltar:</span>
+      <ol>
+        <li>Abra <a href="https://supabase.com/dashboard/project/jigtikrzkmbcknbnxulk" target="_blank" rel="noopener">o projeto no Supabase</a>.</li>
+        <li>Clique em <b>Restore project</b> e espere alguns minutos.</li>
+        <li>Volte aqui e toque em Tentar de novo.</li>
+      </ol>
+      <button class="botao botao-principal" type="button" id="tentar-de-novo">Tentar de novo</button>`;
+    $("#tentar-de-novo").addEventListener("click", conectar);
+  }
+
   async function conectar() {
     if (!db) {
       mostrar("conectar");
       avisar("Não consegui carregar o Supabase. Confira a internet e recarregue a página.", true, 10000);
       return;
     }
-    const { data } = await db.auth.getSession();
+    // Mostra a tela de entrada na hora, com um aviso de que está verificando
+    mostrar("conectar");
+    $("#abas").hidden = true;
+    $("#entrada-campos").hidden = true;
+    $("#estado-banco").hidden = false;
+    $("#estado-banco").className = "estado-banco";
+    $("#estado-banco").textContent = "Conectando ao banco de dados…";
+    if (!(await bancoNoAr())) { mostrarBancoFora(); return; }
+    let data;
+    try {
+      ({ data } = await comLimite(db.auth.getSession(), 10000, "o login demorou para responder"));
+    } catch {
+      data = { session: null };
+    }
+    $("#estado-banco").hidden = true;
+    $("#entrada-campos").hidden = false;
     if (!data.session) { $("#abas").hidden = true; mostrar("conectar"); return; }
     try {
       avisar("Carregando dados da loja…", false, 20000);
-      const { data: daEquipe, error: erroEquipe } = await db.rpc("eh_equipe");
+      const { data: daEquipe, error: erroEquipe } = await comLimite(db.rpc("eh_equipe"), 15000, "o banco demorou para responder");
       if (erroEquipe) throw erroEquipe;
       if (!daEquipe) {
         await db.auth.signOut();
@@ -133,12 +185,12 @@
         avisar(`O e-mail ${data.session.user.email} não está na lista da equipe. Adicione na tabela "equipe" do Supabase.`, true, 10000);
         return;
       }
-      const [config, site, ia, pecas] = await Promise.all([
+      const [config, site, ia, pecas] = await comLimite(Promise.all([
         lerAjuste("config"),
         lerAjuste("site"),
         lerAjuste("ia").catch(() => null),
         db.from("pecas").select("*").order("ordem").then(({ data, error }) => { if (error) throw error; return data; }),
-      ]);
+      ]), 20000, "o banco demorou para responder");
       estado.config = P.mesclar(P.CONFIG_PADRAO, config || {});
       estado.site = site || {};
       estado.ia = ia || {};
@@ -243,6 +295,78 @@
   const PADRAO_PECA = { horas: 0, minutos: 0, pecasPorImpressao: 1, trabalhoMinutos: 0, acabamento: 0, licenca: 0, outros: 0, ordem: 0 };
   let precoEditadoManual = false;
 
+  // ---------- Cores e características ----------
+  const CORES_PADRAO = [
+    ["Preto", "#1b1b1f"], ["Branco", "#f5f5f2"], ["Cinza", "#8a8d93"], ["Vermelho", "#d7263d"], ["Laranja", "#f46a1f"],
+    ["Amarelo", "#f6c90e"], ["Verde", "#2e9e4f"], ["Azul", "#1f5fd6"], ["Azul claro", "#6ec3f4"], ["Roxo", "#7b3fe4"],
+    ["Rosa", "#f27bb5"], ["Marrom", "#7a4a2a"], ["Bege", "#d9c3a0"], ["Dourado", "#c9a227"], ["Prata", "#c0c4cc"],
+    ["Transparente", "transparente"],
+  ];
+  let coresSel = []; // [{ nome, hex }]
+  const amostra = (hex) => (hex === "transparente"
+    ? "background:repeating-conic-gradient(#d9d2ff 0 25%, #fff 0 50%) 0 0/8px 8px"
+    : `background:${hex}`);
+  function desenharCores() {
+    const extras = coresSel.filter((c) => !CORES_PADRAO.some(([n]) => n.toLowerCase() === c.nome.toLowerCase()));
+    const todas = [...CORES_PADRAO.map(([nome, hex]) => ({ nome, hex })), ...extras];
+    $("#cores-opcoes").innerHTML = todas
+      .map((c) => {
+        const ativa = coresSel.some((x) => x.nome.toLowerCase() === c.nome.toLowerCase());
+        return `<button type="button" class="chip-cor" aria-pressed="${ativa}" data-cor="${esc(c.nome)}" data-hex="${esc(c.hex)}"><span class="bolinha" style="${amostra(c.hex)}"></span>${esc(c.nome)}</button>`;
+      })
+      .join("");
+  }
+  $("#cores-opcoes").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cor]");
+    if (!b) return;
+    const i = coresSel.findIndex((c) => c.nome.toLowerCase() === b.dataset.cor.toLowerCase());
+    if (i >= 0) coresSel.splice(i, 1); else coresSel.push({ nome: b.dataset.cor, hex: b.dataset.hex });
+    desenharCores();
+  });
+  $("#cor-adicionar").addEventListener("click", () => {
+    const nome = $("#cor-nova-nome").value.trim().slice(0, 40);
+    if (!nome) { $("#cor-nova-nome").focus(); return; }
+    if (!coresSel.some((c) => c.nome.toLowerCase() === nome.toLowerCase())) coresSel.push({ nome, hex: $("#cor-nova-hex").value });
+    $("#cor-nova-nome").value = "";
+    desenharCores();
+  });
+  $("#cor-nova-nome").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#cor-adicionar").click(); } });
+
+  function linhaExtra(nome = "", valor = "") {
+    const el = document.createElement("div");
+    el.className = "c-extra";
+    el.innerHTML = `<input class="c-extra-nome" placeholder="Característica" value="${esc(nome)}" aria-label="Nome da característica">
+      <input class="c-extra-valor" placeholder="Valor (opcional)" value="${esc(valor)}" aria-label="Valor da característica">
+      <button type="button" class="c-extra-tirar" aria-label="Remover característica">×</button>`;
+    $("#c-extras").appendChild(el);
+    return el;
+  }
+  $("#c-extra-adicionar").addEventListener("click", () => linhaExtra().querySelector("input").focus());
+  $("#c-extras").addEventListener("click", (e) => { const b = e.target.closest(".c-extra-tirar"); if (b) b.parentElement.remove(); });
+
+  function preencherCaracteristicas(c = {}) {
+    $("#c-largura").value = c.largura ?? "";
+    $("#c-altura").value = c.altura ?? "";
+    $("#c-profundidade").value = c.profundidade ?? "";
+    $("#c-peso").value = c.peso ?? "";
+    $("#c-material").value = c.material ?? "";
+    $("#c-extras").innerHTML = "";
+    (c.extras || []).forEach((x) => linhaExtra(x.nome, x.valor));
+  }
+  function lerCaracteristicas() {
+    const n = (sel) => { const v = P.num($(sel).value, NaN); return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null; };
+    const c = {
+      largura: n("#c-largura"), altura: n("#c-altura"), profundidade: n("#c-profundidade"), peso: n("#c-peso"),
+      material: $("#c-material").value.trim().slice(0, 40) || null,
+      extras: $$("#c-extras .c-extra")
+        .map((el) => ({ nome: el.querySelector(".c-extra-nome").value.trim().slice(0, 40), valor: el.querySelector(".c-extra-valor").value.trim().slice(0, 60) }))
+        .filter((x) => x.nome)
+        .slice(0, 10),
+    };
+    for (const k of Object.keys(c)) if (c[k] === null || (Array.isArray(c[k]) && !c[k].length)) delete c[k];
+    return c;
+  }
+
   function abrirEditor(id) {
     const p = id ? estado.pecas.find((x) => x.id === id) : null;
     estado.editando = p ? p.id : null;
@@ -254,6 +378,10 @@
     const dados = { ...PADRAO_PECA, ...(p || {}) };
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = dados[k] ?? "";
     preencherPadroes(p, false);
+    coresSel = (p?.cores || []).map((c) => ({ nome: String(c.nome || ""), hex: String(c.hex || "#cccccc") })).filter((c) => c.nome);
+    desenharCores();
+    $("#p-cor-personalizada").checked = !!p?.caracteristicas?.outrasCores;
+    preencherCaracteristicas(p?.caracteristicas || {});
     $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
     estado.fotoSalva = estado.fotoAtual;
@@ -455,6 +583,8 @@
         preco: P.num(precoVitrine, 0) || null,
         ativo: $("#p-ativo").checked,
         ordem: Math.round(P.num(ordem, 0)),
+        cores: coresSel.slice(0, 24),
+        caracteristicas: { ...lerCaracteristicas(), ...($("#p-cor-personalizada").checked ? { outrasCores: true } : {}) },
         interno: { ...calculo, custoNoCadastro: Math.round(r.custo.total * 100) / 100 },
         atualizado_em: new Date().toISOString(),
       };
