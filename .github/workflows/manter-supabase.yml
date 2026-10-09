@@ -25,12 +25,14 @@ jobs:
           URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' assets/supabase-config.js | head -1)
           CHAVE=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' assets/supabase-config.js | head -1)
           echo "Endereço: $URL"
-          getent hosts "$(echo "$URL" | sed 's#https://##')" || echo "AVISO: o endereço não existe no DNS (projeto pausado ou apagado?)"
+          if getent hosts "$(echo "$URL" | sed 's#https://##')" >/dev/null; then DNS=ok; else DNS=sem-dns; fi
+          echo "DNS: $DNS"
           codigo=$(curl -s -o /tmp/resp.txt -w "%{http_code}" --max-time 30 "$URL/rest/v1/ajustes?select=chave&limit=1" -H "apikey: $CHAVE" || true)
           echo "Supabase respondeu $codigo"
-          head -c 300 /tmp/resp.txt; echo
+          head -c 300 /tmp/resp.txt 2>/dev/null || true; echo
           # 000 = não conectou (pausado/sem DNS); 5xx = fora do ar. Os dois devem falhar para avisar por e-mail.
           if [ "$codigo" = "000" ] || [ "$codigo" -ge 500 ]; then
-            echo "::error::O Supabase não respondeu ($codigo). Abra supabase.com/dashboard e restaure o projeto."
+            echo "::error::O Supabase não respondeu (código $codigo, DNS $DNS). Abra supabase.com/dashboard e restaure o projeto."
             exit 1
           fi
+          echo "::notice::Supabase ativo (código $codigo)."
