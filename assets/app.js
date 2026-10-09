@@ -126,7 +126,12 @@
     ].filter(Boolean);
     const cores = p.cores || [];
     dialogo.querySelector(".detalhe-conteudo").innerHTML = `
-      <div class="detalhe-foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nome)}">` : `<span class="sem-foto">Foto em breve</span>`}</div>
+      <div class="detalhe-foto${p.foto ? "" : " vazia"}" ${p.foto ? `style="--foto:url('${esc(p.foto).replace(/'/g, "%27")}')"` : ""}>
+        ${p.foto
+          ? `<a href="${esc(p.foto)}" target="_blank" rel="noopener" class="detalhe-foto-link" aria-label="Abrir a foto de ${esc(p.nome)} em tamanho original"><img src="${esc(p.foto)}" alt="${esc(p.nome)}"></a>
+             <span class="detalhe-zoom" aria-hidden="true">Toque para ampliar</span>`
+          : `<span class="sem-foto">Foto em breve</span>`}
+      </div>
       <div class="detalhe-info">
         <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
         <h2 id="detalhe-titulo">${esc(p.nome)}</h2>
