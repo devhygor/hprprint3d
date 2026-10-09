@@ -25,6 +25,7 @@
         <button class="aba" type="button" data-aba="pedidos" aria-current="page">Pedidos</button>
         <button class="aba" type="button" data-aba="pecas">Peças</button>
         <button class="aba" type="button" data-aba="editor">Nova peça</button>
+        <button class="aba" type="button" data-aba="financeiro">Financeiro</button>
         <button class="aba" type="button" data-aba="custos">Custos</button>
         <button class="aba" type="button" data-aba="loja">Loja</button>
       </nav>
@@ -298,6 +299,124 @@
       </div>
     </section>
 
+    <!-- Financeiro -->
+    <section id="tela-financeiro" class="tela" hidden>
+      <div class="fin-cabeca">
+        <div class="fin-periodo">
+          <h1>Financeiro</h1>
+          <div class="fin-nav" role="group" aria-label="Período">
+            <button class="fin-seta" type="button" id="fin-anterior" aria-label="Período anterior">‹</button>
+            <strong id="fin-rotulo">—</strong>
+            <button class="fin-seta" type="button" id="fin-proximo" aria-label="Próximo período">›</button>
+          </div>
+          <div class="alternar fin-modo" role="group" aria-label="Ver por">
+            <button type="button" data-fin-modo="mes" aria-pressed="true">Mês</button>
+            <button type="button" data-fin-modo="ano" aria-pressed="false">Ano</button>
+          </div>
+        </div>
+        <div class="fin-acoes">
+          <button class="botao botao-principal" type="button" data-novo-lanc="entrada">+ Venda</button>
+          <button class="botao botao-contorno" type="button" data-novo-lanc="saida">+ Gasto</button>
+          <button class="botao botao-contorno botao-pequeno" type="button" id="fin-colar">Colar da planilha</button>
+          <button class="botao botao-contorno botao-pequeno" type="button" id="fin-csv">Baixar planilha (CSV)</button>
+        </div>
+      </div>
+
+      <div id="fin-conteudo">
+        <div class="fin-resumo" id="fin-resumo"></div>
+
+        <div class="painel fin-grafico-painel">
+          <div class="fin-grafico-cabeca">
+            <h2 class="titulo-painel">Entradas e saídas por mês</h2>
+            <div class="fin-legenda" aria-hidden="true">
+              <span><i style="background:var(--fin-entrada)"></i>Entrou</span>
+              <span><i style="background:var(--fin-saida)"></i>Saiu</span>
+            </div>
+          </div>
+          <div class="fin-grafico" id="fin-grafico"></div>
+          <details class="fin-tabela-numeros"><summary>Ver números em tabela</summary><div id="fin-grafico-tabela"></div></details>
+        </div>
+
+        <div class="fin-colunas">
+          <div class="painel">
+            <div class="fin-lista-cabeca">
+              <h2 class="titulo-painel">Vendas <span class="fin-conta" id="fin-n-entradas"></span></h2>
+              <input class="fin-busca" id="fin-busca" type="search" placeholder="Buscar cliente, peça ou gasto" aria-label="Buscar lançamentos">
+            </div>
+            <div id="fin-entradas"></div>
+          </div>
+          <div class="painel">
+            <div class="fin-lista-cabeca"><h2 class="titulo-painel">Gastos <span class="fin-conta" id="fin-n-saidas"></span></h2></div>
+            <div id="fin-saidas"></div>
+          </div>
+        </div>
+
+        <div class="fin-colunas tres-col">
+          <div class="painel"><h2 class="titulo-painel">Para onde foi o dinheiro</h2><div id="fin-categorias"></div></div>
+          <div class="painel"><h2 class="titulo-painel">Peças que mais venderam</h2><div id="fin-top-pecas"></div></div>
+          <div class="painel"><h2 class="titulo-painel">Melhores clientes</h2><div id="fin-top-clientes"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <dialog class="fin-dialogo" id="fin-dialogo" aria-labelledby="fin-dialogo-titulo">
+      <form method="dialog" id="fin-form" class="campos">
+        <h2 class="titulo-painel" id="fin-dialogo-titulo">Nova venda</h2>
+        <div class="alternar" role="group" aria-label="Tipo">
+          <button type="button" data-fin-tipo="entrada" aria-pressed="true">Venda (entrada)</button>
+          <button type="button" data-fin-tipo="saida" aria-pressed="false">Gasto (saída)</button>
+        </div>
+        <div class="duas">
+          <label class="campo">Data<input id="f-data" type="date" required></label>
+          <label class="campo" id="f-cliente-campo">Cliente<input id="f-cliente" list="f-lista-clientes" autocomplete="off"></label>
+        </div>
+        <datalist id="f-lista-clientes"></datalist>
+        <label class="campo"><span id="f-descricao-rotulo">Peça vendida</span><input id="f-descricao" list="f-lista-descricoes" required autocomplete="off"></label>
+        <datalist id="f-lista-descricoes"></datalist>
+        <div class="tres">
+          <label class="campo">Quantidade<input id="f-quantidade" type="number" inputmode="decimal" min="0" step="1" value="1"></label>
+          <label class="campo">Valor total (R$)<input id="f-valor" type="number" inputmode="decimal" min="0" step="0.01" required></label>
+          <label class="campo">Categoria<input id="f-categoria" list="f-lista-categorias" autocomplete="off"></label>
+        </div>
+        <datalist id="f-lista-categorias"></datalist>
+        <p class="dica" id="f-unitario"></p>
+        <div class="duas">
+          <label class="campo">Forma de pagamento
+            <select id="f-forma"><option value="">—</option><option>Pix</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>Transferência</option><option>Shopee</option><option>Mercado Livre</option></select>
+          </label>
+          <label class="marcar fin-pago"><input id="f-pago" type="checkbox" checked> <span id="f-pago-rotulo">Já recebido</span></label>
+        </div>
+        <label class="campo">Observações<textarea id="f-notas" rows="2"></textarea></label>
+        <p class="dica" id="f-pedido"></p>
+        <div class="acoes">
+          <button class="botao botao-principal" type="submit" value="salvar" id="f-salvar">Salvar</button>
+          <button class="botao botao-contorno" type="button" id="f-cancelar">Cancelar</button>
+          <button class="botao-texto" type="button" id="f-excluir" hidden>Excluir</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="fin-dialogo largo" id="fin-importar" aria-labelledby="fin-importar-titulo">
+      <div class="campos">
+        <h2 class="titulo-painel" id="fin-importar-titulo">Colar da planilha</h2>
+        <p class="apoio">No Google Planilhas, selecione as linhas de um mês (sem precisar do título), copie com Ctrl+C e cole aqui.</p>
+        <div class="duas">
+          <div class="alternar" role="group" aria-label="O que você vai colar">
+            <button type="button" data-imp-tipo="entrada" aria-pressed="true">Vendas</button>
+            <button type="button" data-imp-tipo="saida" aria-pressed="false">Gastos</button>
+          </div>
+          <label class="campo">Mês<input id="imp-mes" type="month" required></label>
+        </div>
+        <p class="dica" id="imp-colunas">Colunas esperadas: Cliente · Peça · Quantidade · Valor · Pagamento</p>
+        <textarea id="imp-texto" rows="7" placeholder="Andréia	Abridor de ampola	1	12	Pg"></textarea>
+        <div id="imp-previa"></div>
+        <div class="acoes">
+          <button class="botao botao-principal" type="button" id="imp-confirmar" disabled>Importar</button>
+          <button class="botao botao-contorno" type="button" id="imp-cancelar">Cancelar</button>
+        </div>
+      </div>
+    </dialog>
+
     <!-- Custos -->
     <section id="tela-custos" class="tela" hidden>
       <div class="secao-cabeca">
@@ -401,5 +520,6 @@
   <script src="assets/admin.js"></script>
   <script src="assets/email.js"></script>
   <script src="assets/pedidos.js"></script>
+  <script src="assets/financeiro.js"></script>
 </body>
 </html>

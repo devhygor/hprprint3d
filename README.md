@@ -3,7 +3,7 @@
 Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), hospedado no GitHub Pages.
 
 - `index.html` — vitrine pública (lê peças e dados da loja do Supabase)
-- `admin.html` — oficina: pedidos, peças, precificador, custos e dados da loja. Login por e-mail e senha do Supabase
+- `admin.html` — oficina: pedidos, peças, precificador, financeiro (entradas e saídas por mês), custos e dados da loja. Login por e-mail e senha do Supabase
 - Todos os dados ficam no Supabase. `docs/supabase.sql` cria tabelas, regras de segurança (RLS) e o armazenamento de fotos
 - `data/*.json` são só reserva caso o Supabase não responda
 - `.github/workflows/manter-supabase.yml` evita que o projeto gratuito pause

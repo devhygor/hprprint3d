@@ -205,8 +205,8 @@
       p.atualizadoEm = agora();
       await salvarPedido(p);
       avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.`);
-      const extra = await avisarCliente(p);
-      if (extra) avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.${extra}`, extra.includes("falhou"), 6000);
+      const extra = (await avisarCliente(p)) + ((await O.lancarPedido?.(p)) || "");
+      if (extra) avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.${extra}`, extra.includes("falhou"), 7000);
     } catch (err) {
       p.status = anterior;
       p.historico.pop();
@@ -358,7 +358,8 @@
     try {
       await salvarPedido(pedido);
       const mudouStatus = !existente || existente.status !== pedido.status;
-      const extra = mudouStatus && existente && $("#o-avisar").checked ? await avisarCliente(pedido) : "";
+      const extra = (mudouStatus && existente && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
+        (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");
       avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
       mostrar("pedidos");
     } catch (e) {

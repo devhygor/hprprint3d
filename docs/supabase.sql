@@ -234,7 +234,34 @@ create policy "equipe ve referencias" on storage.objects for select to authentic
 create policy "equipe apaga referencias" on storage.objects for delete to authenticated
   using (bucket_id = 'referencias' and public.eh_equipe());
 
--- 8) Pedidos novos aparecem na hora na oficina (tempo real)
+-- 8) Financeiro: entradas (vendas) e saídas (gastos). Só a equipe vê e mexe.
+create table if not exists public.lancamentos (
+  id            uuid primary key default gen_random_uuid(),
+  tipo          text not null check (tipo in ('entrada', 'saida')),
+  data          date not null default current_date,
+  descricao     text not null,
+  categoria     text,
+  cliente       text,
+  quantidade    numeric(10,2) not null default 1,
+  valor         numeric(12,2) not null default 0,   -- valor total do lançamento
+  pago          boolean not null default true,
+  forma         text,
+  pedido_id     text references public.pedidos(id) on delete set null,
+  notas         text,
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists lancamentos_data_idx on public.lancamentos (data);
+create unique index if not exists lancamentos_pedido_unico on public.lancamentos (pedido_id) where pedido_id is not null and tipo = 'entrada';
+alter table public.lancamentos enable row level security;
+
+drop policy if exists "equipe gerencia financeiro" on public.lancamentos;
+create policy "equipe gerencia financeiro" on public.lancamentos for all to authenticated
+  using (public.eh_equipe()) with check (public.eh_equipe());
+revoke all on public.lancamentos from anon;
+grant select, insert, update, delete on public.lancamentos to authenticated;
+
+-- 9) Pedidos novos aparecem na hora na oficina (tempo real)
 do $$
 begin
   alter publication supabase_realtime add table public.pedidos;

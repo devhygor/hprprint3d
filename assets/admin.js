@@ -80,7 +80,7 @@
 
   // ---------- Navegação ----------
   function mostrar(aba) {
-    ["conectar", "pedidos", "pedido", "pecas", "editor", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
+    ["conectar", "pedidos", "pedido", "pecas", "editor", "financeiro", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
     const abaMenu = aba === "pedido" ? "pedidos" : aba;
     $$(".aba").forEach((b) => (b.dataset.aba === abaMenu ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
     window.Oficina?.ganchos?.[aba]?.();
@@ -749,6 +749,7 @@
   });
   $("#sair").addEventListener("click", async () => {
     window.Oficina?.ganchos?.sair?.();
+    window.Oficina?.ganchos?.sairFinanceiro?.();
     await db.auth.signOut();
     estado.pecas = []; estado.pedidos = [];
     $("#abas").hidden = true;
