@@ -34,6 +34,13 @@
 
   <main class="envoltorio oficina">
     <div id="aviso" class="aviso" role="status" hidden></div>
+    <div id="aviso-zap" class="aviso-zap" role="dialog" aria-labelledby="aviso-zap-titulo" hidden>
+      <p id="aviso-zap-titulo"></p>
+      <div class="acoes">
+        <a class="botao botao-zap" id="aviso-zap-link" href="#" target="_blank" rel="noopener">Avisar no WhatsApp</a>
+        <button class="botao botao-contorno botao-pequeno" type="button" id="aviso-zap-fechar">Agora não</button>
+      </div>
+    </div>
 
     <!-- Conectar -->
     <section id="tela-conectar" class="painel estreito" hidden>
@@ -61,7 +68,7 @@
           <h1>Pedidos</h1>
           <p class="apoio">Pedidos feitos pelo formulário do site entram sozinhos. Os que chegam de outro jeito, registre colando a mensagem.</p>
         </div>
-        <button class="botao botao-principal" type="button" id="novo-pedido">Registrar pedido</button>
+        <button class="botao botao-principal" type="button" id="novo-pedido">+ Novo pedido</button>
       </div>
       <p class="faixa-aviso" id="aviso-email" hidden>Os e-mails para clientes estão desligados: falta salvar a configuração do EmailJS na aba <button type="button" class="botao-link-inline" data-aba-ir="loja">Loja</button>.</p>
       <div id="pedidos-conteudo">
@@ -77,7 +84,7 @@
 
     <!-- Um pedido -->
     <section id="tela-pedido" class="tela" hidden>
-      <div class="secao-cabeca"><h1 id="titulo-pedido">Registrar pedido</h1></div>
+      <div class="secao-cabeca"><h1 id="titulo-pedido">Novo pedido</h1></div>
       <div class="editor">
         <form id="form-pedido-adm" class="coluna-form" novalidate>
           <fieldset class="painel" id="bloco-colar">
@@ -86,7 +93,7 @@
               <textarea id="o-mensagem" rows="6" placeholder="Oi! Meu nome é ... *Código:* HPR-..."></textarea>
             </label>
             <div class="acoes"><button class="botao botao-contorno botao-pequeno" type="button" id="o-preencher">Preencher com a mensagem</button></div>
-            <p class="dica" id="o-status-colar">Funciona com as mensagens enviadas pelo formulário do site. Pedidos que chegam de outro jeito, preencha à mão.</p>
+            <p class="dica" id="o-status-colar">Opcional. Se o pedido veio pelo formulário do site, cole a mensagem e os campos se preenchem. Pedido de Instagram, Shopee, pessoalmente etc.: preencha direto abaixo.</p>
           </fieldset>
 
           <fieldset class="painel">
@@ -95,7 +102,14 @@
               <label class="campo">Nome<input id="o-cliente" required></label>
               <label class="campo">WhatsApp do cliente<input id="o-telefone" inputmode="tel" placeholder="61 99999-9999"></label>
             </div>
-            <label class="campo">E-mail do cliente<input id="o-email" type="email" placeholder="Para avisar o andamento"></label>
+            <label class="campo">E-mail do cliente<input id="o-email" type="email" placeholder="Para avisar o andamento e aparecer em Meus pedidos"></label>
+            <label class="campo">Onde o pedido chegou
+              <select id="o-canal">
+                <option value="">Selecione</option>
+                <option>Site</option><option>WhatsApp</option><option>Instagram</option><option>Pessoalmente</option>
+                <option>Shopee</option><option>Mercado Livre</option><option>Indicação</option><option>Feira/evento</option><option>Outro</option>
+              </select>
+            </label>
             <label class="campo">Cidade e bairro<input id="o-cidade"></label>
           </fieldset>
 
@@ -132,7 +146,7 @@
             <label class="campo">Status
               <select id="o-status"></select>
             </label>
-            <label class="marcar" id="o-avisar-campo"><input id="o-avisar" type="checkbox" checked> Avisar o cliente por e-mail ao mudar o status</label>
+            <label class="marcar" id="o-avisar-campo"><input id="o-avisar" type="checkbox" checked> Mandar e-mail para o cliente ao salvar</label>
             <p class="rotulo">Código</p>
             <p class="codigo-pedido" id="o-codigo">—</p>
             <dl class="decomposicao" id="o-contas"></dl>
@@ -140,7 +154,7 @@
               <button class="botao botao-principal" type="button" id="o-salvar">Salvar pedido</button>
               <button class="botao botao-contorno" type="button" id="o-cancelar">Voltar</button>
             </div>
-            <a class="botao botao-contorno botao-pequeno" id="o-zap" href="#" target="_blank" rel="noopener" hidden>Conversar com o cliente</a>
+            <a class="botao botao-zap botao-pequeno" id="o-zap" href="#" target="_blank" rel="noopener" hidden>Mandar o status no WhatsApp</a>
             <div id="o-historico-bloco" hidden>
               <p class="rotulo">Histórico</p>
               <ol class="historico" id="o-historico"></ol>
@@ -323,6 +337,8 @@
       </div>
 
       <div id="fin-conteudo">
+        <section class="fin-caixa" id="fin-caixa" aria-label="Caixa da loja, desde o início"></section>
+        <h2 class="fin-subtitulo" id="fin-subtitulo">Neste mês</h2>
         <div class="fin-resumo" id="fin-resumo"></div>
 
         <div class="painel fin-grafico-painel">

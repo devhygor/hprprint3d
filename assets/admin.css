@@ -294,3 +294,34 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
   .imp-rolagem .fin-tabela tbody td, .fin-tabela-numeros .fin-tabela tbody td { padding: 6px; border-bottom: 1px solid #2a1b52; }
   .fin-grafico svg { width: 100%; }
 }
+
+/* ---------- WhatsApp ---------- */
+.botao-zap { background: #1fa855; color: #fff; }
+.botao-zap:hover { background: #24bf61; }
+.aviso-zap { position: fixed; right: 20px; bottom: 20px; z-index: 60; width: min(360px, calc(100% - 32px)); background: #0d0420; border: 1px solid #2f8f55; border-radius: var(--raio-m); padding: 14px 16px; box-shadow: 0 16px 40px rgba(0, 0, 0, .55); display: flex; flex-direction: column; gap: 10px; }
+.aviso-zap p { margin: 0; color: var(--texto); }
+.aviso-zap .acoes { margin: 0; }
+@media (max-width: 640px) { .aviso-zap { right: 16px; left: 16px; width: auto; bottom: 84px; } }
+@media (prefers-reduced-motion: no-preference) { .aviso-zap:not([hidden]) { animation: sobe .2s ease-out; } @keyframes sobe { from { transform: translateY(12px); opacity: 0; } } }
+.cp-canal { font-size: .72rem; color: var(--neon-claro); border: 1px solid var(--linha); border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
+
+/* ---------- Caixa geral ---------- */
+.fin-caixa { display: grid; grid-template-columns: minmax(220px, .8fr) 2fr; gap: 0; border: 1px solid var(--neon); border-radius: var(--raio-g); overflow: hidden; margin-bottom: 26px; background: var(--noite-2); box-shadow: 0 0 34px rgba(139, 61, 255, .18); }
+.fin-caixa:empty { display: none; }
+.fin-caixa-saldo { padding: 20px 22px; background: radial-gradient(130% 150% at 0% 0%, #3a1784 0%, #1b0d3d 75%); display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.fin-caixa-saldo strong { font-family: var(--fonte-display); font-weight: 900; font-style: italic; font-size: clamp(2.2rem, 5vw, 3.2rem); line-height: 1.05; }
+.fin-caixa-conta { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px; padding: 18px 22px; }
+.fin-caixa-conta > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fin-caixa-conta b { font-family: var(--fonte-display); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.fin-caixa-conta small { color: var(--texto-3); font-size: .78rem; }
+.fin-sinal { font-family: var(--fonte-display); font-size: 1.6rem; color: var(--texto-3); }
+.fin-caixa-pend { grid-column: 1 / -1; margin: 0; padding: 10px 22px; border-top: 1px solid var(--linha); color: var(--texto-2); font-size: .9rem; }
+.fin-subtitulo { font-family: var(--fonte-display); font-size: 1.15rem; margin: 0 0 10px; color: var(--texto-2); font-weight: 700; }
+@media (max-width: 900px) {
+  .fin-caixa { grid-template-columns: 1fr; }
+  .fin-caixa-conta { grid-template-columns: 1fr; gap: 12px; }
+  .fin-caixa-conta > div { flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; border-bottom: 1px solid #2a1b52; padding-bottom: 10px; }
+  .fin-caixa-conta > div:last-child { border: 0; padding: 0; }
+  .fin-caixa-conta small { flex-basis: 100%; }
+  .fin-sinal { display: none; }
+}

@@ -53,6 +53,7 @@ create table if not exists public.pedidos (
 alter table public.pedidos add column if not exists email       text;
 alter table public.pedidos add column if not exists cliente_id  uuid references auth.users(id) on delete set null;
 alter table public.pedidos add column if not exists referencias jsonb not null default '[]'::jsonb;
+alter table public.pedidos add column if not exists canal       text;
 alter table public.pedidos enable row level security;
 
 drop policy if exists "site registra pedido" on public.pedidos;
@@ -85,6 +86,7 @@ create policy "site registra pedido" on public.pedidos
     and char_length(coalesce(mensagem, '')) <= 4000
     and jsonb_array_length(historico) <= 1
     and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
+    and char_length(coalesce(canal, '')) <= 40
     and cliente_id is null
   );
 
@@ -107,6 +109,7 @@ create policy "cliente registra pedido" on public.pedidos
     and char_length(coalesce(mensagem, '')) <= 4000
     and jsonb_array_length(historico) <= 1
     and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
+    and char_length(coalesce(canal, '')) <= 40
     and cliente_id = auth.uid()
   );
 

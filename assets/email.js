@@ -66,5 +66,23 @@
     return { ok: true };
   }
 
-  raiz.HPR_EMAIL = { TEXTOS, configurado, enviarEmailPedido, progressoHtml };
+  // Mensagem pronta para o WhatsApp do cliente, de acordo com o status
+  function mensagemWhatsapp(pedido, status) {
+    const [titulo, mensagem] = TEXTOS[status] || TEXTOS.novo;
+    const nome = (pedido.cliente || "").trim().split(" ")[0];
+    const etapa = (ETAPAS.find(([id]) => id === status) || [, status === "cancelado" ? "Cancelado" : "Recebido"])[1];
+    const linhas = [
+      `Oi${nome ? ", " + nome : ""}! Aqui é da *HPR Print 3D* 💜`,
+      "",
+      `*${titulo}*`,
+      mensagem,
+      "",
+      `*Pedido:* ${pedido.id}${pedido.peca ? " – " + pedido.peca : ""}`,
+      `*Etapa:* ${etapa}`,
+    ];
+    if (pedido.email) linhas.push("", `Acompanhe por aqui: https://devhygor.github.io/hprprint3d/conta.html`);
+    return linhas.join("\n");
+  }
+
+  raiz.HPR_EMAIL = { TEXTOS, configurado, enviarEmailPedido, progressoHtml, mensagemWhatsapp };
 })(window);

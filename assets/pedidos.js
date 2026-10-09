@@ -20,7 +20,7 @@
 
   // ---------- Supabase ----------
   let canal = null;
-  const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "cliente_id", "referencias", "cidade", "peca", "peca_id",
+  const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
     "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
@@ -139,7 +139,7 @@
         return ea === eb ? String(b.criadoEm).localeCompare(a.criadoEm) : ea.localeCompare(eb);
       });
     if (!estado.pedidos.length) {
-      alvo.innerHTML = `<div class="vazio"><strong>Nenhum pedido registrado</strong>Quando chegar um pedido pelo WhatsApp, copie a mensagem e toque em Registrar pedido.</div>`;
+      alvo.innerHTML = `<div class="vazio"><strong>Nenhum pedido registrado</strong>Pedidos do site entram sozinhos. Os que chegam por Instagram, WhatsApp, Shopee ou pessoalmente, cadastre em + Novo pedido.</div>`;
       return;
     }
     if (!lista.length) {
@@ -159,7 +159,7 @@
             <span class="cp-data">${dataCurta(p.criadoEm)}</span>
           </div>
           <h3>${esc(p.peca || "Pedido sem descrição")}${c.qtd > 1 ? ` <span class="cp-qtd">× ${c.qtd}</span>` : ""}</h3>
-          <p class="cp-cliente">${esc(p.cliente || "Cliente sem nome")}${p.cidade ? `, ${esc(p.cidade)}` : ""}</p>
+          <p class="cp-cliente">${esc(p.cliente || "Cliente sem nome")}${p.cidade ? `, ${esc(p.cidade)}` : ""}${(p.canal || p.origem === "site") ? ` <span class="cp-canal">${esc(p.canal || "Site")}</span>` : ""}</p>
           <div class="cp-info">
             ${entrega}
             ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
@@ -182,6 +182,23 @@
     filtro = b.dataset.filtro;
     desenharLista();
   });
+
+  const FRASE_STATUS = {
+    novo: "foi recebido", orcamento: "teve o orçamento enviado", aprovado: "foi aprovado", imprimindo: "está sendo impresso",
+    pronto: "está pronto", entregue: "foi entregue", cancelado: "foi cancelado",
+  };
+  // Depois de mudar o status: oferece mandar a mensagem pronta no WhatsApp do cliente
+  function oferecerWhatsapp(p) {
+    const caixa = $("#aviso-zap");
+    if (!soNumeros(p.telefone)) { caixa.hidden = true; return; }
+    $("#aviso-zap-titulo").innerHTML = `Avisar <b>${esc((p.cliente || "o cliente").split(" ")[0])}</b> que o pedido <b>${FRASE_STATUS[p.status] || "mudou de etapa"}</b>?`;
+    $("#aviso-zap-link").href = linkZap(p.telefone, window.HPR_EMAIL.mensagemWhatsapp(p, p.status));
+    caixa.hidden = false;
+    clearTimeout(oferecerWhatsapp.t);
+    oferecerWhatsapp.t = setTimeout(() => (caixa.hidden = true), 20000);
+  }
+  $("#aviso-zap-fechar").addEventListener("click", () => ($("#aviso-zap").hidden = true));
+  $("#aviso-zap-link").addEventListener("click", () => setTimeout(() => ($("#aviso-zap").hidden = true), 300));
 
   // E-mail para o cliente quando o status muda (EmailJS, configurado na aba Loja)
   async function avisarCliente(p) {
@@ -207,6 +224,7 @@
       avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.`);
       const extra = (await avisarCliente(p)) + ((await O.lancarPedido?.(p)) || "");
       if (extra) avisar(`${p.id} agora está ${statusDe(sel.value).nome.toLowerCase()}.${extra}`, extra.includes("falhou"), 7000);
+      oferecerWhatsapp(p);
     } catch (err) {
       p.status = anterior;
       p.historico.pop();
@@ -222,7 +240,7 @@
 
   // ---------- Editor de pedido ----------
   const CAMPOS = {
-    cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
+    cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", canal: "#o-canal", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
     cor: "#o-cor", prazo: "#o-prazo", entrega: "#o-entrega", detalhes: "#o-detalhes", valor: "#o-valor", sinal: "#o-sinal",
     notas: "#o-notas", mensagem: "#o-mensagem", status: "#o-status",
   };
@@ -230,12 +248,12 @@
   function abrir(id) {
     const existente = id ? estado.pedidos.find((x) => x.id === id) : null;
     atual = existente ? JSON.parse(JSON.stringify(existente)) : { id: "", status: "novo", quantidade: 1, historico: [] };
-    $("#titulo-pedido").textContent = existente ? `Pedido ${existente.id}` : "Registrar pedido";
+    $("#titulo-pedido").textContent = existente ? `Pedido ${existente.id}` : "Novo pedido";
     $("#o-status").innerHTML = STATUS.map((s) => `<option value="${s.id}">${s.nome}</option>`).join("");
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = atual[k] ?? "";
     $("#o-lista-pecas").innerHTML = estado.pecas.map((p) => `<option value="${esc(p.nome)}">`).join("");
     $("#o-status-colar").className = "dica";
-    $("#o-status-colar").textContent = "Funciona com as mensagens enviadas pelo formulário do site. Pedidos que chegam de outro jeito, preencha à mão.";
+    $("#o-status-colar").textContent = "Opcional. Se o pedido veio pelo formulário do site, cole a mensagem e os campos se preenchem. Pedido de Instagram, Shopee, pessoalmente etc.: preencha direto abaixo.";
     $("#o-excluir").hidden = !existente;
     $("#bloco-colar").hidden = !!existente;
     const comEmail = window.HPR_EMAIL?.configurado(estado.site?.email);
@@ -289,8 +307,9 @@
     const zap = $("#o-zap");
     zap.hidden = !soNumeros(tel);
     if (!zap.hidden) {
-      const ref = atual.id ? ` ${atual.id}` : "";
-      zap.href = linkZap(tel, `Oi, ${d.cliente || ""}! Aqui é da HPR Print 3D sobre o seu pedido${ref}.`.replace("Oi, !", "Oi!"));
+      const pedidoZap = { ...atual, ...d, id: atual.id || "(será gerado ao salvar)" };
+      zap.href = linkZap(tel, window.HPR_EMAIL.mensagemWhatsapp(pedidoZap, d.status || "novo"));
+      zap.textContent = `Avisar no WhatsApp: ${statusDe(d.status).nome}`;
     }
 
     const hist = atual.historico || [];
@@ -358,9 +377,11 @@
     try {
       await salvarPedido(pedido);
       const mudouStatus = !existente || existente.status !== pedido.status;
-      const extra = (mudouStatus && existente && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
+      // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status
+      const extra = (mudouStatus && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
         (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");
       avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
+      if (mudouStatus) oferecerWhatsapp(pedido);
       mostrar("pedidos");
     } catch (e) {
       estado.pedidos = antes;

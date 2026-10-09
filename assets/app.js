@@ -344,6 +344,7 @@
     const pedido = {
       id: codigo,
       origem: "site",
+      canal: "Site",
       status: "novo",
       cliente: v("nome").slice(0, 120),
       telefone: v("telefone").replace(/[^\d+ ()-]/g, "").slice(0, 30),

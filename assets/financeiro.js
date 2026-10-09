@@ -5,7 +5,7 @@
 
   const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-  const CAT_SAIDA = ["Filamento", "Curso", "Ferramentas", "Peças e manutenção", "Embalagem", "Energia", "Anúncios", "Frete", "Taxas", "Outros"];
+  const CAT_SAIDA = ["Filamento", "Curso", "Ferramentas", "Peças e manutenção", "Embalagem", "Energia", "Anúncios", "Frete", "Taxas", "Retirada dos donos", "Outros"];
   const CAT_ENTRADA = ["Venda direta", "Encomenda", "Shopee", "Mercado Livre", "Feira/evento", "Outros"];
 
   const hoje = new Date();
@@ -67,6 +67,8 @@
     $("#fin-rotulo").textContent = modo === "ano" ? String(ano) : `${MESES[mes][0].toUpperCase() + MESES[mes].slice(1)} de ${ano}`;
     $$("[data-fin-modo]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.finModo === modo)));
     const doPeriodo = lancs.filter(noPeriodo);
+    desenharCaixa();
+    $("#fin-subtitulo").textContent = modo === "ano" ? `Em ${ano}` : `Em ${MESES[mes]} de ${ano}`;
     desenharResumo(totais(doPeriodo), totais(lancs.filter(periodoAnterior())));
     desenharGrafico();
     const q = busca.trim().toLowerCase();
@@ -79,8 +81,13 @@
     desenharRanking("#fin-top-clientes", doPeriodo.filter((l) => l.tipo === "entrada"), (l) => l.cliente, false);
   }
 
-  function variacao(atual, antes, maiorEhBom = true) {
+  function variacao(atual, antes, maiorEhBom = true, emReais = false) {
     if (!antes) return "";
+    if (emReais) {
+      const dif = atual - antes;
+      if (Math.abs(dif) < 0.01) return `<span class="fin-delta">igual ao ${modo === "ano" ? "ano" : "mês"} anterior</span>`;
+      return `<span class="fin-delta ${dif > 0 ? "bom" : "ruim"}">${dif > 0 ? "▲" : "▼"} ${brl(Math.abs(dif))} ${dif > 0 ? "a mais" : "a menos"} que o ${modo === "ano" ? "ano" : "mês"} anterior</span>`;
+    }
     const pct = ((atual - antes) / Math.abs(antes)) * 100;
     if (!Number.isFinite(pct) || Math.abs(pct) < 0.5) return `<span class="fin-delta">igual ao ${modo === "ano" ? "ano" : "mês"} anterior</span>`;
     const bom = (pct > 0) === maiorEhBom;
@@ -93,15 +100,40 @@
     if (t.aPagar > 0.004) pend.push(`${brl(t.aPagar)} a pagar`);
     $("#fin-resumo").innerHTML = `
       <div class="fin-saldo ${t.saldo < 0 ? "negativo" : ""}">
-        <span class="fin-rotulo">Saldo ${modo === "ano" ? "do ano" : "do mês"}</span>
+        <span class="fin-rotulo">Resultado ${modo === "ano" ? "do ano" : "do mês"}</span>
         <strong>${brl(t.saldo)}</strong>
-        ${variacao(t.saldo, ant.saldo)}
+        ${variacao(t.saldo, ant.saldo, true, true)}
         ${pend.length ? `<span class="fin-pendente">Fora do saldo: ${pend.join(" · ")}</span>` : ""}
       </div>
       <div class="fin-tile"><span class="fin-rotulo"><i style="background:var(--fin-entrada)"></i>Entrou</span><strong>${brl(t.entrou)}</strong>${variacao(t.entrou, ant.entrou)}</div>
       <div class="fin-tile"><span class="fin-rotulo"><i style="background:var(--fin-saida)"></i>Saiu</span><strong>${brl(t.saiu)}</strong>${variacao(t.saiu, ant.saiu, false)}</div>
       <div class="fin-tile"><span class="fin-rotulo">Vendas</span><strong>${t.vendas}</strong><span class="fin-delta">${t.pecas.toLocaleString("pt-BR")} peça${t.pecas === 1 ? "" : "s"}</span></div>
       <div class="fin-tile"><span class="fin-rotulo">Ticket médio</span><strong>${brl(t.ticket)}</strong><span class="fin-delta">por venda</span></div>`;
+  }
+
+  // Caixa geral: tudo desde o primeiro lançamento, não importa o mês aberto
+  function desenharCaixa() {
+    const t = totais(lancs);
+    const retiradas = lancs.filter((l) => l.tipo === "saida" && l.pago && l.categoria === "Retirada dos donos").reduce((s, l) => s + l.valor, 0);
+    const primeiro = lancs.reduce((m, l) => (!m || l.data < m ? l.data : m), "");
+    const desde = primeiro ? `${MESES[Number(primeiro.slice(5, 7)) - 1]} de ${primeiro.slice(0, 4)}` : "";
+    const pend = [];
+    if (t.aReceber > 0.004) pend.push(`<span><b>${brl(t.aReceber)}</b> a receber</span>`);
+    if (t.aPagar > 0.004) pend.push(`<span><b>${brl(t.aPagar)}</b> a pagar</span>`);
+    $("#fin-caixa").innerHTML = !lancs.length ? "" : `
+      <div class="fin-caixa-saldo">
+        <span class="fin-rotulo">Saldo em caixa</span>
+        <strong class="${t.saldo < 0 ? "neg" : ""}">${brl(t.saldo)}</strong>
+        <span class="fin-delta">Tudo o que recebeu menos tudo o que gastou${desde ? `, desde ${desde}` : ""}</span>
+      </div>
+      <div class="fin-caixa-conta">
+        <div><span class="fin-rotulo"><i style="background:var(--fin-entrada)"></i>Total recebido</span><b>${brl(t.entrou)}</b><small>${t.vendas} vendas · ${t.pecas.toLocaleString("pt-BR")} peças</small></div>
+        <span class="fin-sinal" aria-hidden="true">−</span>
+        <div><span class="fin-rotulo"><i style="background:var(--fin-saida)"></i>Total gasto</span><b>${brl(t.saiu)}</b><small>${retiradas > 0.004 ? `inclui ${brl(retiradas)} de retiradas` : "filamento, ferramentas, cursos…"}</small></div>
+        <span class="fin-sinal" aria-hidden="true">=</span>
+        <div><span class="fin-rotulo">Saldo</span><b class="${t.saldo < 0 ? "neg" : ""}">${brl(t.saldo)}</b><small>${t.entrou > 0 ? `${((t.saldo / t.entrou) * 100).toFixed(0)}% do que entrou ficou` : ""}</small></div>
+      </div>
+      ${pend.length ? `<p class="fin-caixa-pend">Ainda fora do caixa: ${pend.join(" e ")}. Se tudo for acertado, o saldo vai para <b>${brl(t.saldo + t.aReceber - t.aPagar)}</b>.</p>` : ""}`;
   }
 
   // Gráfico de colunas: 12 meses (do ano em "Ano"; os 12 até o mês escolhido em "Mês")
