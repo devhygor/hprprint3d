@@ -139,6 +139,9 @@ create table if not exists public.pecas (
 );
 alter table public.pecas add column if not exists cores           jsonb not null default '[]'::jsonb;
 alter table public.pecas add column if not exists caracteristicas jsonb not null default '{}'::jsonb;
+-- Galeria: lista de links das fotos (a primeira é a capa, repetida na coluna foto)
+alter table public.pecas add column if not exists fotos           jsonb not null default '[]'::jsonb;
+update public.pecas set fotos = jsonb_build_array(foto) where foto is not null and foto <> '' and fotos = '[]'::jsonb;
 alter table public.pecas enable row level security;
 
 drop policy if exists "vitrine le pecas ativas" on public.pecas;
@@ -147,7 +150,7 @@ create policy "vitrine le pecas ativas" on public.pecas for select to anon using
 create policy "equipe gerencia pecas" on public.pecas for all to authenticated using (public.eh_equipe()) with check (public.eh_equipe());
 
 revoke all on public.pecas from anon;
-grant select (id, nome, categoria, descricao, foto, preco, ativo, ordem, cores, caracteristicas) on public.pecas to anon;
+grant select (id, nome, categoria, descricao, foto, preco, ativo, ordem, cores, caracteristicas, fotos) on public.pecas to anon;
 grant select, insert, update, delete on public.pecas to authenticated;
 
 -- 4) Ajustes: "site" (WhatsApp, Instagram) é público; "config" (custos) só a equipe.

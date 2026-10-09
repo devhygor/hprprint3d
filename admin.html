@@ -192,10 +192,7 @@
               </label>
               <a class="botao botao-contorno" id="abrir-mw" href="https://makerworld.com/" target="_blank" rel="noopener">Abrir modelo</a>
             </div>
-            <label class="campo">Link da foto (opcional)
-              <input id="p-foto-url" type="url" placeholder="https://makerworld.bblmw.com/...jpg">
-            </label>
-            <p class="dica">No MakerWorld, clique com o botão direito na foto e escolha "Copiar endereço da imagem". Depois abra o modelo no Bambu Studio, fatie com as configurações de vocês e copie as gramas e o tempo aqui embaixo.</p>
+            <p class="dica">Quer usar uma foto do MakerWorld? Clique com o botão direito nela, escolha "Copiar endereço da imagem" e cole em <b>Fotos → Adicionar por link</b>. Depois abra o modelo no Bambu Studio, fatie com as configurações de vocês e copie as gramas e o tempo aqui embaixo.</p>
             <p class="dica alerta">Antes de vender, confira se a licença do modelo permite uso comercial.</p>
           </fieldset>
 
@@ -213,14 +210,19 @@
               <button class="botao botao-contorno botao-pequeno" type="button" id="gerar-descricao">Gerar com IA</button>
               <p class="dica" id="status-ia" hidden></p>
             </div>
-            <div class="foto-campo">
-              <div class="foto-previa" id="foto-previa"><span>Sem foto</span></div>
-              <div>
-                <label class="botao botao-contorno botao-pequeno">Enviar foto
-                  <input id="p-foto-arquivo" type="file" accept="image/*" hidden>
+            <div class="galeria-campo">
+              <p class="rotulo">Fotos <span class="galeria-contador" id="galeria-contador">0 de 10</span></p>
+              <ul class="galeria-edit" id="galeria-edit" aria-label="Fotos da peça"></ul>
+              <div class="galeria-add">
+                <label class="botao botao-contorno botao-pequeno">Adicionar fotos
+                  <input id="p-fotos-arquivos" type="file" accept="image/*" multiple hidden>
                 </label>
-                <p class="dica">Fotos da peça impressa por vocês vendem mais que a foto do MakerWorld.</p>
+                <div class="foto-link">
+                  <input id="p-foto-url" type="url" placeholder="ou cole o link de uma foto" aria-label="Link de uma foto">
+                  <button class="botao botao-contorno botao-pequeno" type="button" id="p-foto-url-add">Adicionar por link</button>
+                </div>
               </div>
+              <p class="dica">A primeira foto é a capa da vitrine. Use as setas para mudar a ordem. Fotos da peça impressa por vocês vendem mais que a do MakerWorld.</p>
             </div>
           </fieldset>
 

@@ -56,7 +56,7 @@
           : `<span class="sem-foto">Foto em breve</span>`;
         const preco = p.preco ? `<span class="preco"><small>a partir de</small>${brl(Number(p.preco))}</span>` : `<span class="preco"><small>valor</small>Sob consulta</span>`;
         return `<article class="peca" data-peca="${esc(p.id)}">
-          <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}</a>
+          <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}${p.fotos.length > 1 ? `<span class="peca-qtd-fotos" aria-label="${p.fotos.length} fotos">${p.fotos.length} fotos</span>` : ""}</a>
           <div class="peca-corpo">
             <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
             <h3><a href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}">${esc(p.nome)}</a></h3>
@@ -126,12 +126,7 @@
     ].filter(Boolean);
     const cores = p.cores || [];
     dialogo.querySelector(".detalhe-conteudo").innerHTML = `
-      <div class="detalhe-foto${p.foto ? "" : " vazia"}" ${p.foto ? `style="--foto:url('${esc(p.foto).replace(/'/g, "%27")}')"` : ""}>
-        ${p.foto
-          ? `<a href="${esc(p.foto)}" target="_blank" rel="noopener" class="detalhe-foto-link" aria-label="Abrir a foto de ${esc(p.nome)} em tamanho original"><img src="${esc(p.foto)}" alt="${esc(p.nome)}"></a>
-             <span class="detalhe-zoom" aria-hidden="true">Toque para ampliar</span>`
-          : `<span class="sem-foto">Foto em breve</span>`}
-      </div>
+      ${galeriaHtml(p)}
       <div class="detalhe-info">
         <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
         <h2 id="detalhe-titulo">${esc(p.nome)}</h2>
@@ -146,9 +141,78 @@
       </div>`;
     if (!dialogo.open) dialogo.showModal();
     dialogo.querySelector(".detalhe-conteudo").scrollTop = 0;
+    prepararGaleria();
     if (mudarEndereco) history.pushState({ peca: id }, "", `#peca-${encodeURIComponent(id)}`);
     document.title = `${p.nome} | HPR Print 3D`;
   }
+  // ---------- Carrossel de fotos do detalhe ----------
+  function galeriaHtml(p) {
+    const fotos = p.fotos;
+    if (!fotos.length) return `<div class="detalhe-foto vazia"><span class="sem-foto">Foto em breve</span></div>`;
+    const varias = fotos.length > 1;
+    const bg = (u) => `--foto:url('${esc(u).replace(/'/g, "%27")}')`;
+    return `<div class="detalhe-foto${varias ? " varias" : ""}" ${varias ? `role="region" aria-roledescription="carrossel" aria-label="Fotos de ${esc(p.nome)}"` : ""}>
+      <div class="galeria-trilho" ${varias ? `tabindex="0"` : ""}>
+        ${fotos.map((u, i) => `<div class="galeria-slide" style="${bg(u)}" ${varias ? `role="group" aria-roledescription="foto" aria-label="${i + 1} de ${fotos.length}"` : ""}>
+          <a href="${esc(u)}" target="_blank" rel="noopener" class="detalhe-foto-link" aria-label="Abrir a foto ${varias ? i + 1 + " " : ""}de ${esc(p.nome)} em tamanho original">
+            <img src="${esc(u)}" alt="${esc(p.nome)}${varias ? `, foto ${i + 1}` : ""}" ${i ? `loading="lazy"` : ""} draggable="false">
+          </a></div>`).join("")}
+      </div>
+      ${varias ? `<button type="button" class="galeria-seta anterior" data-ir="-1" aria-label="Foto anterior">‹</button>
+        <button type="button" class="galeria-seta proxima" data-ir="1" aria-label="Próxima foto">›</button>
+        <span class="galeria-conta" aria-live="polite">1 / ${fotos.length}</span>
+        <div class="galeria-minis">${fotos.map((u, i) => `<button type="button" class="galeria-mini" data-foto="${i}" aria-label="Ver foto ${i + 1}" ${i ? "" : `aria-current="true"`}><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}
+      <span class="detalhe-zoom" aria-hidden="true">Toque para ampliar</span>
+    </div>`;
+  }
+  const semMovimento = matchMedia("(prefers-reduced-motion: reduce)");
+  function prepararGaleria() {
+    const caixa = dialogo.querySelector(".detalhe-foto.varias");
+    if (!caixa) return;
+    const trilho = caixa.querySelector(".galeria-trilho");
+    const minis = [...caixa.querySelectorAll(".galeria-mini")];
+    const total = minis.length;
+    let atual = 0;
+    const marcar = (i) => {
+      atual = i;
+      caixa.querySelector(".galeria-conta").textContent = `${i + 1} / ${total}`;
+      minis.forEach((m, k) => (k === i ? m.setAttribute("aria-current", "true") : m.removeAttribute("aria-current")));
+      minis[i].scrollIntoView({ block: "nearest", inline: "nearest" });
+      caixa.querySelector(".anterior").disabled = i === 0;
+      caixa.querySelector(".proxima").disabled = i === total - 1;
+    };
+    const ir = (i) => {
+      i = Math.max(0, Math.min(total - 1, i));
+      trilho.scrollTo({ left: i * trilho.clientWidth, behavior: semMovimento.matches ? "auto" : "smooth" });
+      marcar(i);
+    };
+    let quadro = 0;
+    trilho.addEventListener("scroll", () => {
+      cancelAnimationFrame(quadro);
+      quadro = requestAnimationFrame(() => {
+        const i = Math.round(trilho.scrollLeft / Math.max(1, trilho.clientWidth));
+        if (i !== atual && i >= 0 && i < total) marcar(i);
+      });
+    }, { passive: true });
+    caixa.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-ir],[data-foto]");
+      if (!b) return;
+      ir(b.dataset.foto !== undefined ? Number(b.dataset.foto) : atual + Number(b.dataset.ir));
+    });
+    caixa.irPara = ir;
+    caixa.atual = () => atual;
+    marcar(0);
+  }
+  // Setas do teclado passam as fotos enquanto o detalhe está aberto
+  dialogo.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (e.target.closest("input, textarea, select")) return;
+    const caixa = dialogo.querySelector(".detalhe-foto.varias");
+    if (!caixa?.irPara) return;
+    e.preventDefault();
+    caixa.irPara(caixa.atual() + (e.key === "ArrowRight" ? 1 : -1));
+  });
+
   function fecharDetalhe(voltarEndereco) {
     if (dialogo.open) dialogo.close();
     document.title = "HPR Print 3D | Peças impressas em 3D";
@@ -452,13 +516,20 @@
   const reserva = (arquivo, padrao) => fetch(arquivo + semCache).then((r) => r.json()).catch(() => padrao);
   Promise.all([
     lerSupabase("ajustes?select=valor&chave=eq.site").then((l) => l[0]?.valor || reserva("data/site.json", {})).catch(() => reserva("data/site.json", {})),
-    // Tenta com cores e características; se o banco ainda não tiver essas colunas, busca sem elas
-    lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem,cores,caracteristicas&ativo=eq.true&order=ordem.asc,nome.asc")
+    // Tenta com galeria, cores e características; se o banco ainda não tiver essas colunas, busca sem elas
+    lerSupabase("pecas?select=id,nome,categoria,descricao,foto,fotos,preco,ativo,ordem,cores,caracteristicas&ativo=eq.true&order=ordem.asc,nome.asc")
+      .catch(() => lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem,cores,caracteristicas&ativo=eq.true&order=ordem.asc,nome.asc"))
       .catch(() => lerSupabase("pecas?select=id,nome,categoria,descricao,foto,preco,ativo,ordem&ativo=eq.true&order=ordem.asc,nome.asc"))
       .catch(() => reserva("data/catalogo.json", [])),
   ]).then(([s, c]) => {
     site = s || {};
     pecas = (Array.isArray(c) ? c : []).filter((p) => p.ativo !== false).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    // Galeria: lista de fotos válidas; a capa é a primeira (ou a foto antiga, para peças de antes da galeria)
+    pecas.forEach((p) => {
+      const lista = (Array.isArray(p.fotos) ? p.fotos : []).filter((u) => typeof u === "string" && /^https?:\/\//.test(u));
+      p.fotos = lista.length ? lista : p.foto ? [p.foto] : [];
+      p.foto = p.fotos[0] || "";
+    });
     document.querySelectorAll('[data-link="whatsapp"]').forEach((a) => (a.href = linkPedido()));
     document.querySelectorAll('[data-link="instagram"]').forEach((a) => (a.href = site.instagram || a.href));
     desenharFiltros();

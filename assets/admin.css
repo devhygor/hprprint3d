@@ -49,9 +49,30 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
 .coluna-resultado { position: sticky; top: 88px; }
 .linha-busca { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
 
-.foto-campo { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; }
-.foto-previa { width: 120px; aspect-ratio: 1; border-radius: var(--raio-p); background: var(--noite); border: 1.5px dashed var(--linha); overflow: hidden; display: grid; place-items: center; color: var(--texto-3); font-size: .85rem; }
-.foto-previa img { width: 100%; height: 100%; object-fit: cover; }
+/* Galeria de fotos da peça */
+.galeria-campo { display: flex; flex-direction: column; gap: 10px; }
+.galeria-contador { margin-left: 6px; color: var(--texto-3); font-weight: 500; font-size: .82rem; }
+.galeria-edit { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.galeria-item { position: relative; aspect-ratio: 1; border-radius: var(--raio-p); overflow: hidden; background: var(--noite); border: 1.5px solid var(--linha); }
+.galeria-item.capa { border-color: var(--neon); box-shadow: 0 0 0 2px rgba(139, 61, 255, .25); }
+.galeria-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.galeria-selo, .galeria-nova { position: absolute; top: 6px; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+.galeria-selo { left: 6px; background: var(--neon); color: #fff; }
+.galeria-nova { right: 6px; background: rgba(17, 6, 40, .8); color: var(--neon-claro); }
+.galeria-capa { font-size: .85rem; color: var(--neon-claro); }
+.galeria-mover { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 4px; padding: 6px; background: linear-gradient(transparent, rgba(17, 6, 40, .9)); }
+.galeria-btn { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); background: rgba(17, 6, 40, .85); color: #fff; font: 700 1rem/1 var(--fonte-texto); cursor: pointer; }
+.galeria-btn:hover:not(:disabled) { background: var(--neon); border-color: var(--neon); }
+.galeria-btn:disabled { opacity: .3; cursor: default; }
+.galeria-btn:focus-visible { outline: 2px solid var(--neon-claro); outline-offset: 2px; }
+.galeria-tirar:hover:not(:disabled) { background: var(--erro); border-color: var(--erro); color: #2a0010; }
+.galeria-vazia { grid-column: 1 / -1; padding: 22px; text-align: center; border: 1.5px dashed var(--linha); border-radius: var(--raio-p); color: var(--texto-3); font-size: .9rem; }
+.galeria-add { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.galeria-add label.desativado { opacity: .45; pointer-events: none; }
+.foto-link { display: flex; gap: 8px; flex: 1 1 260px; min-width: 0; }
+.foto-link input { flex: 1; min-width: 0; font: 400 .95rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--linha); border-radius: var(--raio-p); padding: 9px 12px; }
+.foto-link input:focus { outline: none; border-color: var(--neon-claro); }
+.foto-link input::placeholder { color: var(--texto-3); }
 
 .resultado { display: flex; flex-direction: column; gap: 12px; }
 .rotulo { margin: 0; color: var(--texto-2); font-weight: 600; font-size: .9rem; }

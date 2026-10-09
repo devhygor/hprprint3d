@@ -24,8 +24,7 @@
     pedidos: [],
     site: {},
     editando: null, // id da peça em edição
-    fotoNova: null, // { base64, ext, dataUrl }
-    fotoAtual: "",
+    fotos: [], // galeria da peça em edição: { url } já salvas ou { dataUrl } novas
   };
 
 
@@ -65,13 +64,14 @@
   const deLinhaPeca = (r) => ({
     ...(r.interno || {}),
     id: r.id, nome: r.nome, categoria: r.categoria || "", descricao: r.descricao || "", foto: r.foto || "",
+    fotos: Array.isArray(r.fotos) && r.fotos.length ? r.fotos : r.foto ? [r.foto] : [],
     ordem: r.ordem ?? 0, precoVitrine: r.preco ?? "", ativo: r.ativo !== false,
     cores: Array.isArray(r.cores) ? r.cores : [],
     caracteristicas: r.caracteristicas && typeof r.caracteristicas === "object" ? r.caracteristicas : {},
   });
   async function enviarFoto(id, dataUrl) {
     const blob = await (await fetch(dataUrl)).blob();
-    const caminho = `pecas/${id}-${Date.now().toString(36)}.jpg`;
+    const caminho = `pecas/${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.jpg`;
     const { error } = await db.storage.from("fotos").upload(caminho, blob, { contentType: "image/jpeg", upsert: true });
     if (error) throw error;
     return db.storage.from("fotos").getPublicUrl(caminho).data.publicUrl;
@@ -376,9 +376,8 @@
   function abrirEditor(id) {
     const p = id ? estado.pecas.find((x) => x.id === id) : null;
     estado.editando = p ? p.id : null;
-    estado.fotoNova = null;
     estado.idBusca = null;
-    estado.fotoAtual = p?.foto || "";
+    estado.fotos = (p?.fotos || []).map((url) => ({ url }));
     precoEditadoManual = !!(p && p.precoVitrine);
     $("#titulo-editor").textContent = p ? "Editar peça" : "Nova peça";
     const dados = { ...PADRAO_PECA, ...(p || {}) };
@@ -391,10 +390,9 @@
     atualizarContador();
     $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
-    estado.fotoSalva = estado.fotoAtual;
-    $("#p-foto-url").value = /^https?:/.test(estado.fotoAtual) ? estado.fotoAtual : "";
+    $("#p-foto-url").value = "";
     $("#p-makerworld").dispatchEvent(new Event("input"));
-    desenharFoto();
+    desenharGaleria();
     mostrar("editor");
     $$(".aba").forEach((b) => (b.dataset.aba === "editor" ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
     calcular();
@@ -406,10 +404,39 @@
     return p;
   }
 
-  function desenharFoto() {
-    const src = estado.fotoNova?.dataUrl || urlFoto(estado.fotoAtual);
-    $("#foto-previa").innerHTML = src ? `<img src="${esc(src)}" alt="Foto da peça">` : `<span>Sem foto</span>`;
+  // ---------- Galeria de fotos da peça ----------
+  const MAX_FOTOS = 10;
+  const srcFoto = (f) => f.dataUrl || urlFoto(f.url);
+  function desenharGaleria() {
+    const lista = estado.fotos;
+    $("#galeria-contador").textContent = `${lista.length} de ${MAX_FOTOS}`;
+    $("#galeria-edit").innerHTML = lista.length
+      ? lista.map((f, i) => `<li class="galeria-item${i === 0 ? " capa" : ""}">
+          <img src="${esc(srcFoto(f))}" alt="Foto ${i + 1} da peça">
+          ${i === 0 ? `<span class="galeria-selo">Capa</span>` : ""}
+          <div class="galeria-mover">
+            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="-1" aria-label="Mover foto ${i + 1} para a esquerda" ${i === 0 ? "disabled" : ""}>‹</button>
+            ${i === 0 ? "" : `<button type="button" class="galeria-btn galeria-capa" data-capa="${i}" title="Usar como capa" aria-label="Usar a foto ${i + 1} como capa">★</button>`}
+            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="1" aria-label="Mover foto ${i + 1} para a direita" ${i === lista.length - 1 ? "disabled" : ""}>›</button>
+            <button type="button" class="galeria-btn galeria-tirar" data-tirar="${i}" aria-label="Remover foto ${i + 1}">×</button>
+          </div>
+          ${f.dataUrl ? `<span class="galeria-nova">nova</span>` : ""}
+        </li>`).join("")
+      : `<li class="galeria-vazia">Nenhuma foto ainda</li>`;
+    $("#p-fotos-arquivos").closest("label").classList.toggle("desativado", lista.length >= MAX_FOTOS);
   }
+  $("#galeria-edit").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const f = estado.fotos;
+    if (b.dataset.tirar) f.splice(Number(b.dataset.tirar), 1);
+    else if (b.dataset.capa) f.unshift(...f.splice(Number(b.dataset.capa), 1));
+    else if (b.dataset.mover) {
+      const i = Number(b.dataset.mover), j = i + Number(b.dataset.dir);
+      if (j >= 0 && j < f.length) [f[i], f[j]] = [f[j], f[i]];
+    }
+    desenharGaleria();
+  });
 
 
   function calcular() {
@@ -440,28 +467,31 @@
   $("#form-peca").addEventListener("input", () => { marcarPersonalizados(); calcular(); });
   $("#p-preco").addEventListener("input", () => { precoEditadoManual = $("#p-preco").value !== ""; calcular(); });
 
-  // Foto enviada: reduz para no máximo 1200 px antes de salvar
-  $("#p-foto-arquivo").addEventListener("change", async (e) => {
-    const arq = e.target.files[0];
-    if (!arq) return;
-    try {
-      const img = await new Promise((ok, falha) => {
-        const i = new Image();
-        i.onload = () => ok(i);
-        i.onerror = falha;
-        i.src = URL.createObjectURL(arq);
-      });
-      const max = 1200;
-      const fator = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * fator);
-      c.height = Math.round(img.height * fator);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      const dataUrl = c.toDataURL("image/jpeg", 0.85);
-      estado.fotoNova = { dataUrl, base64: dataUrl.split(",")[1], ext: "jpg" };
-      $("#p-foto-url").value = "";
-      desenharFoto();
-    } catch { avisar("Não consegui abrir essa imagem. Tente uma foto JPG ou PNG.", true); }
+  // Fotos enviadas: cada uma é reduzida para no máximo 1600 px antes de salvar
+  async function reduzirFoto(arq) {
+    const img = await new Promise((ok, falha) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = falha;
+      i.src = URL.createObjectURL(arq);
+    });
+    const fator = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * fator);
+    c.height = Math.round(img.height * fator);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    return c.toDataURL("image/jpeg", 0.85);
+  }
+  $("#p-fotos-arquivos").addEventListener("change", async (e) => {
+    const arquivos = [...e.target.files];
+    const cabem = MAX_FOTOS - estado.fotos.length;
+    if (arquivos.length > cabem) avisar(`Cabem mais ${cabem} foto${cabem === 1 ? "" : "s"} nesta peça. As demais ficaram de fora.`, true, 6000);
+    for (const arq of arquivos.slice(0, Math.max(0, cabem))) {
+      try { estado.fotos.push({ dataUrl: await reduzirFoto(arq) }); }
+      catch { avisar(`Não consegui abrir "${arq.name}". Use foto JPG, PNG ou WEBP.`, true); }
+      desenharGaleria();
+    }
     e.target.value = "";
   });
 
@@ -471,13 +501,17 @@
     "-" + Date.now().toString(36);
 
   const ehUrlFoto = (u) => /^https:\/\/\S+$/i.test(u);
-  $("#p-foto-url").addEventListener("input", (e) => {
-    const u = e.target.value.trim();
-    if (u && !ehUrlFoto(u)) return;
-    estado.fotoNova = null;
-    estado.fotoAtual = u || estado.fotoSalva || "";
-    desenharFoto();
-  });
+  function adicionarFotoPorLink() {
+    const u = $("#p-foto-url").value.trim();
+    if (!ehUrlFoto(u)) { avisar("Cole um link de imagem começando com https://", true); $("#p-foto-url").focus(); return; }
+    if (estado.fotos.length >= MAX_FOTOS) { avisar(`O limite é de ${MAX_FOTOS} fotos por peça.`, true); return; }
+    if (estado.fotos.some((f) => f.url === u)) { avisar("Essa foto já está na galeria.", true); return; }
+    estado.fotos.push({ url: u });
+    $("#p-foto-url").value = "";
+    desenharGaleria();
+  }
+  $("#p-foto-url-add").addEventListener("click", adicionarFotoPorLink);
+  $("#p-foto-url").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adicionarFotoPorLink(); } });
   $("#p-makerworld").addEventListener("input", (e) => {
     const u = e.target.value.trim();
     $("#abrir-mw").href = /^https?:\/\/(www\.)?makerworld\.com\//i.test(u) ? u : "https://makerworld.com/";
@@ -528,8 +562,9 @@
     if (!nome) { st.className = "dica erro"; st.textContent = "Escreva o nome da peça primeiro."; $("#p-nome").focus(); return; }
     const categoria = $("#p-categoria").value.trim();
     const texto = `Peça: ${nome}${categoria ? `\nCategoria: ${categoria}` : ""}${$("#p-descricao").value.trim() ? `\nIdeia atual da descrição: ${$("#p-descricao").value.trim()}` : ""}`;
-    const foto = estado.fotoNova?.dataUrl || urlFoto(estado.fotoAtual);
-    const comFoto = foto ? [{ type: "text", text: texto + "\nUse a foto para entender a peça." }, { type: "image_url", image_url: { url: foto, detail: "low" } }] : texto;
+    const fotosIA = estado.fotos.slice(0, 2).map(srcFoto).filter(Boolean);
+    const foto = fotosIA[0];
+    const comFoto = foto ? [{ type: "text", text: texto + "\nUse as fotos para entender a peça." }, ...fotosIA.map((url) => ({ type: "image_url", image_url: { url, detail: "low" } }))] : texto;
     const botao = $("#gerar-descricao");
     botao.disabled = true;
     st.textContent = "Escrevendo a descrição…";
@@ -572,11 +607,18 @@
     botao.disabled = true;
     try {
       const id = estado.editando || estado.idBusca || novoId(f.nome);
-      let foto = estado.fotoAtual;
-      if (estado.fotoNova) {
-        avisar("Enviando foto…", false, 20000);
-        foto = await enviarFoto(id, estado.fotoNova.dataUrl);
+      // Envia as fotos novas na ordem da galeria
+      const novas = estado.fotos.filter((f) => f.dataUrl).length;
+      let enviadas = 0;
+      for (const f of estado.fotos) {
+        if (!f.dataUrl) continue;
+        enviadas++;
+        avisar(`Enviando foto ${enviadas} de ${novas}…`, false, 30000);
+        f.url = await enviarFoto(id, f.dataUrl);
+        delete f.dataUrl;
       }
+      const fotos = estado.fotos.map((f) => f.url).filter(Boolean);
+      const foto = fotos[0] || "";
       const r = P.precificar(f, estado.config);
       const { nome, categoria, descricao, ordem, precoVitrine, ...calculo } = f;
       // Guarda só o que é diferente da aba Custos; o resto acompanha o padrão quando ele mudar
@@ -588,6 +630,7 @@
         categoria: categoria || null,
         descricao: descricao || null,
         foto: foto || null,
+        fotos,
         preco: P.num(precoVitrine, 0) || null,
         ativo: $("#p-ativo").checked,
         ordem: Math.round(P.num(ordem, 0)),
