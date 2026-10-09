@@ -367,6 +367,12 @@
     return c;
   }
 
+  function atualizarContador() {
+    const n = $("#p-descricao").value.length;
+    $("#p-descricao-contador").textContent = `${n} de 1000 caracteres. Na vitrine aparecem as primeiras linhas, com "Ver mais".`;
+  }
+  $("#p-descricao").addEventListener("input", atualizarContador);
+
   function abrirEditor(id) {
     const p = id ? estado.pecas.find((x) => x.id === id) : null;
     estado.editando = p ? p.id : null;
@@ -382,6 +388,7 @@
     desenharCores();
     $("#p-cor-personalizada").checked = !!p?.caracteristicas?.outrasCores;
     preencherCaracteristicas(p?.caracteristicas || {});
+    atualizarContador();
     $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
     estado.fotoSalva = estado.fotoAtual;
@@ -484,13 +491,13 @@
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + estado.ia.chave },
       body: JSON.stringify({
         model: modelo,
-        max_completion_tokens: 1200,
+        max_completion_tokens: 1600,
         messages: [
           {
             role: "system",
             content:
               "Você escreve descrições curtas para a vitrine de uma pequena loja brasileira de peças impressas em 3D, a HPR Print 3D. " +
-              "Escreva em português do Brasil, em 1 ou 2 frases, com no máximo 150 caracteres. Tom simples e acolhedor, falando com o cliente. " +
+              "Escreva em português do Brasil, em 2 a 4 frases, com no máximo 450 caracteres. A primeira frase deve resumir a peça sozinha, porque é a que aparece no card da vitrine. Tom simples e acolhedor, falando com o cliente. " +
               "Diga o que é a peça e para que serve ou por que é legal. Não invente medidas, materiais, cores ou preço. Sem emojis, sem hashtags, sem aspas. " +
               "Responda só com a descrição.",
           },
@@ -543,7 +550,8 @@
         if (resultado) break;
       }
       if (!resultado) throw ultimoErro || new Error("a IA não respondeu");
-      $("#p-descricao").value = resultado.slice(0, 160);
+      $("#p-descricao").value = resultado.slice(0, 1000);
+      $("#p-descricao").dispatchEvent(new Event("input", { bubbles: true }));
       st.textContent = "Pronto. Revise e ajuste se quiser; clicar de novo gera outra opção.";
     } catch (e) {
       st.className = "dica erro";

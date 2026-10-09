@@ -55,12 +55,12 @@
           ? `<img src="${esc(p.foto)}" alt="${esc(p.nome)}" loading="lazy">`
           : `<span class="sem-foto">Foto em breve</span>`;
         const preco = p.preco ? `<span class="preco"><small>a partir de</small>${brl(Number(p.preco))}</span>` : `<span class="preco"><small>valor</small>Sob consulta</span>`;
-        return `<article class="peca">
-          <div class="peca-foto">${foto}</div>
+        return `<article class="peca" data-peca="${esc(p.id)}">
+          <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}</a>
           <div class="peca-corpo">
             <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
-            <h3>${esc(p.nome)}</h3>
-            ${p.descricao ? `<p class="peca-desc">${esc(p.descricao)}</p>` : ""}
+            <h3><a href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}">${esc(p.nome)}</a></h3>
+            ${p.descricao ? `<div class="peca-desc-bloco"><p class="peca-desc" id="desc-${esc(p.id)}">${esc(p.descricao)}</p><button type="button" class="ver-mais" data-ver-mais aria-expanded="false" aria-controls="desc-${esc(p.id)}" hidden>Ver mais</button></div>` : ""}
             ${(() => {
               const c = p.caracteristicas || {};
               const resumo = resumoCaracteristicas(c);
@@ -84,7 +84,81 @@
         </article>`;
       })
       .join("");
+    marcarTextosLongos();
   }
+
+  // Mostra "Ver mais" só quando a descrição passa do limite de linhas do card
+  function marcarTextosLongos() {
+    requestAnimationFrame(() => {
+      grade.querySelectorAll(".peca-desc-bloco").forEach((b) => {
+        const p = b.querySelector(".peca-desc");
+        b.querySelector("[data-ver-mais]").hidden = p.scrollHeight <= p.clientHeight + 2;
+      });
+    });
+  }
+  window.addEventListener("resize", () => { clearTimeout(marcarTextosLongos.t); marcarTextosLongos.t = setTimeout(marcarTextosLongos, 150); });
+
+  grade.addEventListener("click", (e) => {
+    const vm = e.target.closest("[data-ver-mais]");
+    if (vm) {
+      const aberto = vm.getAttribute("aria-expanded") === "true";
+      vm.setAttribute("aria-expanded", String(!aberto));
+      vm.textContent = aberto ? "Ver mais" : "Ver menos";
+      vm.parentElement.classList.toggle("aberta", !aberto);
+      return;
+    }
+    const d = e.target.closest("[data-detalhe]");
+    if (d) { e.preventDefault(); abrirDetalhe(d.dataset.detalhe, true); }
+  });
+
+  // ---------- Detalhes da peça ----------
+  const dialogo = document.getElementById("detalhe-peca");
+  function abrirDetalhe(id, mudarEndereco) {
+    const p = pecas.find((x) => x.id === id);
+    if (!p) return;
+    const c = p.caracteristicas || {};
+    const medidas = [["Largura", c.largura], ["Altura", c.altura], ["Profundidade", c.profundidade]].filter(([, v]) => Number(v) > 0);
+    const linhas = [
+      medidas.length && ["Tamanho", `${medidas.map(([, v]) => fmt(v)).join(" × ")} cm`, medidas.map(([n]) => n.toLowerCase()).join(" × ")],
+      Number(c.peso) > 0 && ["Peso", `${fmt(c.peso)} g`],
+      c.material && ["Material", c.material],
+      ...(c.extras || []).map((x) => [x.nome, x.valor || "Sim"]),
+    ].filter(Boolean);
+    const cores = p.cores || [];
+    dialogo.querySelector(".detalhe-conteudo").innerHTML = `
+      <div class="detalhe-foto">${p.foto ? `<img src="${esc(p.foto)}" alt="${esc(p.nome)}">` : `<span class="sem-foto">Foto em breve</span>`}</div>
+      <div class="detalhe-info">
+        <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
+        <h2 id="detalhe-titulo">${esc(p.nome)}</h2>
+        <p class="detalhe-preco">${p.preco ? `<small>a partir de</small>${brl(Number(p.preco))}` : `<small>valor</small>Sob consulta`}</p>
+        ${p.descricao ? `<div class="detalhe-desc">${esc(p.descricao).split(/\n{2,}/).map((par) => `<p>${par.replace(/\n/g, "<br>")}</p>`).join("")}</div>` : ""}
+        ${linhas.length ? `<h3>Características</h3>
+          <dl class="detalhe-tabela">${linhas.map(([k, v, obs]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}${obs ? `<small>${esc(obs)}</small>` : ""}</dd></div>`).join("")}</dl>` : ""}
+        ${cores.length ? `<h3>Cores disponíveis</h3>
+          <ul class="detalhe-cores">${cores.map((cor) => `<li><span class="peca-cor" style="${amostraCor(cor.hex)}"></span>${esc(cor.nome)}</li>`).join("")}</ul>
+          ${c.outrasCores ? `<p class="detalhe-obs">Outras cores sob encomenda, é só pedir.</p>` : ""}` : ""}
+        <a class="botao botao-principal detalhe-pedir" href="#pedido" data-pedir="${esc(p.nome)}" data-id="${esc(p.id)}">Pedir esta peça</a>
+      </div>`;
+    if (!dialogo.open) dialogo.showModal();
+    dialogo.querySelector(".detalhe-conteudo").scrollTop = 0;
+    if (mudarEndereco) history.pushState({ peca: id }, "", `#peca-${encodeURIComponent(id)}`);
+    document.title = `${p.nome} | HPR Print 3D`;
+  }
+  function fecharDetalhe(voltarEndereco) {
+    if (dialogo.open) dialogo.close();
+    document.title = "HPR Print 3D | Peças impressas em 3D";
+    if (voltarEndereco && location.hash.startsWith("#peca-")) history.pushState({}, "", location.pathname + location.search);
+  }
+  dialogo.addEventListener("click", (e) => {
+    if (e.target === dialogo || e.target.closest("[data-fechar]")) { fecharDetalhe(true); return; }
+    const b = e.target.closest("[data-pedir]");
+    if (b) { e.preventDefault(); fecharDetalhe(true); prepararPedido(b.dataset.pedir, b.dataset.id); }
+  });
+  dialogo.addEventListener("cancel", (e) => { e.preventDefault(); fecharDetalhe(true); });
+  window.addEventListener("popstate", () => {
+    const m = location.hash.match(/^#peca-(.+)$/);
+    if (m) abrirDetalhe(decodeURIComponent(m[1]), false); else fecharDetalhe(false);
+  });
 
   filtros.addEventListener("click", (e) => {
     const b = e.target.closest("[data-cat]");
@@ -97,20 +171,21 @@
   // ---------- Pedido pelo WhatsApp ----------
   const numeroZap = () => String(site.whatsapp || "5561981600889").replace(/\D/g, "");
 
-  // Botão "Pedir" do card: leva ao formulário já com a peça preenchida
-  grade.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-pedir]");
-    if (!b) return;
-    e.preventDefault();
-    const campo = document.getElementById("pedido-peca");
-    campo.value = b.dataset.pedir;
-    // Sugere as cores da peça no campo de cor do pedido
-    const peca = pecas.find((x) => x.id === b.dataset.id);
+  // Botão "Pedir": leva ao formulário já com a peça preenchida e sugere as cores dela
+  function prepararPedido(nome, id) {
+    document.getElementById("pedido-peca").value = nome;
+    const peca = pecas.find((x) => x.id === id);
     const cores = (peca?.cores || []).map((c) => c.nome);
     document.getElementById("cores-sugeridas").innerHTML = cores.map((n) => `<option value="${esc(n)}">`).join("");
     document.querySelector('#form-pedido [name="cor"]').placeholder = cores.length ? `Disponível: ${cores.slice(0, 4).join(", ")}${cores.length > 4 ? "…" : ""}` : "Ex.: azul e branco";
     document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     setTimeout(() => document.querySelector('#form-pedido [name="nome"]').focus({ preventScroll: true }), 400);
+  }
+  grade.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pedir]");
+    if (!b) return;
+    e.preventDefault();
+    prepararPedido(b.dataset.pedir, b.dataset.id);
   });
 
   // ---------- Sessão do cliente (se ele entrou em "Meus pedidos") ----------
@@ -383,5 +458,7 @@
     desenharFiltros();
     desenharGrade();
     desenharInstagram();
+    const m = location.hash.match(/^#peca-(.+)$/);
+    if (m) abrirDetalhe(decodeURIComponent(m[1]), false);
   });
 })();

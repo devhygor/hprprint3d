@@ -193,7 +193,8 @@
             </div>
             <datalist id="lista-categorias"></datalist>
             <div class="campo-com-acao">
-              <label class="campo">Descrição curta<textarea id="p-descricao" rows="2" maxlength="160"></textarea></label>
+              <label class="campo">Descrição<textarea id="p-descricao" rows="5" maxlength="1000" placeholder="Conte o que é a peça, para que serve, detalhes de acabamento…"></textarea></label>
+              <p class="dica contador" id="p-descricao-contador" aria-live="polite">0 de 1000 caracteres. Na vitrine aparecem as primeiras linhas, com "Ver mais".</p>
               <button class="botao botao-contorno botao-pequeno" type="button" id="gerar-descricao">Gerar com IA</button>
               <p class="dica" id="status-ia" hidden></p>
             </div>

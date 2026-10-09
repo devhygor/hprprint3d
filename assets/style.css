@@ -128,7 +128,13 @@ a { color: inherit; }
 .peca-categoria { font-size: .85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: var(--texto-2); }
 .peca-categoria::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--cor, var(--lilas)); }
 .peca h3 { font-family: var(--fonte-display); font-weight: 700; font-size: 1.25rem; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
-.peca-desc { color: var(--texto-2); font-size: .95rem; margin: 0; }
+.peca-desc { color: var(--texto-2); font-size: .95rem; margin: 0; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.peca-desc-bloco.aberta .peca-desc { -webkit-line-clamp: unset; display: block; }
+.ver-mais { background: none; border: 0; padding: 2px 0; margin-top: 2px; color: var(--neon-claro); font: 600 .88rem var(--fonte-texto); cursor: pointer; }
+.ver-mais:hover { text-decoration: underline; }
+a.peca-foto { display: block; }
+.peca h3 a { color: inherit; text-decoration: none; }
+.peca h3 a:hover { text-decoration: underline; text-decoration-color: var(--neon-claro); }
 .peca-rodape { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .preco { font-family: var(--fonte-display); font-weight: 700; font-size: 1.4rem; }
 .preco small { font-family: var(--fonte-texto); font-weight: 500; font-size: .8rem; color: var(--texto-3); display: block; }
@@ -165,7 +171,7 @@ a { color: inherit; }
   .peca { border-radius: var(--raio-m); }
   .peca-corpo { padding: 12px; }
   .peca h3 { font-size: 1.02rem; }
-  .peca-desc { display: none; }
+  .peca-desc { -webkit-line-clamp: 2; font-size: .85rem; }
   .peca-rodape { flex-direction: column; align-items: stretch; gap: 8px; }
   .preco { font-size: 1.15rem; }
 }
@@ -246,3 +252,38 @@ section[id] { scroll-margin-top: 76px; }
 .peca-cor { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .35); }
 .peca-cores-mais { font-size: .8rem; color: var(--texto-3); }
 @media (max-width: 560px) { .peca-carac li { font-size: .74rem; padding: 2px 8px; } .peca-cor { width: 15px; height: 15px; } }
+
+/* ---------- Detalhes da peça ---------- */
+.detalhe { width: min(960px, calc(100% - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--linha); border-radius: var(--raio-g); background: var(--noite-2); color: var(--texto); box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 40px rgba(139, 61, 255, .25); overflow: hidden; }
+.detalhe::backdrop { background: rgba(8, 3, 22, .78); backdrop-filter: blur(3px); }
+.detalhe-conteudo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-height: calc(100dvh - 34px); overflow-y: auto; }
+.detalhe-foto { background: var(--noite-3); position: relative; aspect-ratio: 1; align-self: start; position: sticky; top: 0; }
+.detalhe-foto img { width: 100%; height: 100%; object-fit: cover; }
+.detalhe-foto .sem-foto { position: absolute; inset: 0; display: grid; place-items: center; color: var(--texto-3); }
+.detalhe-info { padding: clamp(20px, 4vw, 34px); display: flex; flex-direction: column; gap: 10px; }
+.detalhe-info h2 { font-family: var(--fonte-display); font-weight: 800; font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.1; margin: 0; }
+.detalhe-info h3 { font-family: var(--fonte-display); font-size: 1.05rem; margin: 14px 0 2px; color: var(--texto); }
+.detalhe-preco { margin: 0; font-family: var(--fonte-display); font-weight: 700; font-size: 1.6rem; }
+.detalhe-preco small { display: block; font-family: var(--fonte-texto); font-weight: 500; font-size: .82rem; color: var(--texto-3); }
+.detalhe-desc { color: var(--texto-2); line-height: 1.6; }
+.detalhe-desc p { margin: 0 0 10px; }
+.detalhe-tabela { margin: 0; display: flex; flex-direction: column; }
+.detalhe-tabela > div { display: grid; grid-template-columns: 40% 60%; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--linha); }
+.detalhe-tabela dt { color: var(--texto-3); }
+.detalhe-tabela dd { margin: 0; font-weight: 600; }
+.detalhe-tabela dd small { display: block; font-weight: 400; font-size: .78rem; color: var(--texto-3); }
+.detalhe-cores { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.detalhe-cores li { display: inline-flex; align-items: center; gap: 7px; font-size: .9rem; background: var(--noite); border: 1px solid var(--linha); border-radius: 999px; padding: 5px 12px 5px 6px; }
+.detalhe-obs { margin: 0; font-size: .88rem; color: var(--texto-3); }
+.detalhe-pedir { margin-top: 14px; align-self: stretch; }
+.detalhe-fechar { position: absolute; top: 12px; right: 12px; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(17, 6, 40, .82); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 0 0 1px var(--linha); }
+.detalhe-fechar:hover { background: var(--neon); }
+@media (max-width: 760px) {
+  .detalhe { width: 100%; max-width: 100%; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; border: 0; }
+  .detalhe-conteudo { grid-template-columns: 1fr; max-height: 100dvh; }
+  .detalhe-foto { position: static; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .detalhe[open] { animation: detalhe-entra .18s ease-out; }
+  @keyframes detalhe-entra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+}
