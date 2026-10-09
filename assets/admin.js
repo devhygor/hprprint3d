@@ -220,7 +220,8 @@
         const r = P.precificar(p, estado.config);
         const preco = P.num(p.precoVitrine, NaN);
         const lucro = Number.isFinite(preco) ? P.analisar(preco, r.custo.total, estado.config.canais.direta, P.num(estado.config.impostoPct)).lucro : NaN;
-        return `<tr>
+        return `<tr data-id="${esc(p.id)}">
+          <td class="col-alca"><button type="button" class="alca" aria-label="Mudar a posição de ${esc(p.nome)} na vitrine (setas para cima e para baixo)" title="Arraste para mudar a ordem">⋮⋮</button></td>
           <td>${p.foto ? `<img class="mini" src="${esc(urlFoto(p.foto))}" alt="">` : `<span class="mini"></span>`}</td>
           <td class="nome">${esc(p.nome)}<small>${esc(p.categoria || "Sem categoria")}</small></td>
           <td class="num">${brl(r.custo.total)}</td>
@@ -235,10 +236,92 @@
         </tr>`;
       })
       .join("");
-    alvo.innerHTML = `<div style="overflow-x:auto"><table class="tabela-pecas">
-      <thead><tr><th></th><th>Peça</th><th class="num">Custo</th><th class="num ocultar-celular">Sugerido</th><th class="num">Na vitrine</th><th class="num ocultar-celular">Lucro (direta)</th><th class="ocultar-celular">Status</th><th></th></tr></thead>
+    alvo.innerHTML = `<p class="dica dica-ordem">Arraste pelo <b>⋮⋮</b> para mudar a ordem em que as peças aparecem na vitrine. Salva sozinho.</p>
+      <div style="overflow-x:auto"><table class="tabela-pecas">
+      <thead><tr><th><span class="sr-only">Ordem</span></th><th></th><th>Peça</th><th class="num">Custo</th><th class="num ocultar-celular">Sugerido</th><th class="num">Na vitrine</th><th class="num ocultar-celular">Lucro (direta)</th><th class="ocultar-celular">Status</th><th></th></tr></thead>
       <tbody>${linhas}</tbody></table></div>`;
   }
+
+  // ---------- Ordem da vitrine: arrastar na lista ----------
+  // Funciona com mouse e com o dedo (eventos de ponteiro) e pelo teclado (setas no ⋮⋮).
+  const corpoLista = () => $("#lista-pecas tbody");
+  let salvandoOrdem = Promise.resolve();
+  function salvarOrdem() {
+    const ids = [...corpoLista().querySelectorAll("tr[data-id]")].map((tr) => tr.dataset.id);
+    const mudou = [];
+    ids.forEach((id, i) => {
+      const p = estado.pecas.find((x) => x.id === id);
+      if (p && Number(p.ordem) !== i + 1) { p.ordem = i + 1; mudou.push(p); }
+    });
+    if (!mudou.length) return;
+    salvandoOrdem = salvandoOrdem.then(async () => {
+      try {
+        const res = await Promise.all(mudou.map((p) => db.from("pecas").update({ ordem: p.ordem }).eq("id", p.id)));
+        const erro = res.find((r) => r.error)?.error;
+        if (erro) throw erro;
+        avisar("Ordem da vitrine salva.");
+      } catch (err) {
+        avisar("Não consegui salvar a ordem: " + erroLegivel(err), true, 7000);
+        const { data } = await db.from("pecas").select("*").order("ordem");
+        if (data) { estado.pecas = data.map(deLinhaPeca); desenharLista(); }
+      }
+    });
+  }
+  let arraste = null;
+  $("#lista-pecas").addEventListener("pointerdown", (e) => {
+    const alca = e.target.closest(".alca");
+    if (!alca || e.button > 0) return;
+    e.preventDefault();
+    const tr = alca.closest("tr");
+    alca.setPointerCapture(e.pointerId);
+    tr.classList.add("arrastando");
+    document.body.classList.add("ordenando");
+    arraste = { tr, alca, antes: [...corpoLista().children].indexOf(tr), y: e.clientY, rolar: 0 };
+    const rolar = () => {
+      if (!arraste) return;
+      const borda = 70, y = arraste.y;
+      const v = y < borda ? -Math.ceil((borda - y) / 6) : y > innerHeight - borda ? Math.ceil((y - innerHeight + borda) / 6) : 0;
+      if (v) { scrollBy(0, v); moverPara(y); }
+      arraste.rolar = requestAnimationFrame(rolar);
+    };
+    arraste.rolar = requestAnimationFrame(rolar);
+  });
+  function moverPara(y) {
+    const { tr } = arraste;
+    const outras = [...corpoLista().children].filter((x) => x !== tr);
+    const depois = outras.find((x) => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    if (depois) { if (tr.nextElementSibling !== depois) corpoLista().insertBefore(tr, depois); }
+    else if (corpoLista().lastElementChild !== tr) corpoLista().appendChild(tr);
+  }
+  $("#lista-pecas").addEventListener("pointermove", (e) => {
+    if (!arraste) return;
+    arraste.y = e.clientY;
+    moverPara(e.clientY);
+  });
+  const soltar = () => {
+    if (!arraste) return;
+    cancelAnimationFrame(arraste.rolar);
+    arraste.tr.classList.remove("arrastando");
+    document.body.classList.remove("ordenando");
+    const mudou = [...corpoLista().children].indexOf(arraste.tr) !== arraste.antes;
+    arraste = null;
+    if (mudou) salvarOrdem();
+  };
+  $("#lista-pecas").addEventListener("pointerup", soltar);
+  $("#lista-pecas").addEventListener("pointercancel", soltar);
+  let esperaTeclado = 0;
+  $("#lista-pecas").addEventListener("keydown", (e) => {
+    const alca = e.target.closest(".alca");
+    if (!alca || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    const tr = alca.closest("tr");
+    const vizinha = e.key === "ArrowUp" ? tr.previousElementSibling : tr.nextElementSibling;
+    if (!vizinha) return;
+    if (e.key === "ArrowUp") vizinha.before(tr); else vizinha.after(tr);
+    alca.focus();
+    clearTimeout(esperaTeclado);
+    esperaTeclado = setTimeout(salvarOrdem, 700);
+  });
 
   $("#lista-pecas").addEventListener("click", async (e) => {
     const ed = e.target.closest("[data-editar]");
@@ -380,7 +463,9 @@
     estado.fotos = (p?.fotos || []).map((url) => ({ url }));
     precoEditadoManual = !!(p && p.precoVitrine);
     $("#titulo-editor").textContent = p ? "Editar peça" : "Nova peça";
-    const dados = { ...PADRAO_PECA, ...(p || {}) };
+    // Peça nova entra no fim da vitrine
+    const ultima = Math.max(0, ...estado.pecas.map((x) => Number(x.ordem) || 0));
+    const dados = { ...PADRAO_PECA, ordem: ultima + 1, ...(p || {}) };
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = dados[k] ?? "";
     preencherPadroes(p, false);
     coresSel = (p?.cores || []).map((c) => ({ nome: String(c.nome || ""), hex: String(c.hex || "#cccccc") })).filter((c) => c.nome);

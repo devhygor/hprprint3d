@@ -99,6 +99,15 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
 .tabela-pecas .num { text-align: right; }
 .tabela-pecas .mini { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--noite-3); display: block; }
 .tabela-pecas .nome { font-weight: 600; }
+.tabela-pecas .col-alca { width: 1%; padding: 10px 0 10px 4px; }
+.alca { width: 34px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--texto-3); font: 700 1.05rem/1 var(--fonte-texto); letter-spacing: -3px; cursor: grab; touch-action: none; user-select: none; }
+.alca:hover { color: var(--neon-claro); background: var(--noite-3); }
+.alca:focus-visible { outline: 2px solid var(--neon-claro); outline-offset: 1px; color: var(--neon-claro); }
+.tabela-pecas tr.arrastando { background: var(--noite-3); box-shadow: 0 8px 26px rgba(0, 0, 0, .45), inset 0 0 0 2px var(--neon); position: relative; z-index: 1; }
+.tabela-pecas tr.arrastando .alca { color: #fff; background: var(--neon); cursor: grabbing; }
+body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: none; }
+.dica-ordem { margin: 0 0 10px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .tabela-pecas .nome small { display: block; color: var(--texto-3); font-weight: 400; }
 .etiqueta { font-size: .8rem; padding: 3px 9px; border-radius: 999px; background: var(--noite-3); color: var(--texto-2); white-space: nowrap; }
 .etiqueta.ativa { background: color-mix(in srgb, var(--menta) 20%, transparent); color: var(--menta); }
