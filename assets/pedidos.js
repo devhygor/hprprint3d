@@ -10,6 +10,7 @@
     { id: "aprovado", nome: "Aprovado", cor: "var(--sol)" },
     { id: "imprimindo", nome: "Imprimindo", cor: "var(--coral)" },
     { id: "pronto", nome: "Pronto", cor: "var(--menta)" },
+    { id: "enviado", nome: "Enviado (postado)", cor: "#5ad1e6" },
     { id: "entregue", nome: "Entregue", cor: "#8b84b3" },
     { id: "cancelado", nome: "Cancelado", cor: "#5e5888" },
   ];
@@ -21,7 +22,7 @@
   // ---------- Supabase ----------
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
-    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico"];
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
     const r = {};
@@ -162,6 +163,7 @@
           <p class="cp-cliente">${esc(p.cliente || "Cliente sem nome")}${p.cidade ? `, ${esc(p.cidade)}` : ""}${(p.canal || p.origem === "site") ? ` <span class="cp-canal">${esc(p.canal || "Site")}</span>` : ""}</p>
           <div class="cp-info">
             ${entrega}
+            ${p.rastreio ? `<a class="cp-rastreio" href="${esc(window.HPR_RASTREIO.dePedido(p).link)}" target="_blank" rel="noopener" title="Abrir o rastreio">📦 ${esc(window.HPR_RASTREIO.limpar(p.rastreio))}</a>` : ""}
             ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
             ${Number.isFinite(c.valor) ? `<span>${brl(c.valor)}${c.falta > 0.004 ? `, falta ${brl(c.falta)}` : c.valor > 0 ? ", pago" : ""}</span>` : ""}
           </div>
@@ -185,7 +187,7 @@
 
   const FRASE_STATUS = {
     novo: "foi recebido", orcamento: "teve o orçamento enviado", aprovado: "foi aprovado", imprimindo: "está sendo impresso",
-    pronto: "está pronto", entregue: "foi entregue", cancelado: "foi cancelado",
+    pronto: "está pronto", enviado: "foi postado", entregue: "foi entregue", cancelado: "foi cancelado",
   };
   // Depois de mudar o status: oferece mandar a mensagem pronta no WhatsApp do cliente
   function oferecerWhatsapp(p) {
@@ -214,6 +216,17 @@
     if (!sel) return;
     const p = estado.pedidos.find((x) => x.id === sel.dataset.status);
     if (!p || p.status === sel.value) return;
+    if (sel.value === "enviado" && !p.rastreio) {
+      // Precisa do código de rastreio: abre o pedido já em "Enviado" com o campo pronto para colar
+      sel.value = p.status;
+      abrir(p.id);
+      $("#o-status").value = "enviado";
+      atualizarLado();
+      $("#o-envio").scrollIntoView({ block: "center" });
+      $("#o-rastreio").focus();
+      avisar("Cole o código de rastreio e salve. O cliente recebe o código com o link.", false, 6000);
+      return;
+    }
     const anterior = p.status;
     p.status = sel.value;
     (p.historico ||= []).push({ status: sel.value, em: agora() });
@@ -243,7 +256,35 @@
     cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", canal: "#o-canal", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
     cor: "#o-cor", prazo: "#o-prazo", entrega: "#o-entrega", detalhes: "#o-detalhes", valor: "#o-valor", sinal: "#o-sinal",
     notas: "#o-notas", mensagem: "#o-mensagem", status: "#o-status",
+    transportadora: "#o-transportadora", rastreio: "#o-rastreio", link_rastreio: "#o-link-rastreio",
   };
+  const R = window.HPR_RASTREIO;
+  $("#o-transportadora").innerHTML = `<option value="">Escolha…</option>` + R.TRANSPORTADORAS.map((t) => `<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+  const ANTES_DO_ENVIO = ["novo", "orcamento", "aprovado", "imprimindo", "pronto"];
+  function atualizarRastreio(doCodigo) {
+    const cod = R.limpar($("#o-rastreio").value);
+    // Reconhece o código dos Correios sozinho
+    if (doCodigo && cod && !$("#o-transportadora").value && R.detectar(cod)) $("#o-transportadora").value = R.detectar(cod);
+    // Colocou o código: o pedido passa para Enviado
+    if (doCodigo && cod && ANTES_DO_ENVIO.includes($("#o-status").value)) {
+      $("#o-status").value = "enviado";
+      avisar("Pedido marcado como Enviado. Salve para avisar o cliente.", false, 4000);
+    }
+    $("#o-link-rastreio-campo").hidden = $("#o-transportadora").value !== "outra";
+    const r = R.dePedido({ rastreio: cod, transportadora: $("#o-transportadora").value, link_rastreio: $("#o-link-rastreio").value });
+    const previa = $("#o-rastreio-previa");
+    previa.hidden = !r;
+    if (r) previa.innerHTML = `Link que o cliente vai receber: <a href="${esc(r.link)}" target="_blank" rel="noopener">${esc(r.link.replace(/^https:\/\//, ""))}</a>`;
+    const aviso = cod && r?.transportadora === "correios" && !R.ehCorreios(cod);
+    $("#o-rastreio-dica").className = aviso ? "dica alerta" : "dica";
+    $("#o-rastreio-dica").innerHTML = aviso
+      ? "Esse código não parece dos Correios (o padrão é 2 letras, 9 números e 2 letras, como AB123456789BR). Confira antes de salvar."
+      : "Ao colocar o código, o pedido passa para <b>Enviado</b> e o cliente recebe o código com o link para acompanhar, no e-mail e no WhatsApp.";
+  }
+  $("#o-rastreio").addEventListener("change", () => { atualizarRastreio(true); atualizarLado(); });
+  $("#o-rastreio").addEventListener("input", () => atualizarRastreio(false));
+  $("#o-transportadora").addEventListener("change", () => { atualizarRastreio(false); atualizarLado(); });
+  $("#o-link-rastreio").addEventListener("input", () => atualizarRastreio(false));
 
   function abrir(id) {
     const existente = id ? estado.pedidos.find((x) => x.id === id) : null;
@@ -260,6 +301,7 @@
     $("#o-avisar-campo").hidden = !comEmail;
     $("#o-avisar").checked = true;
     desenharReferencias(atual.referencias || []);
+    atualizarRastreio(false);
     mostrar("pedido");
     atualizarLado();
   }
@@ -354,6 +396,13 @@
       $("#o-cliente").focus();
       return;
     }
+    d.rastreio = R.limpar(d.rastreio);
+    if (d.rastreio && !d.transportadora) d.transportadora = R.detectar(d.rastreio) || "outra";
+    if (d.status === "enviado" && !d.rastreio &&
+        !confirm("O pedido está como Enviado mas sem código de rastreio. Salvar mesmo assim? (bom para entrega em mãos ou motoboy)")) {
+      $("#o-rastreio").focus();
+      return;
+    }
     const existente = estado.pedidos.find((p) => p.id === atual.id);
     const id = atual.id || novoCodigo();
     const historico = [...(atual.historico || [])];
@@ -376,7 +425,9 @@
     $("#o-salvar").disabled = true;
     try {
       await salvarPedido(pedido);
-      const mudouStatus = !existente || existente.status !== pedido.status;
+      // Mudou o status, ou trocou o código de rastreio de um pedido já enviado: avisa o cliente de novo
+    const mudouStatus = !existente || existente.status !== pedido.status ||
+      (pedido.status === "enviado" && !!pedido.rastreio && R.limpar(existente.rastreio) !== pedido.rastreio);
       // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status
       const extra = (mudouStatus && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
         (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");

@@ -13,6 +13,7 @@
     { id: "aprovado", nome: "Aprovado", texto: "Pedido confirmado e na fila da impressora." },
     { id: "imprimindo", nome: "Imprimindo", texto: "Sua peça está na impressora agora." },
     { id: "pronto", nome: "Pronto", texto: "Ficou pronta! Vamos combinar a entrega pelo WhatsApp." },
+    { id: "enviado", nome: "Enviado", texto: "Seu pedido foi postado e está a caminho." },
     { id: "entregue", nome: "Entregue", texto: "Pedido entregue. Obrigado!" },
   ];
 
@@ -112,6 +113,28 @@
   });
 
   // ---------- Pedidos ----------
+  function blocoRastreio(p) {
+    const r = p.status !== "cancelado" && window.HPR_RASTREIO?.dePedido(p);
+    if (!r) return "";
+    return `<div class="pc-rastreio">
+      <div class="pc-rastreio-cod">
+        <span class="pc-rastreio-rotulo">Código de rastreio${r.nome ? ` · ${esc(r.nome)}` : ""}</span>
+        <span class="pc-rastreio-num">${esc(r.codigo)}</span>
+      </div>
+      <div class="pc-rastreio-acoes">
+        <button type="button" class="botao botao-contorno botao-pequeno" data-copiar="${esc(r.codigo)}">Copiar código</button>
+        <a class="botao botao-principal botao-pequeno" href="${esc(r.link)}" target="_blank" rel="noopener">Acompanhar a entrega</a>
+      </div>
+      ${r.alternativo ? `<p class="pc-rastreio-dica">No site dos Correios é só digitar as letras da imagem. Prefere sem isso? <a href="${esc(r.alternativo)}" target="_blank" rel="noopener">Veja no Melhor Rastreio</a>.</p>` : ""}
+    </div>`;
+  }
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-copiar]");
+    if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copiar); avisar("Código copiado."); }
+    catch { avisar("Não consegui copiar. Segure o dedo no código para copiar.", true); }
+  });
+
   function cartao(p) {
     const cancelado = p.status === "cancelado";
     const atual = Math.max(0, ETAPAS.findIndex((e) => e.id === p.status));
@@ -128,6 +151,7 @@
       <h2>${esc(p.peca || "Pedido")}${p.quantidade > 1 ? ` <span class="pc-qtd">× ${p.quantidade}</span>` : ""}</h2>
       ${cancelado ? `<p class="pc-status">Pedido cancelado. Qualquer dúvida, fale com a gente no WhatsApp.</p>` : `<p class="pc-status">${esc(etapa.texto)}</p>`}
       <ol class="etapas" aria-label="Andamento do pedido">${passos}</ol>
+      ${blocoRastreio(p)}
       <dl class="pc-info">
         ${p.cor ? `<div><dt>Cor</dt><dd>${esc(p.cor)}</dd></div>` : ""}
         ${p.entrega ? `<div><dt>Entrega prevista</dt><dd>${new Date(p.entrega + "T12:00").toLocaleDateString("pt-BR")}</dd></div>` : p.prazo ? `<div><dt>Você pediu para</dt><dd>${esc(p.prazo)}</dd></div>` : ""}

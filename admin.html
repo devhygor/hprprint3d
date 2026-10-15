@@ -139,6 +139,21 @@
             </div>
             <label class="campo">Anotações internas<textarea id="o-notas" rows="2" placeholder="Ex.: filamento azul acabando, imprimir na A1"></textarea></label>
           </fieldset>
+
+          <fieldset class="painel" id="o-envio">
+            <legend>Envio e rastreio</legend>
+            <div class="duas">
+              <label class="campo">Transportadora
+                <select id="o-transportadora"></select>
+              </label>
+              <label class="campo">Código de rastreio<input id="o-rastreio" autocomplete="off" spellcheck="false" placeholder="Ex.: AB123456789BR"></label>
+            </div>
+            <label class="campo" id="o-link-rastreio-campo" hidden>Link de rastreio (opcional)
+              <input id="o-link-rastreio" type="url" placeholder="https://… (se a transportadora tiver link próprio)">
+            </label>
+            <p class="dica" id="o-rastreio-dica">Ao colocar o código, o pedido passa para <b>Enviado</b> e o cliente recebe o código com o link para acompanhar, no e-mail e no WhatsApp.</p>
+            <p class="rastreio-previa" id="o-rastreio-previa" hidden></p>
+          </fieldset>
         </form>
 
         <aside class="coluna-resultado">
@@ -536,6 +551,7 @@
   <script src="assets/supabase-config.js"></script>
   <script src="assets/precificador.js"></script>
   <script src="assets/admin.js"></script>
+  <script src="assets/rastreio.js"></script>
   <script src="assets/email.js"></script>
   <script src="assets/pedidos.js"></script>
   <script src="assets/financeiro.js"></script>

@@ -33,7 +33,7 @@ create table if not exists public.pedidos (
   atualizado_em timestamptz not null default now(),
   origem        text not null default 'site' check (origem in ('site', 'manual')),
   status        text not null default 'novo'
-                check (status in ('novo','orcamento','aprovado','imprimindo','pronto','entregue','cancelado')),
+                check (status in ('novo','orcamento','aprovado','imprimindo','pronto','enviado','entregue','cancelado')),
   cliente       text,
   telefone      text,
   cidade        text,
@@ -54,6 +54,14 @@ alter table public.pedidos add column if not exists email       text;
 alter table public.pedidos add column if not exists cliente_id  uuid references auth.users(id) on delete set null;
 alter table public.pedidos add column if not exists referencias jsonb not null default '[]'::jsonb;
 alter table public.pedidos add column if not exists canal       text;
+-- Envio: transportadora, código de rastreio e (opcional) link próprio de rastreio
+alter table public.pedidos add column if not exists transportadora text;
+alter table public.pedidos add column if not exists rastreio       text;
+alter table public.pedidos add column if not exists link_rastreio  text;
+-- Status "enviado" (postado): refaz a regra de status para bancos criados antes dele
+alter table public.pedidos drop constraint if exists pedidos_status_check;
+alter table public.pedidos add constraint pedidos_status_check
+  check (status in ('novo','orcamento','aprovado','imprimindo','pronto','enviado','entregue','cancelado'));
 alter table public.pedidos enable row level security;
 
 drop policy if exists "site registra pedido" on public.pedidos;
@@ -203,16 +211,19 @@ as $$
   where id = auth.uid() and email_confirmed_at is not null;
 $$;
 
+drop function if exists public.meus_pedidos();
 create or replace function public.meus_pedidos()
 returns table (
   id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
-  cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer
+  cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer,
+  transportadora text, rastreio text, link_rastreio text
 )
 language sql stable security definer
 set search_path = ''
 as $$
   select p.id, p.criado_em, p.atualizado_em, p.status, p.peca, p.quantidade, p.cor, p.prazo, p.entrega,
-         p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias)
+         p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias),
+         p.transportadora, p.rastreio, p.link_rastreio
   from public.pedidos p
   where auth.uid() is not null
     and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))

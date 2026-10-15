@@ -33,7 +33,7 @@
 .pc-status { margin: 0; color: var(--texto-2); }
 
 /* Linha do tempo do pedido */
-.etapas { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); position: relative; }
+.etapas { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); position: relative; }
 .etapas li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: .82rem; color: var(--texto-3); }
 .etapas li::before { content: ""; position: absolute; top: 9px; left: -50%; width: 100%; height: 3px; background: var(--linha); z-index: 0; }
 .etapas li:first-child::before { display: none; }
@@ -54,7 +54,18 @@
 .aviso { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; background: var(--texto); color: var(--noite); padding: 12px 18px; border-radius: 16px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: calc(100% - 32px); }
 .aviso.erro { background: #ff8fa3; color: #2a0010; }
 
+/* Rastreio do pedido */
+.pc-rastreio { margin-top: 16px; padding: 14px 16px; border-radius: var(--raio-m, 14px); background: var(--noite); border: 1px solid var(--linha); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.pc-rastreio-cod { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pc-rastreio-rotulo { font-size: .76rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--neon-claro); }
+.pc-rastreio-num { font: 700 1.2rem/1.2 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: .06em; color: var(--texto); word-break: break-all; }
+.pc-rastreio-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.pc-rastreio-dica { flex-basis: 100%; margin: 0; font-size: .84rem; color: var(--texto-3); }
+.pc-rastreio-dica a { color: var(--neon-claro); }
+
 @media (max-width: 560px) {
+  .pc-rastreio-acoes { margin-left: 0; width: 100%; flex-direction: column-reverse; }
+  .pc-rastreio-acoes .botao { flex: 1; text-align: center; }
   .etapas { grid-template-columns: 1fr; gap: 0; margin-left: 6px; }
   .etapas li { flex-direction: row; text-align: left; gap: 12px; padding: 6px 0; }
   .etapas li::before { top: -50%; left: 9px; width: 3px; height: 100%; }
