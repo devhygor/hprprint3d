@@ -68,7 +68,7 @@
       tabela: F.REGIOES.map((r) => ({ id: r.id, valor: n(`[data-tf-valor="${r.id}"]`), prazo: n(`[data-tf-prazo="${r.id}"]`) })),
       pacote: { largura: n("#lf-larg") || 16, altura: n("#lf-alt") || 12, comprimento: n("#lf-comp") || 20, peso: n("#lf-peso") || 300 },
       folgaPeso: n("#lf-folga-peso") === "" ? 100 : n("#lf-folga-peso"),
-      folgaCm: n("#lf-folga-cm") === "" ? 3 : n("#lf-folga-cm"),
+      folgaCm: n("#lf-folga-cm") === "" ? 10 : n("#lf-folga-cm"),
       real: $("#lf-real").checked,
     };
   }

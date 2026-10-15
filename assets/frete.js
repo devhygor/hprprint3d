@@ -20,7 +20,7 @@
     tabela: REGIOES.map((r) => ({ id: r.id, valor: "", prazo: "" })),
     pacote: { largura: 16, altura: 12, comprimento: 20, peso: 300 },
     folgaPeso: 100, // gramas somadas sempre (embalagem, fita, papel): melhor sobrar que faltar
-    folgaCm: 3,     // centímetros somados em cada medida da peça (espaço da embalagem)
+    folgaCm: 10,    // centímetros somados em cada medida da peça (espaço da embalagem)
     real: false,
   };
   const num = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : NaN; };
@@ -83,7 +83,7 @@
   }
 
   // Caixa do pedido (um volume só):
-  // - peça com medidas no catálogo: medidas + folga em cada lado; com mais de 1 unidade,
+  // - peça com medidas no catálogo: medidas + folga (padrão 10 cm) em cada medida; com mais de 1 unidade,
   //   empilha pela menor medida; peso = peso da peça × quantidade + folga de peso;
   // - peça sem medidas: caixa padrão da aba Loja (peso × quantidade + folga de peso).
   // Respeita o mínimo dos Correios (16 × 11 × 2 cm).
@@ -91,7 +91,7 @@
     const c = peca?.caracteristicas || {};
     const p = cfg.pacote;
     const qtd = Math.max(1, Math.min(50, Math.round(num(quantidade)) || 1));
-    const folga = num(cfg.folgaCm) >= 0 ? num(cfg.folgaCm) : 3;
+    const folga = num(cfg.folgaCm) >= 0 ? num(cfg.folgaCm) : 10;
     const temMedidas = num(c.largura) > 0 && num(c.altura) > 0;
     let medidas;
     if (temMedidas) {
