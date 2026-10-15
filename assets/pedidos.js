@@ -483,7 +483,8 @@
       // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status
       const extra = (mudouStatus && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
         (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");
-      if (existente && !!existente.pago !== !!pedido.pago) await O.sincronizarPago?.(pedido);
+      if (existente && (!!existente.pago !== !!pedido.pago || P.num(existente.valor, 0) !== P.num(pedido.valor, 0) || P.num(existente.frete, 0) !== P.num(pedido.frete, 0)))
+        await O.sincronizarPago?.(pedido);
       avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
       if (mudouStatus) oferecerWhatsapp(pedido);
       mostrar("pedidos");

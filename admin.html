@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151922">
-  <link rel="stylesheet" href="assets/admin.css?v=202610151922">
+  <link rel="stylesheet" href="assets/style.css?v=202610151925">
+  <link rel="stylesheet" href="assets/admin.css?v=202610151925">
 </head>
 <body>
   <header class="topo">
@@ -418,9 +418,10 @@
         <datalist id="f-lista-descricoes"></datalist>
         <div class="tres">
           <label class="campo">Quantidade<input id="f-quantidade" type="number" inputmode="decimal" min="0" step="1" value="1"></label>
-          <label class="campo">Valor total (R$)<input id="f-valor" type="number" inputmode="decimal" min="0" step="0.01" required></label>
-          <label class="campo">Categoria<input id="f-categoria" list="f-lista-categorias" autocomplete="off"></label>
+          <label class="campo"><span id="f-valor-rotulo">Valor das peças (R$)</span><input id="f-valor" type="number" inputmode="decimal" min="0" step="0.01" required></label>
+          <label class="campo" id="f-frete-campo">Frete (R$)<input id="f-frete" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00"></label>
         </div>
+        <label class="campo">Categoria<input id="f-categoria" list="f-lista-categorias" autocomplete="off"></label>
         <datalist id="f-lista-categorias"></datalist>
         <p class="dica" id="f-unitario"></p>
         <div class="duas">
@@ -599,14 +600,14 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610151922"></script>
-  <script src="assets/precificador.js?v=202610151922"></script>
-  <script src="assets/admin.js?v=202610151922"></script>
-  <script src="assets/rastreio.js?v=202610151922"></script>
-  <script src="assets/frete.js?v=202610151922"></script>
-  <script src="assets/email.js?v=202610151922"></script>
-  <script src="assets/pedidos.js?v=202610151922"></script>
-  <script src="assets/financeiro.js?v=202610151922"></script>
-  <script src="assets/frete-admin.js?v=202610151922"></script>
+  <script src="assets/supabase-config.js?v=202610151925"></script>
+  <script src="assets/precificador.js?v=202610151925"></script>
+  <script src="assets/admin.js?v=202610151925"></script>
+  <script src="assets/rastreio.js?v=202610151925"></script>
+  <script src="assets/frete.js?v=202610151925"></script>
+  <script src="assets/email.js?v=202610151925"></script>
+  <script src="assets/pedidos.js?v=202610151925"></script>
+  <script src="assets/financeiro.js?v=202610151925"></script>
+  <script src="assets/frete-admin.js?v=202610151925"></script>
 </body>
 </html>

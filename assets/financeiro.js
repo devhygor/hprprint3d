@@ -32,7 +32,7 @@
   async function carregar() {
     const { data, error } = await db.from("lancamentos").select("*").order("data", { ascending: false }).limit(10000);
     if (error) throw error;
-    lancs = (data || []).map((l) => ({ ...l, valor: n(l.valor), quantidade: n(l.quantidade) }));
+    lancs = (data || []).map((l) => ({ ...l, valor: n(l.valor), quantidade: n(l.quantidade), frete: n(l.frete) }));
     carregado = true;
   }
 
@@ -42,10 +42,12 @@
     return mesDe(l.data) === chaveMes(ano, mes);
   }
   function totais(lista) {
-    const t = { entrou: 0, aReceber: 0, saiu: 0, aPagar: 0, vendas: 0, pecas: 0 };
+    const t = { entrou: 0, aReceber: 0, saiu: 0, aPagar: 0, vendas: 0, pecas: 0, frete: 0, freteAReceber: 0 };
     for (const l of lista) {
       if (l.tipo === "entrada") {
         if (l.pago) t.entrou += l.valor; else t.aReceber += l.valor;
+        t.frete += l.frete || 0;
+        if (!l.pago) t.freteAReceber += l.frete || 0;
         t.vendas += 1;
         t.pecas += l.quantidade || 0;
       } else {
@@ -96,7 +98,7 @@
 
   function desenharResumo(t, ant) {
     const pend = [];
-    if (t.aReceber > 0.004) pend.push(`${brl(t.aReceber)} a receber`);
+    if (t.aReceber > 0.004) pend.push(`${brl(t.aReceber)} a receber${t.freteAReceber > 0.004 ? ` (${brl(t.freteAReceber)} de frete)` : ""}`);
     if (t.aPagar > 0.004) pend.push(`${brl(t.aPagar)} a pagar`);
     $("#fin-resumo").innerHTML = `
       <div class="fin-saldo ${t.saldo < 0 ? "negativo" : ""}">
@@ -107,7 +109,7 @@
       </div>
       <div class="fin-tile"><span class="fin-rotulo"><i style="background:var(--fin-entrada)"></i>Entrou</span><strong>${brl(t.entrou)}</strong>${variacao(t.entrou, ant.entrou)}</div>
       <div class="fin-tile"><span class="fin-rotulo"><i style="background:var(--fin-saida)"></i>Saiu</span><strong>${brl(t.saiu)}</strong>${variacao(t.saiu, ant.saiu, false)}</div>
-      <div class="fin-tile"><span class="fin-rotulo">Vendas</span><strong>${t.vendas}</strong><span class="fin-delta">${t.pecas.toLocaleString("pt-BR")} peça${t.pecas === 1 ? "" : "s"}</span></div>
+      <div class="fin-tile"><span class="fin-rotulo">Vendas</span><strong>${t.vendas}</strong><span class="fin-delta">${t.pecas.toLocaleString("pt-BR")} peça${t.pecas === 1 ? "" : "s"}${t.frete > 0.004 ? ` · ${brl(t.frete)} de frete` : ""}</span></div>
       <div class="fin-tile"><span class="fin-rotulo">Ticket médio</span><strong>${brl(t.ticket)}</strong><span class="fin-delta">por venda</span></div>`;
   }
 
@@ -118,7 +120,7 @@
     const primeiro = lancs.reduce((m, l) => (!m || l.data < m ? l.data : m), "");
     const desde = primeiro ? `${MESES[Number(primeiro.slice(5, 7)) - 1]} de ${primeiro.slice(0, 4)}` : "";
     const pend = [];
-    if (t.aReceber > 0.004) pend.push(`<span><b>${brl(t.aReceber)}</b> a receber</span>`);
+    if (t.aReceber > 0.004) pend.push(`<span><b>${brl(t.aReceber)}</b> a receber${t.freteAReceber > 0.004 ? ` (${brl(t.freteAReceber)} de frete)` : ""}</span>`);
     if (t.aPagar > 0.004) pend.push(`<span><b>${brl(t.aPagar)}</b> a pagar</span>`);
     $("#fin-caixa").innerHTML = !lancs.length ? "" : `
       <div class="fin-caixa-saldo">
@@ -229,7 +231,7 @@
           <td class="c-pri">${esc(l.cliente || "—")}</td>
           <td class="fin-desc c-sec">${esc(l.descricao)}${l.pedido_id ? ` <span class="fin-tag">pedido</span>` : ""}</td>
           <td class="num c-qtd"><span class="so-celular">Qtd </span>${n(l.quantidade).toLocaleString("pt-BR")}</td>
-          <td class="num c-val"><b>${brl(l.valor)}</b></td>
+          <td class="num c-val"><b>${brl(l.valor)}</b>${l.frete > 0 ? `<small class="fin-frete">peças ${brl(l.valor - l.frete)} + frete ${brl(l.frete)}</small>` : ""}</td>
           <td class="c-pag"><button type="button" class="fin-status ${l.pago ? "pago" : "pendente"}" data-alternar-pago="${l.id}" title="Toque para alternar">${l.pago ? "Pago" : "A receber"}</button></td>
         </tr>`)
         .join("")}</tbody></table></div>`;
@@ -276,7 +278,7 @@
       // Junta "Andréia" e "Andreia", "Porta lata" e "porta-lata"
       const nome = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[-\s]+/g, " ");
       const atual = mapa.get(nome) || { nome: k, valor: 0, qtd: 0, vezes: 0 };
-      atual.valor += l.valor; atual.qtd += l.quantidade || 0; atual.vezes += 1;
+      atual.valor += l.valor - (l.frete || 0); atual.qtd += l.quantidade || 0; atual.vezes += 1;
       mapa.set(nome, atual);
     }
     const itens = [...mapa.values()].sort((a, b) => b.valor - a.valor).slice(0, 6);
@@ -341,6 +343,8 @@
     $$("[data-fin-tipo]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.finTipo === t)));
     const venda = t === "entrada";
     $("#f-cliente-campo").hidden = !venda;
+    $("#f-frete-campo").hidden = !venda;
+    $("#f-valor-rotulo").textContent = venda ? "Valor das peças (R$)" : "Valor total (R$)";
     $("#f-descricao-rotulo").textContent = venda ? "Peça vendida" : "O que saiu (ex.: Filamento preto PLA)";
     $("#f-pago-rotulo").textContent = venda ? "Já recebido" : "Já pago";
     if (!editando) $("#f-pago").checked = !venda;
@@ -353,9 +357,13 @@
   $$("[data-fin-tipo]").forEach((b) => b.addEventListener("click", () => aplicarTipo(b.dataset.finTipo)));
 
   function atualizarUnitario() {
-    const q = n($("#f-quantidade").value), v = n($("#f-valor").value);
-    $("#f-unitario").textContent = q > 1 && v > 0 ? `${brl(v / q)} cada` : "";
+    const q = n($("#f-quantidade").value), v = n($("#f-valor").value), fr = tipoForm === "entrada" ? n($("#f-frete").value) : 0;
+    const partes = [];
+    if (q > 1 && v > 0) partes.push(`${brl(v / q)} cada`);
+    if (fr > 0 && v > 0) partes.push(`total a receber com frete: ${brl(v + fr)}`);
+    $("#f-unitario").textContent = partes.join(" · ");
   }
+  $("#f-frete").addEventListener("input", () => atualizarUnitario());
   $("#f-quantidade").addEventListener("input", atualizarUnitario);
   $("#f-valor").addEventListener("input", atualizarUnitario);
   // Ao escolher uma peça do catálogo, sugere o preço da vitrine × quantidade
@@ -377,7 +385,8 @@
     $("#f-cliente").value = l?.cliente || "";
     $("#f-descricao").value = l?.descricao || "";
     $("#f-quantidade").value = l ? n(l.quantidade) : 1;
-    $("#f-valor").value = l ? n(l.valor).toFixed(2) : "";
+    $("#f-valor").value = l ? (n(l.valor) - n(l.frete)).toFixed(2) : "";
+    $("#f-frete").value = l && n(l.frete) > 0 ? n(l.frete).toFixed(2) : "";
     $("#f-categoria").value = l?.categoria || "";
     $("#f-forma").value = l?.forma || "";
     // Venda nova começa como "a receber"; gasto novo, como já pago. Vocês marcam o que for diferente.
@@ -401,7 +410,8 @@
       descricao: $("#f-descricao").value.trim(),
       cliente: tipoForm === "entrada" ? $("#f-cliente").value.trim() || null : null,
       quantidade: n($("#f-quantidade").value) || 1,
-      valor: Math.round(n($("#f-valor").value) * 100) / 100,
+      valor: Math.round((n($("#f-valor").value) + (tipoForm === "entrada" ? n($("#f-frete").value) : 0)) * 100) / 100,
+      frete: tipoForm === "entrada" && n($("#f-frete").value) > 0 ? Math.round(n($("#f-frete").value) * 100) / 100 : null,
       categoria: $("#f-categoria").value.trim() || (tipoForm === "saida" ? adivinharCategoria($("#f-descricao").value) : null),
       forma: $("#f-forma").value || null,
       pago: $("#f-pago").checked,
@@ -415,7 +425,7 @@
     const { data, error } = await req;
     $("#f-salvar").disabled = false;
     if (error) { avisar("Não consegui salvar: " + erroLegivel(error), true, 8000); return; }
-    const salvo = { ...data, valor: n(data.valor), quantidade: n(data.quantidade) };
+    const salvo = { ...data, valor: n(data.valor), quantidade: n(data.quantidade), frete: n(data.frete) };
     const i = lancs.findIndex((x) => x.id === salvo.id);
     i >= 0 ? (lancs[i] = salvo) : lancs.unshift(salvo);
     dlg.close();
@@ -553,9 +563,9 @@
     const lista = lancs.filter(noPeriodo).sort((a, b) => String(a.data).localeCompare(String(b.data)));
     const cel = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const num = (v) => n(v).toFixed(2).replace(".", ",");
-    const linhas = [["Data", "Tipo", "Cliente", "Descrição", "Categoria", "Quantidade", "Valor", "Situação", "Forma", "Pedido", "Observações"].map(cel).join(";")];
+    const linhas = [["Data", "Tipo", "Cliente", "Descrição", "Categoria", "Quantidade", "Valor", "Frete", "Situação", "Forma", "Pedido", "Observações"].map(cel).join(";")];
     for (const l of lista) {
-      linhas.push([dataBR(l.data) + "/" + String(l.data).slice(0, 4), l.tipo === "entrada" ? "Entrada" : "Saída", l.cliente, l.descricao, l.categoria, num(l.quantidade), num(l.valor),
+      linhas.push([dataBR(l.data) + "/" + String(l.data).slice(0, 4), l.tipo === "entrada" ? "Entrada" : "Saída", l.cliente, l.descricao, l.categoria, num(l.quantidade), num(l.valor), l.frete ? num(l.frete) : "",
         l.pago ? (l.tipo === "entrada" ? "Recebido" : "Pago") : (l.tipo === "entrada" ? "A receber" : "A pagar"), l.forma, l.pedido_id, l.notas].map(cel).join(";"));
     }
     const blob = new Blob(["﻿" + linhas.join("\r\n")], { type: "text/csv;charset=utf-8" });
@@ -573,22 +583,24 @@
     if (lancs.some((l) => l.pedido_id === p.id && l.tipo === "entrada")) return "";
     const linha = {
       tipo: "entrada", data: hojeISO(), descricao: p.peca || "Pedido " + p.id, cliente: p.cliente || null,
-      quantidade: n(p.quantidade) || 1, valor: Math.round(n(p.valor) * 100) / 100, categoria: "Encomenda",
-      pago: !!p.pago, pedido_id: p.id, notas: (p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido") +
-        (n(p.frete) > 0 ? `. Frete de ${brl(n(p.frete))} cobrado à parte (não somado aqui)` : ""),
+      quantidade: n(p.quantidade) || 1, valor: Math.round((n(p.valor) + n(p.frete)) * 100) / 100, frete: n(p.frete) > 0 ? n(p.frete) : null, categoria: "Encomenda",
+      pago: !!p.pago, pedido_id: p.id, notas: p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido",
     };
     const { data, error } = await db.from("lancamentos").insert(linha).select().single();
     if (error) return "";
-    lancs.unshift({ ...data, valor: n(data.valor), quantidade: n(data.quantidade) });
-    return ` Venda de ${brl(linha.valor)} lançada no Financeiro${linha.pago ? "" : " como a receber"}.`;
+    lancs.unshift({ ...data, valor: n(data.valor), quantidade: n(data.quantidade), frete: n(data.frete) });
+    return ` Venda de ${brl(linha.valor)}${linha.frete ? ` (com frete)` : ""} lançada no Financeiro${linha.pago ? "" : " como a receber"}.`;
   };
   // Marcou/desmarcou "Já foi pago" no pedido: a venda ligada a ele acompanha
+  // O pedido mudou (pago, valor ou frete): a venda ligada a ele acompanha
   O.sincronizarPago = async function (p) {
     if (!carregado) { try { await carregar(); } catch { return; } }
     const l = lancs.find((x) => x.pedido_id === p.id && x.tipo === "entrada");
-    if (!l || !!l.pago === !!p.pago) return;
-    const { error } = await db.from("lancamentos").update({ pago: !!p.pago, atualizado_em: new Date().toISOString() }).eq("id", l.id);
-    if (!error) l.pago = !!p.pago;
+    if (!l || !(n(p.valor) > 0)) return;
+    const novo = { pago: !!p.pago, valor: Math.round((n(p.valor) + n(p.frete)) * 100) / 100, frete: n(p.frete) > 0 ? n(p.frete) : null };
+    if (!!l.pago === novo.pago && Math.abs(l.valor - novo.valor) < 0.005 && n(l.frete) === n(novo.frete)) return;
+    const { error } = await db.from("lancamentos").update({ ...novo, atualizado_em: new Date().toISOString() }).eq("id", l.id);
+    if (!error) Object.assign(l, novo, { frete: n(novo.frete) });
   };
 
   // ---------- Entrada na aba ----------

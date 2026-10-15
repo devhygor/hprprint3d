@@ -383,3 +383,5 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
 .cp-pago { font-size: .76rem; font-weight: 700; color: #3fd69a; background: rgba(63, 214, 154, .12); padding: 2px 8px; border-radius: 999px; }
 .cp-a-receber { font-size: .76rem; font-weight: 700; color: #ffb240; background: rgba(255, 178, 64, .12); padding: 2px 8px; border-radius: 999px; }
 .marcar-pago { margin-top: 2px; }
+
+.fin-frete { display: block; font-size: .74rem; font-weight: 500; color: var(--texto-3); white-space: nowrap; }
