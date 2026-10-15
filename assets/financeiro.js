@@ -315,6 +315,12 @@
       desenhar();
       const { error } = await db.from("lancamentos").update({ pago: l.pago, atualizado_em: new Date().toISOString() }).eq("id", l.id);
       if (error) { l.pago = !l.pago; desenhar(); avisar("Não consegui salvar: " + erroLegivel(error), true, 7000); }
+      else if (l.pedido_id && l.tipo === "entrada") {
+        // A venda veio de um pedido: o pedido acompanha
+        await db.from("pedidos").update({ pago: l.pago }).eq("id", l.pedido_id);
+        const ped = (estado.pedidos || []).find((x) => x.id === l.pedido_id);
+        if (ped) ped.pago = l.pago;
+      }
       return;
     }
     const tr = e.target.closest("[data-lanc]");
@@ -337,6 +343,7 @@
     $("#f-cliente-campo").hidden = !venda;
     $("#f-descricao-rotulo").textContent = venda ? "Peça vendida" : "O que saiu (ex.: Filamento preto PLA)";
     $("#f-pago-rotulo").textContent = venda ? "Já recebido" : "Já pago";
+    if (!editando) $("#f-pago").checked = !venda;
     $("#f-lista-categorias").innerHTML = (venda ? CAT_ENTRADA : CAT_SAIDA).map((c) => `<option value="${esc(c)}">`).join("");
     const descs = new Set([...lancs.filter((l) => l.tipo === t).map((l) => l.descricao), ...(venda ? estado.pecas.map((p) => p.nome) : [])]);
     $("#f-lista-descricoes").innerHTML = [...descs].filter(Boolean).slice(0, 200).map((d) => `<option value="${esc(d)}">`).join("");
@@ -373,7 +380,8 @@
     $("#f-valor").value = l ? n(l.valor).toFixed(2) : "";
     $("#f-categoria").value = l?.categoria || "";
     $("#f-forma").value = l?.forma || "";
-    $("#f-pago").checked = l ? !!l.pago : true;
+    // Venda nova começa como "a receber"; gasto novo, como já pago. Vocês marcam o que for diferente.
+    $("#f-pago").checked = l ? !!l.pago : t === "saida";
     $("#f-notas").value = l?.notas || "";
     $("#f-pedido").textContent = l?.pedido_id ? `Ligado ao pedido ${l.pedido_id}.` : "";
     $("#f-excluir").hidden = !l;
@@ -566,13 +574,21 @@
     const linha = {
       tipo: "entrada", data: hojeISO(), descricao: p.peca || "Pedido " + p.id, cliente: p.cliente || null,
       quantidade: n(p.quantidade) || 1, valor: Math.round(n(p.valor) * 100) / 100, categoria: "Encomenda",
-      pago: true, pedido_id: p.id, notas: (p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido") +
+      pago: !!p.pago, pedido_id: p.id, notas: (p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido") +
         (n(p.frete) > 0 ? `. Frete de ${brl(n(p.frete))} cobrado à parte (não somado aqui)` : ""),
     };
     const { data, error } = await db.from("lancamentos").insert(linha).select().single();
     if (error) return "";
     lancs.unshift({ ...data, valor: n(data.valor), quantidade: n(data.quantidade) });
-    return ` Venda de ${brl(linha.valor)} lançada no Financeiro.`;
+    return ` Venda de ${brl(linha.valor)} lançada no Financeiro${linha.pago ? "" : " como a receber"}.`;
+  };
+  // Marcou/desmarcou "Já foi pago" no pedido: a venda ligada a ele acompanha
+  O.sincronizarPago = async function (p) {
+    if (!carregado) { try { await carregar(); } catch { return; } }
+    const l = lancs.find((x) => x.pedido_id === p.id && x.tipo === "entrada");
+    if (!l || !!l.pago === !!p.pago) return;
+    const { error } = await db.from("lancamentos").update({ pago: !!p.pago, atualizado_em: new Date().toISOString() }).eq("id", l.id);
+    if (!error) l.pago = !!p.pago;
   };
 
   // ---------- Entrada na aba ----------

@@ -62,6 +62,8 @@ alter table public.pedidos add column if not exists link_rastreio  text;
 alter table public.pedidos add column if not exists frete          numeric(10,2);
 alter table public.pedidos add column if not exists envio          text;
 alter table public.pedidos add column if not exists cep            text;
+-- Pago: só a equipe marca
+alter table public.pedidos add column if not exists pago           boolean not null default false;
 -- Status "enviado" (postado): refaz a regra de status para bancos criados antes dele
 alter table public.pedidos drop constraint if exists pedidos_status_check;
 alter table public.pedidos add constraint pedidos_status_check
@@ -102,6 +104,7 @@ create policy "site registra pedido" on public.pedidos
     and (frete is null or (frete >= 0 and frete <= 5000))
     and char_length(coalesce(envio, '')) <= 160
     and char_length(coalesce(cep, ''))   <= 9
+    and pago = false
     and cliente_id is null
   );
 
@@ -128,6 +131,7 @@ create policy "cliente registra pedido" on public.pedidos
     and (frete is null or (frete >= 0 and frete <= 5000))
     and char_length(coalesce(envio, '')) <= 160
     and char_length(coalesce(cep, ''))   <= 9
+    and pago = false
     and cliente_id = auth.uid()
   );
 
@@ -242,6 +246,28 @@ as $$
 $$;
 revoke all on function public.meus_pedidos_v2() from public, anon;
 grant execute on function public.meus_pedidos_v2() to authenticated;
+
+-- Versão 3 (com rastreio, frete e pago). A área do cliente usa esta; as anteriores ficam de reserva.
+create or replace function public.meus_pedidos_v3()
+returns table (
+  id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
+  cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer,
+  transportadora text, rastreio text, link_rastreio text, frete numeric, envio text, pago boolean
+)
+language sql stable security definer
+set search_path = ''
+as $$
+  select p.id, p.criado_em, p.atualizado_em, p.status, p.peca, p.quantidade, p.cor, p.prazo, p.entrega,
+         p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias),
+         p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio, p.pago
+  from public.pedidos p
+  where auth.uid() is not null
+    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+  order by p.criado_em desc
+  limit 100;
+$$;
+revoke all on function public.meus_pedidos_v3() from public, anon;
+grant execute on function public.meus_pedidos_v3() to authenticated;
 revoke all on function public.meu_email_confirmado() from public, anon;
 grant execute on function public.meu_email_confirmado() to authenticated;
 

@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151911">
-  <link rel="stylesheet" href="assets/admin.css?v=202610151911">
+  <link rel="stylesheet" href="assets/style.css?v=202610151922">
+  <link rel="stylesheet" href="assets/admin.css?v=202610151922">
 </head>
 <body>
   <header class="topo">
@@ -140,6 +140,7 @@
               <label class="campo">CEP<input id="o-cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
               <label class="campo">Sinal recebido (R$)<input id="o-sinal" type="number" inputmode="decimal" step="0.01" min="0"></label>
             </div>
+            <label class="marcar marcar-pago"><input id="o-pago" type="checkbox"> Já foi pago (cliente pagou o valor total)</label>
             <datalist id="o-lista-envios"><option value="PAC (Correios)"><option value="SEDEX (Correios)"><option value="Jadlog"><option value="Loggi"><option value="Retirada com a gente"><option value="Entrega em mãos (motoboy)"></datalist>
             <div class="frete-adm">
               <button class="botao botao-contorno botao-pequeno" type="button" id="o-simular-frete">Simular frete pelo CEP</button>
@@ -598,14 +599,14 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610151911"></script>
-  <script src="assets/precificador.js?v=202610151911"></script>
-  <script src="assets/admin.js?v=202610151911"></script>
-  <script src="assets/rastreio.js?v=202610151911"></script>
-  <script src="assets/frete.js?v=202610151911"></script>
-  <script src="assets/email.js?v=202610151911"></script>
-  <script src="assets/pedidos.js?v=202610151911"></script>
-  <script src="assets/financeiro.js?v=202610151911"></script>
-  <script src="assets/frete-admin.js?v=202610151911"></script>
+  <script src="assets/supabase-config.js?v=202610151922"></script>
+  <script src="assets/precificador.js?v=202610151922"></script>
+  <script src="assets/admin.js?v=202610151922"></script>
+  <script src="assets/rastreio.js?v=202610151922"></script>
+  <script src="assets/frete.js?v=202610151922"></script>
+  <script src="assets/email.js?v=202610151922"></script>
+  <script src="assets/pedidos.js?v=202610151922"></script>
+  <script src="assets/financeiro.js?v=202610151922"></script>
+  <script src="assets/frete-admin.js?v=202610151922"></script>
 </body>
 </html>

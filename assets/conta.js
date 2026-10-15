@@ -147,7 +147,7 @@
     }).join("");
     const frete = Number(p.frete) > 0 ? Number(p.frete) : 0;
     const total = p.valor != null ? Number(p.valor) + frete : null;
-    const falta = total != null ? total - Number(p.sinal || 0) : null;
+    const falta = p.pago ? 0 : total != null ? total - Number(p.sinal || 0) : null;
     return `<article class="pedido-conta${cancelado ? " cancelado" : ""}">
       <div class="pc-topo"><span class="pc-codigo">${esc(p.id)}</span><span>Feito em ${data(p.criado_em)}</span></div>
       <h2>${esc(p.peca || "Pedido")}${p.quantidade > 1 ? ` <span class="pc-qtd">× ${p.quantidade}</span>` : ""}</h2>
@@ -159,7 +159,7 @@
         ${p.entrega ? `<div><dt>Entrega prevista</dt><dd>${new Date(p.entrega + "T12:00").toLocaleDateString("pt-BR")}</dd></div>` : p.prazo ? `<div><dt>Você pediu para</dt><dd>${esc(p.prazo)}</dd></div>` : ""}
         ${p.envio ? `<div><dt>Entrega</dt><dd>${esc(p.envio)}</dd></div>` : ""}
         ${p.valor != null && frete ? `<div><dt>Peças</dt><dd>${brl(p.valor)}</dd></div><div><dt>Frete</dt><dd>${brl(frete)}</dd></div>` : ""}
-        ${p.valor != null ? `<div><dt>${frete ? "Total" : "Valor"}</dt><dd>${brl(total)}${falta > 0.004 ? ` <span class="pc-falta">(falta ${brl(falta)})</span>` : " <span class='pc-pago'>(pago)</span>"}</dd></div>` : ""}
+        ${p.valor != null ? `<div><dt>${frete ? "Total" : "Valor"}</dt><dd>${brl(total)}${falta > 0.004 ? (Number(p.sinal) > 0 ? ` <span class="pc-falta">(falta ${brl(falta)})</span>` : ` <span class="pc-falta">(a pagar)</span>`) : " <span class='pc-pago'>(pago)</span>"}</dd></div>` : ""}
         ${p.qtd_referencias ? `<div><dt>Imagens enviadas</dt><dd>${p.qtd_referencias}</dd></div>` : ""}
       </dl>
     </article>`;
@@ -188,7 +188,8 @@
     db.rpc("eh_equipe").then(({ data: equipe }) => ($("#ir-oficina").hidden = !equipe)).catch(() => {});
     $("#lista").innerHTML = `<p class="apoio">Carregando seus pedidos…</p>`;
     // meus_pedidos_v2 traz rastreio e frete; a versão antiga fica de reserva
-    let { data: pedidos, error } = await db.rpc("meus_pedidos_v2");
+    let { data: pedidos, error } = await db.rpc("meus_pedidos_v3");
+    if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos_v2"));
     if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos"));
     if (error) {
       $("#lista").innerHTML = `<div class="vazio"><strong>Não consegui carregar seus pedidos</strong>${esc(traduzirErro(error))}</div>`;

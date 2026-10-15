@@ -22,7 +22,7 @@
   // ---------- Supabase ----------
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
-    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep"];
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep", "pago"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
     const r = {};
@@ -116,7 +116,9 @@
     const frete = p.frete == null || p.frete === "" ? 0 : P.num(p.frete, 0);
     const sinal = P.num(p.sinal, 0);
     const total = Number.isFinite(valor) ? valor + frete : NaN;
-    return { peca, qtd, custoUn, custo, valor, frete, total, sinal, falta: Number.isFinite(total) ? total - sinal : NaN, lucro: valor - custo };
+    // "Pago" só quando vocês marcam (ou quando o sinal já cobre o total)
+    const falta = p.pago ? 0 : Number.isFinite(total) ? Math.max(0, total - sinal) : NaN;
+    return { peca, qtd, custoUn, custo, valor, frete, total, sinal, falta, pago: !!p.pago || (Number.isFinite(total) && total > 0 && sinal >= total - 0.004), lucro: valor - custo };
   }
 
   function desenharFiltros() {
@@ -167,7 +169,7 @@
             ${entrega}
             ${p.rastreio ? `<a class="cp-rastreio" href="${esc(window.HPR_RASTREIO.dePedido(p).link)}" target="_blank" rel="noopener" title="Abrir o rastreio">📦 ${esc(window.HPR_RASTREIO.limpar(p.rastreio))}</a>` : ""}
             ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
-            ${Number.isFinite(c.valor) ? `<span>${brl(c.total)}${c.frete > 0 ? ` <small class="cp-frete">(frete ${brl(c.frete)})</small>` : ""}${c.falta > 0.004 ? `, falta ${brl(c.falta)}` : c.total > 0 ? ", pago" : ""}</span>` : ""}
+            ${Number.isFinite(c.valor) ? `<span>${brl(c.total)}${c.frete > 0 ? ` <small class="cp-frete">(frete ${brl(c.frete)})</small>` : ""}${c.pago ? ` <span class="cp-pago">pago</span>` : c.total > 0 ? ` <span class="cp-a-receber">${c.sinal > 0 ? `falta ${brl(c.falta)}` : "a receber"}</span>` : ""}</span>` : ""}
             ${p.envio ? `<span class="cp-envio">${esc(p.envio.split(" · ")[0])}</span>` : ""}
           </div>
           <div class="cp-acoes">
@@ -305,6 +307,7 @@
     $("#o-avisar-campo").hidden = !comEmail;
     $("#o-avisar").checked = true;
     desenharReferencias(atual.referencias || []);
+    $("#o-pago").checked = !!atual.pago;
     atualizarRastreio(false);
     $("#o-frete-opcoes").innerHTML = "";
     const doSite = atual.origem === "site" && atual.frete != null;
@@ -331,6 +334,7 @@
   function lerForm() {
     const d = {};
     for (const [k, sel] of Object.entries(CAMPOS)) d[k] = $(sel).value.trim();
+    d.pago = $("#o-pago").checked;
     const peca = estado.pecas.find((p) => p.nome.toLowerCase() === d.peca.toLowerCase());
     d.pecaId = peca ? peca.id : atual.pecaId && d.peca === atual.peca ? atual.pecaId : "";
     return d;
@@ -352,7 +356,7 @@
         linhas.push(["Total para o cliente", `<b>${brl(c.total)}</b>`]);
       } else linhas.push(["Valor combinado", brl(c.valor)]);
       linhas.push(["Sinal recebido", brl(c.sinal)]);
-      linhas.push(["Falta receber", brl(Math.max(0, c.falta))]);
+      linhas.push(["Falta receber", c.pago ? `<span class="pos">pago</span>` : brl(Math.max(0, c.falta))]);
       if (c.peca) linhas.push(["Lucro estimado", `<span class="${c.lucro < 0 ? "neg" : "pos"}">${brl(c.lucro)}</span>`]);
     }
     $("#o-contas").innerHTML = linhas.map(([a, b]) => `<dt style="--cor:transparent">${a}</dt><dd>${b}</dd>`).join("");
@@ -479,6 +483,7 @@
       // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status
       const extra = (mudouStatus && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
         (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");
+      if (existente && !!existente.pago !== !!pedido.pago) await O.sincronizarPago?.(pedido);
       avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
       if (mudouStatus) oferecerWhatsapp(pedido);
       mostrar("pedidos");
