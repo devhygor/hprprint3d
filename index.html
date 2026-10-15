@@ -122,6 +122,15 @@
               <label class="campo-pedido">Cor preferida<input name="cor" list="cores-sugeridas" placeholder="Ex.: azul e branco"></label>
               <datalist id="cores-sugeridas"></datalist>
             </div>
+            <div class="campo-pedido frete-bloco">
+              <label for="pedido-cep">Entrega <small>(coloque o CEP para ver o frete)</small></label>
+              <div class="frete-linha">
+                <input name="cep" id="pedido-cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9">
+                <button type="button" class="botao botao-contorno botao-pequeno" id="calcular-frete">Calcular frete</button>
+              </div>
+              <a class="frete-nao-sei" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei meu CEP</a>
+              <div id="frete-resultado" aria-live="polite"></div>
+            </div>
             <label class="campo-pedido">Cidade e bairro<input name="cidade" autocomplete="address-level2" placeholder="Pra combinar entrega ou envio"></label>
             <label class="campo-pedido">Para quando?<input name="prazo" placeholder="Ex.: aniversário dia 20"></label>
             <label class="campo-pedido">Detalhes<textarea name="detalhes" rows="3" placeholder="Tamanho, nome para personalizar, link de referência…"></textarea></label>
@@ -158,6 +167,7 @@
 
   <script src="assets/supabase-config.js"></script>
   <script src="assets/email.js"></script>
+  <script src="assets/frete.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>

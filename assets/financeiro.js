@@ -566,7 +566,8 @@
     const linha = {
       tipo: "entrada", data: hojeISO(), descricao: p.peca || "Pedido " + p.id, cliente: p.cliente || null,
       quantidade: n(p.quantidade) || 1, valor: Math.round(n(p.valor) * 100) / 100, categoria: "Encomenda",
-      pago: true, pedido_id: p.id, notas: p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido",
+      pago: true, pedido_id: p.id, notas: (p.status === "enviado" ? "Lançado automaticamente ao postar o pedido" : "Lançado automaticamente ao entregar o pedido") +
+        (n(p.frete) > 0 ? `. Frete de ${brl(n(p.frete))} cobrado à parte (não somado aqui)` : ""),
     };
     const { data, error } = await db.from("lancamentos").insert(linha).select().single();
     if (error) return "";

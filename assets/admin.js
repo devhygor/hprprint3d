@@ -885,7 +885,7 @@
   });
 
   // ---------- API para outros módulos (pedidos.js) ----------
-  window.Oficina = Object.assign(window.Oficina || {}, { estado, db, erroLegivel, avisar, mostrar, brl, esc, $, $$ });
+  window.Oficina = Object.assign(window.Oficina || {}, { estado, db, erroLegivel, avisar, mostrar, brl, esc, $, $$, gravarAjuste });
   window.Oficina.ganchos = window.Oficina.ganchos || {};
 
   // ---------- Início ----------

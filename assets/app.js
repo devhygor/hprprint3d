@@ -241,8 +241,11 @@
   const numeroZap = () => String(site.whatsapp || "5561981600889").replace(/\D/g, "");
 
   // Botão "Pedir": leva ao formulário já com a peça preenchida e sugere as cores dela
+  let pecaDoPedido = null; // peça do catálogo escolhida (para as medidas do frete)
   function prepararPedido(nome, id) {
     document.getElementById("pedido-peca").value = nome;
+    pecaDoPedido = pecas.find((x) => x.id === id) || null;
+    if (freteAtual) simularFrete();
     const peca = pecas.find((x) => x.id === id);
     const cores = (peca?.cores || []).map((c) => c.nome);
     document.getElementById("cores-sugeridas").innerHTML = cores.map((n) => `<option value="${esc(n)}">`).join("");
@@ -347,15 +350,89 @@
   }
   async function registrarPedido(pedido) {
     if (!sb.url || !sb.chave) return false;
+    const gravar = (corpo) => comTempo(fetch(`${sb.url}/rest/v1/pedidos`, {
+      method: "POST",
+      headers: cabecalhos({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+      body: JSON.stringify(corpo),
+    }), 12000);
     try {
-      const r = await comTempo(fetch(`${sb.url}/rest/v1/pedidos`, {
-        method: "POST",
-        headers: cabecalhos({ "Content-Type": "application/json", Prefer: "return=minimal" }),
-        body: JSON.stringify(pedido),
-      }), 12000);
-      return r.ok;
+      const r = await gravar(pedido);
+      if (r.ok) return true;
+      // Banco ainda sem as colunas de frete: grava sem elas (o frete continua na mensagem)
+      if (r.status === 400 || r.status === 403) {
+        const { cep, envio, frete, ...semFrete } = pedido;
+        return (await gravar(semFrete)).ok;
+      }
+      return false;
     } catch { return false; }
   }
+
+  // ---------- Simulador de frete ----------
+  const F = window.HPR_FRETE;
+  const campoCep = document.getElementById("pedido-cep");
+  const caixaFrete = document.getElementById("frete-resultado");
+  let freteAtual = null;   // { endereco, fonte, opcoes }
+  let freteEscolhido = null;
+  let pedidoFrete = 0;
+  campoCep.addEventListener("input", () => {
+    const d = campoCep.value.replace(/\D/g, "").slice(0, 8);
+    campoCep.value = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+    if (d.length === 8) simularFrete();
+    else if (freteAtual) { freteAtual = null; freteEscolhido = null; caixaFrete.innerHTML = ""; }
+  });
+  campoCep.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); simularFrete(); } });
+  document.getElementById("calcular-frete").addEventListener("click", () => simularFrete());
+  document.getElementById("pedido-peca").addEventListener("change", (e) => {
+    const nome = e.target.value.trim().toLowerCase();
+    pecaDoPedido = pecas.find((x) => x.nome.toLowerCase() === nome) || null;
+    if (freteAtual?.fonte === "real") simularFrete();
+  });
+  document.querySelector('#form-pedido [name="quantidade"]').addEventListener("change", () => { if (freteAtual?.fonte === "real") simularFrete(); });
+
+  async function simularFrete() {
+    const d = campoCep.value.replace(/\D/g, "");
+    if (d.length !== 8) {
+      caixaFrete.innerHTML = `<p class="frete-aviso">Digite os 8 números do CEP.</p>`;
+      campoCep.focus();
+      return;
+    }
+    const vez = (pedidoFrete += 1);
+    caixaFrete.innerHTML = `<p class="frete-carregando">Calculando o frete…</p>`;
+    let r;
+    try {
+      r = await F.simular({ sb, site, cep: d, peca: pecaDoPedido, quantidade: document.querySelector('#form-pedido [name="quantidade"]').value });
+    } catch {
+      if (vez !== pedidoFrete) return;
+      freteAtual = null; freteEscolhido = null;
+      caixaFrete.innerHTML = `<p class="frete-aviso">Não encontramos esse CEP. Confira os números ou toque em "Não sei meu CEP".</p>`;
+      return;
+    }
+    if (vez !== pedidoFrete) return; // chegou uma consulta mais nova
+    freteAtual = r;
+    const cidade = document.querySelector('#form-pedido [name="cidade"]');
+    const local = [r.endereco.bairro, `${r.endereco.cidade}/${r.endereco.uf}`].filter(Boolean).join(", ");
+    if (!cidade.value.trim() || cidade.dataset.doCep === "1") { cidade.value = local; cidade.dataset.doCep = "1"; }
+    const antes = freteEscolhido?.id;
+    freteEscolhido = r.opcoes.find((o) => o.id === antes) || null;
+    const enderecoHtml = `<p class="frete-endereco">📍 ${esc(local)}</p>`;
+    if (!r.opcoes.length) {
+      caixaFrete.innerHTML = enderecoHtml + `<p class="frete-aviso">Para esse endereço a gente calcula o frete junto com o orçamento, pelo WhatsApp.</p>`;
+      return;
+    }
+    caixaFrete.innerHTML = enderecoHtml +
+      `<div class="frete-opcoes" role="radiogroup" aria-label="Formas de entrega">${r.opcoes.map((o) => `
+        <label class="frete-opcao">
+          <input type="radio" name="frete-opcao" value="${esc(o.id)}" ${o.id === freteEscolhido?.id ? "checked" : ""}>
+          <span class="frete-nome">${esc(o.nome)}${o.prazo ? `<small>${esc(o.prazo)}</small>` : ""}</span>
+          <span class="frete-valor">${o.valor > 0 ? brl(o.valor) : "Grátis"}</span>
+        </label>`).join("")}</div>` +
+      `<p class="frete-dica">${r.fonte === "real" ? "Valores dos Correios e transportadoras agora." : "Valor estimado."} Confirmamos o frete junto com o orçamento.</p>`;
+  }
+  caixaFrete.addEventListener("change", (e) => {
+    if (e.target.name !== "frete-opcao") return;
+    freteEscolhido = freteAtual?.opcoes.find((o) => o.id === e.target.value) || null;
+  });
+  document.querySelector('#form-pedido [name="cidade"]').addEventListener("input", (e) => (e.target.dataset.doCep = ""));
 
   document.getElementById("form-pedido").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -400,6 +477,8 @@
       `*Quantidade:* ${v("quantidade") || "1"}`,
       v("cor") && `*Cor:* ${v("cor")}`,
       v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,
+      freteAtual && `*CEP:* ${freteAtual.endereco.cep}`,
+      freteEscolhido && `*Entrega:* ${F.descreverOpcao(freteEscolhido)}${freteEscolhido.valor > 0 ? " (simulado no site)" : ""}`,
       v("prazo") && `*Para quando:* ${v("prazo")}`,
       v("detalhes") && `*Detalhes:* ${v("detalhes")}`,
       caminhos.length && `*Imagens de referência:* ${caminhos.length} enviada${caminhos.length > 1 ? "s" : ""} pelo site`,
@@ -414,6 +493,9 @@
       telefone: v("telefone").replace(/[^\d+ ()-]/g, "").slice(0, 30),
       email: v("email").toLowerCase().slice(0, 200) || null,
       cidade: v("cidade").slice(0, 160),
+      cep: freteAtual?.endereco.cep || null,
+      envio: freteEscolhido ? `${freteEscolhido.nome}${freteEscolhido.prazo ? " · " + freteEscolhido.prazo : ""}`.slice(0, 160) : null,
+      frete: freteEscolhido ? Math.round(freteEscolhido.valor * 100) / 100 : null,
       peca: v("peca").slice(0, 300),
       quantidade: Math.min(10000, Math.max(1, parseInt(v("quantidade"), 10) || 1)),
       cor: v("cor").slice(0, 120),

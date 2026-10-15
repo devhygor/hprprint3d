@@ -58,6 +58,10 @@ alter table public.pedidos add column if not exists canal       text;
 alter table public.pedidos add column if not exists transportadora text;
 alter table public.pedidos add column if not exists rastreio       text;
 alter table public.pedidos add column if not exists link_rastreio  text;
+-- Frete: valor separado do valor das peças, forma de envio e CEP de destino
+alter table public.pedidos add column if not exists frete          numeric(10,2);
+alter table public.pedidos add column if not exists envio          text;
+alter table public.pedidos add column if not exists cep            text;
 -- Status "enviado" (postado): refaz a regra de status para bancos criados antes dele
 alter table public.pedidos drop constraint if exists pedidos_status_check;
 alter table public.pedidos add constraint pedidos_status_check
@@ -95,6 +99,9 @@ create policy "site registra pedido" on public.pedidos
     and jsonb_array_length(historico) <= 1
     and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
     and char_length(coalesce(canal, '')) <= 40
+    and (frete is null or (frete >= 0 and frete <= 5000))
+    and char_length(coalesce(envio, '')) <= 160
+    and char_length(coalesce(cep, ''))   <= 9
     and cliente_id is null
   );
 
@@ -118,6 +125,9 @@ create policy "cliente registra pedido" on public.pedidos
     and jsonb_array_length(historico) <= 1
     and jsonb_typeof(referencias) = 'array' and jsonb_array_length(referencias) <= 3
     and char_length(coalesce(canal, '')) <= 40
+    and (frete is null or (frete >= 0 and frete <= 5000))
+    and char_length(coalesce(envio, '')) <= 160
+    and char_length(coalesce(cep, ''))   <= 9
     and cliente_id = auth.uid()
   );
 
@@ -216,14 +226,14 @@ create or replace function public.meus_pedidos()
 returns table (
   id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
   cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer,
-  transportadora text, rastreio text, link_rastreio text
+  transportadora text, rastreio text, link_rastreio text, frete numeric, envio text
 )
 language sql stable security definer
 set search_path = ''
 as $$
   select p.id, p.criado_em, p.atualizado_em, p.status, p.peca, p.quantidade, p.cor, p.prazo, p.entrega,
          p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias),
-         p.transportadora, p.rastreio, p.link_rastreio
+         p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio
   from public.pedidos p
   where auth.uid() is not null
     and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))

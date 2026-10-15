@@ -22,7 +22,7 @@
   // ---------- Supabase ----------
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
-    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio"];
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
     const r = {};
@@ -113,8 +113,10 @@
     const custoUn = peca ? P.precificar(peca, estado.config).custo.total : NaN;
     const custo = custoUn * qtd;
     const valor = p.valor == null || p.valor === "" ? NaN : P.num(p.valor, NaN);
+    const frete = p.frete == null || p.frete === "" ? 0 : P.num(p.frete, 0);
     const sinal = P.num(p.sinal, 0);
-    return { peca, qtd, custoUn, custo, valor, sinal, falta: Number.isFinite(valor) ? valor - sinal : NaN, lucro: valor - custo };
+    const total = Number.isFinite(valor) ? valor + frete : NaN;
+    return { peca, qtd, custoUn, custo, valor, frete, total, sinal, falta: Number.isFinite(total) ? total - sinal : NaN, lucro: valor - custo };
   }
 
   function desenharFiltros() {
@@ -165,7 +167,8 @@
             ${entrega}
             ${p.rastreio ? `<a class="cp-rastreio" href="${esc(window.HPR_RASTREIO.dePedido(p).link)}" target="_blank" rel="noopener" title="Abrir o rastreio">📦 ${esc(window.HPR_RASTREIO.limpar(p.rastreio))}</a>` : ""}
             ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
-            ${Number.isFinite(c.valor) ? `<span>${brl(c.valor)}${c.falta > 0.004 ? `, falta ${brl(c.falta)}` : c.valor > 0 ? ", pago" : ""}</span>` : ""}
+            ${Number.isFinite(c.valor) ? `<span>${brl(c.total)}${c.frete > 0 ? ` <small class="cp-frete">(frete ${brl(c.frete)})</small>` : ""}${c.falta > 0.004 ? `, falta ${brl(c.falta)}` : c.total > 0 ? ", pago" : ""}</span>` : ""}
+            ${p.envio ? `<span class="cp-envio">${esc(p.envio.split(" · ")[0])}</span>` : ""}
           </div>
           <div class="cp-acoes">
             <label class="cp-status"><span class="sr">Status de ${esc(p.id)}</span>
@@ -255,6 +258,7 @@
   const CAMPOS = {
     cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", canal: "#o-canal", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
     cor: "#o-cor", prazo: "#o-prazo", entrega: "#o-entrega", detalhes: "#o-detalhes", valor: "#o-valor", sinal: "#o-sinal",
+    frete: "#o-frete", envio: "#o-envio", cep: "#o-cep",
     notas: "#o-notas", mensagem: "#o-mensagem", status: "#o-status",
     transportadora: "#o-transportadora", rastreio: "#o-rastreio", link_rastreio: "#o-link-rastreio",
   };
@@ -302,6 +306,10 @@
     $("#o-avisar").checked = true;
     desenharReferencias(atual.referencias || []);
     atualizarRastreio(false);
+    $("#o-frete-opcoes").innerHTML = "";
+    const doSite = atual.origem === "site" && atual.frete != null;
+    $("#o-frete-dica").hidden = !doSite;
+    $("#o-frete-dica").textContent = doSite ? "Frete simulado pelo cliente no site. Confira antes de mandar o orçamento." : "";
     mostrar("pedido");
     atualizarLado();
   }
@@ -338,7 +346,11 @@
     const linhas = [];
     if (c.peca) linhas.push(["Custo de produção", brl(c.custo)]);
     if (Number.isFinite(c.valor)) {
-      linhas.push(["Valor combinado", brl(c.valor)]);
+      if (c.frete > 0) {
+        linhas.push(["Peças", brl(c.valor)]);
+        linhas.push(["Frete", brl(c.frete)]);
+        linhas.push(["Total para o cliente", `<b>${brl(c.total)}</b>`]);
+      } else linhas.push(["Valor combinado", brl(c.valor)]);
       linhas.push(["Sinal recebido", brl(c.sinal)]);
       linhas.push(["Falta receber", brl(Math.max(0, c.falta))]);
       if (c.peca) linhas.push(["Lucro estimado", `<span class="${c.lucro < 0 ? "neg" : "pos"}">${brl(c.lucro)}</span>`]);
@@ -362,6 +374,40 @@
       .map((h) => `<li style="--cor:${statusDe(h.status).cor}"><strong>${statusDe(h.status).nome}</strong> <span>${dataHora(h.em)}</span></li>`)
       .join("");
   }
+  // Simular frete pelo CEP dentro do pedido (mesma conta do site)
+  const F = window.HPR_FRETE;
+  let opcoesAdm = [];
+  $("#o-cep").addEventListener("input", (e) => {
+    const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+    e.target.value = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+  });
+  $("#o-simular-frete").addEventListener("click", async () => {
+    const alvo = $("#o-frete-opcoes");
+    const d = lerForm();
+    if (d.cep.replace(/\D/g, "").length !== 8) { avisar("Coloque o CEP do cliente.", true); $("#o-cep").focus(); return; }
+    alvo.innerHTML = `<p class="dica">Calculando…</p>`;
+    try {
+      const peca = estado.pecas.find((p) => p.id === d.pecaId);
+      const r = await F.simular({ sb: window.HPR_SUPABASE, site: estado.site, cep: d.cep, peca: peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, quantidade: d.quantidade });
+      opcoesAdm = r.opcoes;
+      alvo.innerHTML = `<p class="dica">${esc(r.endereco.cidade)}/${esc(r.endereco.uf)} · ${r.fonte === "real" ? "preço do Melhor Envio" : "tabela da loja"}. Toque para usar:</p>` +
+        (r.opcoes.length ? `<div class="frete-adm-opcoes">${r.opcoes.map((o, i) => `<button type="button" class="filtro" data-frete="${i}">${esc(o.nome)} · ${o.valor > 0 ? brl(o.valor) : "grátis"}${o.prazo ? ` <small>${esc(o.prazo)}</small>` : ""}</button>`).join("")}</div>`
+          : `<p class="dica alerta">Sem valor para essa região. Preencha a tabela de frete na aba Loja.</p>`);
+      if (!$("#o-cidade").value.trim()) $("#o-cidade").value = `${r.endereco.cidade}/${r.endereco.uf}`;
+    } catch {
+      alvo.innerHTML = `<p class="dica erro">CEP não encontrado.</p>`;
+    }
+  });
+  $("#o-frete-opcoes").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-frete]");
+    if (!b) return;
+    const o = opcoesAdm[Number(b.dataset.frete)];
+    $("#o-frete").value = o.valor > 0 ? o.valor.toFixed(2) : "0";
+    $("#o-envio").value = o.nome + (o.prazo ? " · " + o.prazo : "");
+    $$("#o-frete-opcoes [data-frete]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    atualizarLado();
+  });
+
   $("#form-pedido-adm").addEventListener("input", atualizarLado);
   $("#o-status").addEventListener("change", atualizarLado);
 
@@ -414,6 +460,8 @@
       origem: atual.origem || "manual",
       quantidade: Math.max(1, parseInt(d.quantidade, 10) || 1),
       valor: d.valor === "" ? null : P.num(d.valor),
+      frete: d.frete === "" ? null : P.num(d.frete),
+      cep: window.HPR_FRETE.formatarCep(d.cep) || null,
       sinal: d.sinal === "" ? null : P.num(d.sinal),
       criadoEm: atual.criadoEm || agora(),
       atualizadoEm: agora(),

@@ -192,6 +192,23 @@ a.peca-foto { display: block; }
 .pedido-erro { margin: 0; color: #b0153a; font-weight: 600; font-size: .92rem; }
 .pedido :focus-visible { outline-color: var(--neon); }
 
+/* Simulador de frete */
+.frete-linha { display: flex; gap: 8px; }
+.frete-linha input { flex: 0 1 170px; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.pedido .frete-linha .botao-contorno { color: #3a2d6b; box-shadow: inset 0 0 0 1.5px #c9bdf2; background: #fff; white-space: nowrap; }
+.pedido .frete-linha .botao-contorno:hover { box-shadow: inset 0 0 0 1.5px var(--neon); color: var(--neon); }
+.frete-nao-sei { align-self: flex-start; font-size: .8rem; font-weight: 500; color: #6d5fa0; }
+.frete-endereco { margin: 4px 0 2px; font-weight: 500; font-size: .88rem; color: #3a2d6b; }
+.frete-carregando, .frete-aviso, .frete-dica { margin: 4px 0 0; font-weight: 500; font-size: .84rem; color: #6d5fa0; }
+.frete-aviso { color: #8a3a12; }
+.frete-opcoes { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.frete-opcao { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border: 1.5px solid #e1d8fa; border-radius: var(--raio-p); cursor: pointer; font-weight: 600; color: #1c1240; transition: border-color .15s, background .15s; }
+.frete-opcao:hover { border-color: #b9a6f5; }
+.frete-opcao:has(input:checked) { border-color: var(--neon); background: #efe7ff; }
+.frete-opcao input { width: 18px; height: 18px; margin: 0; accent-color: var(--neon); }
+.frete-nome small { display: block; font-weight: 500; font-size: .8rem; color: #6d5fa0; }
+.frete-valor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 /* ---------- Destaques do Instagram ---------- */
 .grade-insta { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; align-items: start; }
 .insta-item { min-width: 0; }

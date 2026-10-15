@@ -134,9 +134,18 @@
           <fieldset class="painel">
             <legend>Combinado</legend>
             <div class="duas">
-              <label class="campo">Valor total (R$)<input id="o-valor" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Valor das peças (R$)<input id="o-valor" type="number" inputmode="decimal" step="0.01" min="0"></label>
+              <label class="campo">Frete (R$)<input id="o-frete" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></label>
+              <label class="campo">Forma de entrega<input id="o-envio" list="o-lista-envios" placeholder="Ex.: PAC, SEDEX, retirada"></label>
+              <label class="campo">CEP<input id="o-cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
               <label class="campo">Sinal recebido (R$)<input id="o-sinal" type="number" inputmode="decimal" step="0.01" min="0"></label>
             </div>
+            <datalist id="o-lista-envios"><option value="PAC (Correios)"><option value="SEDEX (Correios)"><option value="Jadlog"><option value="Loggi"><option value="Retirada com a gente"><option value="Entrega em mãos (motoboy)"></datalist>
+            <div class="frete-adm">
+              <button class="botao botao-contorno botao-pequeno" type="button" id="o-simular-frete">Simular frete pelo CEP</button>
+              <div id="o-frete-opcoes"></div>
+            </div>
+            <p class="dica" id="o-frete-dica" hidden></p>
             <label class="campo">Anotações internas<textarea id="o-notas" rows="2" placeholder="Ex.: filamento azul acabando, imprimir na A1"></textarea></label>
           </fieldset>
 
@@ -523,6 +532,47 @@
         <p class="dica">Um link por linha, até 9. No Instagram, abra o post, toque nos três pontinhos e em "Copiar link". Eles aparecem na vitrine na ordem desta lista.</p>
         <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
         <hr>
+        <h2 class="titulo-painel" id="frete-config">Frete</h2>
+        <p class="dica">O cliente coloca o CEP no pedido e vê as opções de entrega. Sem o Melhor Envio ligado, o site usa a tabela abaixo.</p>
+        <div class="duas">
+          <label class="campo">CEP de onde vocês enviam<input id="lf-cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
+          <label class="campo">Estados com retirada e entrega em mãos<input id="lf-ufs" placeholder="DF"></label>
+        </div>
+        <label class="marcar"><input id="lf-ret" type="checkbox"> Oferecer retirada (grátis)</label>
+        <label class="campo">Texto da retirada<input id="lf-ret-texto" placeholder="Retirar com a gente em Taguatinga"></label>
+        <label class="marcar"><input id="lf-local" type="checkbox"> Oferecer entrega em mãos / motoboy</label>
+        <div class="tres">
+          <label class="campo">Nome<input id="lf-local-texto" placeholder="Entrega em mãos (motoboy)"></label>
+          <label class="campo">Valor (R$)<input id="lf-local-valor" type="number" step="0.01" min="0" inputmode="decimal"></label>
+          <label class="campo">Prazo (dias)<input id="lf-local-prazo" type="number" min="0" inputmode="numeric"></label>
+        </div>
+        <p class="rotulo">Tabela de envio pelos Correios (estimativa por região)</p>
+        <div class="tabela-frete" id="lf-tabela"></div>
+        <p class="dica">Deixe em branco a região que vocês preferem combinar pelo WhatsApp. Dica: simule um envio de uma peça típica no site dos Correios ou do Melhor Envio para cada região e coloque o valor aqui.</p>
+        <p class="rotulo">Caixa padrão (quando a peça não tem medidas cadastradas)</p>
+        <div class="quatro">
+          <label class="campo">Largura (cm)<input id="lf-larg" type="number" min="1" inputmode="numeric"></label>
+          <label class="campo">Altura (cm)<input id="lf-alt" type="number" min="1" inputmode="numeric"></label>
+          <label class="campo">Comprimento (cm)<input id="lf-comp" type="number" min="1" inputmode="numeric"></label>
+          <label class="campo">Peso (g)<input id="lf-peso" type="number" min="1" inputmode="numeric"></label>
+        </div>
+        <label class="marcar"><input id="lf-real" type="checkbox"> Usar o preço real do Melhor Envio (PAC, SEDEX, Jadlog, Loggi…)</label>
+        <details class="ajuda">
+          <summary>Como ligar o Melhor Envio (grátis)</summary>
+          <ol>
+            <li>Crie uma conta em <a href="https://melhorenvio.com.br" target="_blank" rel="noopener">melhorenvio.com.br</a>.</li>
+            <li>No painel: <b>Integrações → Permissões de acesso → Gerar novo token</b>. Marque só <b>Cotação de fretes (shipping-calculate)</b> e copie o token.</li>
+            <li>No Supabase: <b>Edge Functions → Secrets</b>, crie <code>MELHOR_ENVIO_TOKEN</code> com o token e <code>MELHOR_ENVIO_EMAIL</code> com o e-mail da loja.</li>
+            <li>Volte aqui, marque a opção acima e toque em <b>Testar cotação</b>.</li>
+          </ol>
+          <p>O token fica só no Supabase, nunca aparece no site. Se o Melhor Envio sair do ar, o site volta sozinho para a tabela.</p>
+        </details>
+        <div class="acoes">
+          <button class="botao botao-principal" type="button" id="lf-salvar">Salvar frete</button>
+          <button class="botao botao-contorno" type="button" id="lf-testar">Testar cotação</button>
+        </div>
+        <div id="lf-teste"></div>
+        <hr>
         <h2 class="titulo-painel">E-mails para clientes (EmailJS)</h2>
         <div class="duas">
           <label class="campo">Service ID<input id="l-email-servico" placeholder="service_..."></label>
@@ -552,8 +602,10 @@
   <script src="assets/precificador.js"></script>
   <script src="assets/admin.js"></script>
   <script src="assets/rastreio.js"></script>
+  <script src="assets/frete.js"></script>
   <script src="assets/email.js"></script>
   <script src="assets/pedidos.js"></script>
   <script src="assets/financeiro.js"></script>
+  <script src="assets/frete-admin.js"></script>
 </body>
 </html>

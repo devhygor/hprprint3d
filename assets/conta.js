@@ -145,7 +145,9 @@
       const classe = cancelado ? "" : i < atual ? "feito" : i === atual ? "atual" : "";
       return `<li class="${classe}" ${i === atual && !cancelado ? 'aria-current="step"' : ""}><span class="ponto"></span><span class="nome">${e.nome}</span>${classe && quando(e.id) ? `<span class="quando">${data(quando(e.id))}</span>` : ""}</li>`;
     }).join("");
-    const falta = p.valor != null ? Number(p.valor) - Number(p.sinal || 0) : null;
+    const frete = Number(p.frete) > 0 ? Number(p.frete) : 0;
+    const total = p.valor != null ? Number(p.valor) + frete : null;
+    const falta = total != null ? total - Number(p.sinal || 0) : null;
     return `<article class="pedido-conta${cancelado ? " cancelado" : ""}">
       <div class="pc-topo"><span class="pc-codigo">${esc(p.id)}</span><span>Feito em ${data(p.criado_em)}</span></div>
       <h2>${esc(p.peca || "Pedido")}${p.quantidade > 1 ? ` <span class="pc-qtd">× ${p.quantidade}</span>` : ""}</h2>
@@ -155,7 +157,9 @@
       <dl class="pc-info">
         ${p.cor ? `<div><dt>Cor</dt><dd>${esc(p.cor)}</dd></div>` : ""}
         ${p.entrega ? `<div><dt>Entrega prevista</dt><dd>${new Date(p.entrega + "T12:00").toLocaleDateString("pt-BR")}</dd></div>` : p.prazo ? `<div><dt>Você pediu para</dt><dd>${esc(p.prazo)}</dd></div>` : ""}
-        ${p.valor != null ? `<div><dt>Valor</dt><dd>${brl(p.valor)}${falta > 0.004 ? ` <span class="pc-falta">(falta ${brl(falta)})</span>` : " <span class='pc-pago'>(pago)</span>"}</dd></div>` : ""}
+        ${p.envio ? `<div><dt>Entrega</dt><dd>${esc(p.envio)}</dd></div>` : ""}
+        ${p.valor != null && frete ? `<div><dt>Peças</dt><dd>${brl(p.valor)}</dd></div><div><dt>Frete</dt><dd>${brl(frete)}</dd></div>` : ""}
+        ${p.valor != null ? `<div><dt>${frete ? "Total" : "Valor"}</dt><dd>${brl(total)}${falta > 0.004 ? ` <span class="pc-falta">(falta ${brl(falta)})</span>` : " <span class='pc-pago'>(pago)</span>"}</dd></div>` : ""}
         ${p.qtd_referencias ? `<div><dt>Imagens enviadas</dt><dd>${p.qtd_referencias}</dd></div>` : ""}
       </dl>
     </article>`;

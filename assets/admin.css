@@ -26,6 +26,7 @@ fieldset.painel { display: flex; flex-direction: column; gap: 14px; }
 .campo input::placeholder { color: var(--texto-3); }
 .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .tres { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+.quatro { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
 .dica { font-size: .88rem; color: var(--texto-3); margin: 0; }
 .dica.alerta { color: var(--neon-claro); }
 .dica.erro { color: var(--erro); }
@@ -124,7 +125,7 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
   .coluna-resultado { position: static; }
 }
 @media (max-width: 640px) {
-  .duas, .tres { grid-template-columns: 1fr 1fr; }
+  .duas, .tres, .quatro { grid-template-columns: 1fr 1fr; }
   .tres .campo:first-child { grid-column: 1 / -1; }
   .tabela-pecas .ocultar-celular { display: none; }
   .linha-busca { grid-template-columns: 1fr; }
@@ -359,3 +360,19 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
   .fin-caixa-conta small { flex-basis: 100%; }
   .fin-sinal { display: none; }
 }
+
+/* Frete */
+.tabela-frete { display: flex; flex-direction: column; gap: 6px; }
+.tf-cab, .tf-linha { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: center; }
+.tf-cab { font-size: .8rem; color: var(--texto-3); font-weight: 600; }
+.tf-nome { font-weight: 600; }
+.tf-nome small { display: block; font-weight: 400; font-size: .76rem; color: var(--texto-3); }
+.tf-linha input { font: 400 1rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--linha); border-radius: var(--raio-p); padding: 9px 10px; width: 100%; min-width: 0; }
+.tf-linha input:focus { outline: none; border-color: var(--neon-claro); }
+.tf-linha input::placeholder { color: var(--texto-3); }
+.lista-teste { margin: 4px 0 0; padding-left: 20px; color: var(--texto-2); }
+.frete-adm { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.frete-adm-opcoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.frete-adm-opcoes small { color: var(--texto-3); font-weight: 400; }
+.cp-frete { color: var(--texto-3); font-size: .8rem; }
+.cp-envio { font-size: .8rem; color: var(--texto-2); }
