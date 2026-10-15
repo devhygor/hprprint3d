@@ -5,8 +5,8 @@
 //    que guarda o token em segredo. Se ela falhar, o site volta para a tabela.
 (function (raiz) {
   const REGIOES = [
-    { id: "DF", nome: "Distrito Federal", ufs: ["DF"] },
-    { id: "CO", nome: "Centro-Oeste", ufs: ["GO", "MT", "MS"] },
+    { id: "DF", nome: "DF e Goiás", ufs: ["DF", "GO"] },
+    { id: "CO", nome: "Mato Grosso e MS", ufs: ["MT", "MS"] },
     { id: "SE", nome: "Sudeste", ufs: ["SP", "RJ", "MG", "ES"] },
     { id: "S", nome: "Sul", ufs: ["PR", "SC", "RS"] },
     { id: "NE", nome: "Nordeste", ufs: ["BA", "SE", "AL", "PE", "PB", "RN", "CE", "PI", "MA"] },
@@ -14,7 +14,7 @@
   ];
   const PADRAO = {
     cepOrigem: "",
-    ufsLocal: "DF",
+    ufsLocal: "DF, GO",
     retirada: { ativo: true, texto: "Retirar com a gente" },
     local: { ativo: false, valor: "", prazo: "", texto: "Entrega em mãos (motoboy)" },
     tabela: REGIOES.map((r) => ({ id: r.id, valor: "", prazo: "" })),
@@ -31,13 +31,15 @@
     const tabela = REGIOES.map((r) => ({ id: r.id, valor: "", prazo: "", ...(f.tabela || []).find((t) => t.id === r.id) }));
     return {
       ...PADRAO, ...f,
+      ufsLocal: /^\s*DF\s*$/i.test(f.ufsLocal || "") ? PADRAO.ufsLocal : f.ufsLocal ?? PADRAO.ufsLocal,
       retirada: { ...PADRAO.retirada, ...f.retirada },
       local: { ...PADRAO.local, ...f.local },
       pacote: { ...PADRAO.pacote, ...f.pacote },
       tabela,
     };
   }
-  const ufsLocal = (cfg) => String(cfg.ufsLocal || "").toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+  // Quem salvou só "DF" antes da mudança passa a atender GO também (a loja fica no entorno do DF)
+  const ufsLocal = (cfg) => String(/^\s*DF\s*$/i.test(cfg.ufsLocal || "") ? PADRAO.ufsLocal : cfg.ufsLocal || "").toUpperCase().split(/[^A-Z]+/).filter(Boolean);
 
   // Endereço pelo CEP (ViaCEP, gratuito)
   async function buscarCep(cep) {
