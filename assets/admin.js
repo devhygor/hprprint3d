@@ -77,6 +77,19 @@
     return db.storage.from("fotos").getPublicUrl(caminho).data.publicUrl;
   }
   const urlFoto = (c) => c || "";
+  // Foto guardada no nosso Supabase (não expira) x link de fora (Instagram, MakerWorld…), que pode sumir
+  const ehFotoNossa = (u) => String(u || "").includes("/storage/v1/object/public/fotos/");
+  // Baixa a imagem de fora (ou a do post do Instagram) e guarda no Supabase
+  async function importarFoto(url) {
+    const { data, error } = await db.functions.invoke("importar-foto", { body: { url } });
+    if (error) {
+      let msg = error.message;
+      try { msg = (await error.context.json()).erro || msg; } catch {}
+      throw new Error(msg);
+    }
+    if (!data?.url) throw new Error(data?.erro || "não consegui importar");
+    return data.url;
+  }
 
   // ---------- Navegação ----------
   function mostrar(aba) {
@@ -236,7 +249,12 @@
         </tr>`;
       })
       .join("");
-    alvo.innerHTML = `<p class="dica dica-ordem">Arraste pelo <b>⋮⋮</b> para mudar a ordem em que as peças aparecem na vitrine. Salva sozinho.</p>
+    const externas = estado.pecas.reduce((n, p) => n + (p.fotos || []).filter((u) => !ehFotoNossa(u)).length, 0);
+    const avisoFotos = externas ? `<div class="aviso-fotos">
+        <p><b>${externas} foto${externas > 1 ? "s estão" : " está"} com link de fora</b> (Instagram, MakerWorld…). Esses links expiram e a foto some da vitrine.</p>
+        <button class="botao botao-principal botao-pequeno" type="button" id="importar-externas">Guardar todas no Supabase</button>
+      </div>` : "";
+    alvo.innerHTML = avisoFotos + `<p class="dica dica-ordem">Arraste pelo <b>⋮⋮</b> para mudar a ordem em que as peças aparecem na vitrine. Salva sozinho.</p>
       <div style="overflow-x:auto"><table class="tabela-pecas">
       <thead><tr><th><span class="sr-only">Ordem</span></th><th></th><th>Peça</th><th class="num">Custo</th><th class="num ocultar-celular">Sugerido</th><th class="num">Na vitrine</th><th class="num ocultar-celular">Lucro (direta)</th><th class="ocultar-celular">Status</th><th></th></tr></thead>
       <tbody>${linhas}</tbody></table></div>`;
@@ -323,7 +341,35 @@
     esperaTeclado = setTimeout(salvarOrdem, 700);
   });
 
+  // Traz todas as fotos de fora para o Supabase de uma vez
+  async function importarExternas(botao) {
+    botao.disabled = true;
+    const falhas = [];
+    let feitas = 0;
+    for (const p of estado.pecas) {
+      const fotos = [...(p.fotos || [])];
+      let mudou = false;
+      for (let i = 0; i < fotos.length; i++) {
+        if (ehFotoNossa(fotos[i])) continue;
+        botao.textContent = `Trazendo fotos… (${feitas + falhas.length + 1})`;
+        try { fotos[i] = await importarFoto(fotos[i]); mudou = true; feitas++; }
+        catch (e) { falhas.push(`${p.nome} (${String(e.message).replace(/\.$/, "")})`); }
+      }
+      if (!mudou) continue;
+      const { error } = await db.from("pecas").update({ fotos, foto: fotos[0] || null }).eq("id", p.id);
+      if (error) { falhas.push(`${p.nome}: ${erroLegivel(error)}`); continue; }
+      p.fotos = fotos;
+      p.foto = fotos[0] || "";
+    }
+    desenharLista();
+    avisar(falhas.length
+      ? `${feitas} foto${feitas === 1 ? "" : "s"} guardada${feitas === 1 ? "" : "s"}. Não deu para: ${falhas.join("; ")}. Nessas, adicione de novo pelo link do post ou do celular.`
+      : `Pronto! ${feitas} foto${feitas === 1 ? "" : "s"} guardada${feitas === 1 ? "" : "s"} no Supabase. Elas não expiram mais.`, falhas.length > 0, 15000);
+  }
+
   $("#lista-pecas").addEventListener("click", async (e) => {
+    const imp = e.target.closest("#importar-externas");
+    if (imp) return importarExternas(imp);
     const ed = e.target.closest("[data-editar]");
     if (ed) return abrirEditor(ed.dataset.editar);
     const ex = e.target.closest("[data-excluir]");
@@ -586,14 +632,27 @@
     "-" + Date.now().toString(36);
 
   const ehUrlFoto = (u) => /^https:\/\/\S+$/i.test(u);
-  function adicionarFotoPorLink() {
+  async function adicionarFotoPorLink() {
     const u = $("#p-foto-url").value.trim();
-    if (!ehUrlFoto(u)) { avisar("Cole um link de imagem começando com https://", true); $("#p-foto-url").focus(); return; }
+    if (!ehUrlFoto(u)) { avisar("Cole o link do post do Instagram ou de uma imagem (começando com https://)", true); $("#p-foto-url").focus(); return; }
     if (estado.fotos.length >= MAX_FOTOS) { avisar(`O limite é de ${MAX_FOTOS} fotos por peça.`, true); return; }
-    if (estado.fotos.some((f) => f.url === u)) { avisar("Essa foto já está na galeria.", true); return; }
-    estado.fotos.push({ url: u });
-    $("#p-foto-url").value = "";
-    desenharGaleria();
+    if (estado.fotos.some((f) => f.url === u || f.origem === u)) { avisar("Essa foto já está na galeria.", true); return; }
+    const botao = $("#p-foto-url-add");
+    botao.disabled = true;
+    botao.textContent = "Trazendo a foto…";
+    try {
+      // Guarda uma cópia no Supabase: link de imagem do Instagram expira em poucos dias
+      const nossa = ehFotoNossa(u) ? u : await importarFoto(u);
+      estado.fotos.push({ url: nossa, origem: u });
+      $("#p-foto-url").value = "";
+      desenharGaleria();
+      avisar("Foto adicionada e guardada no Supabase.");
+    } catch (e) {
+      avisar("Não consegui trazer essa foto: " + e.message, true, 9000);
+    } finally {
+      botao.disabled = false;
+      botao.textContent = "Adicionar por link";
+    }
   }
   $("#p-foto-url-add").addEventListener("click", adicionarFotoPorLink);
   $("#p-foto-url").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adicionarFotoPorLink(); } });
@@ -701,6 +760,11 @@
         avisar(`Enviando foto ${enviadas} de ${novas}…`, false, 30000);
         f.url = await enviarFoto(id, f.dataUrl);
         delete f.dataUrl;
+      }
+      // Fotos antigas com link de fora: tenta guardar uma cópia agora (se o link ainda funcionar)
+      for (const f of estado.fotos) {
+        if (!f.url || ehFotoNossa(f.url)) continue;
+        try { f.url = await importarFoto(f.url); } catch { /* fica o link antigo; a lista avisa */ }
       }
       const fotos = estado.fotos.map((f) => f.url).filter(Boolean);
       const foto = fotos[0] || "";
