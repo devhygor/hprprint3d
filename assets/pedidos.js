@@ -22,7 +22,7 @@
   // ---------- Supabase ----------
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
-    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep", "pago"];
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep", "pago", "endereco", "numero", "complemento", "bairro", "uf", "documento", "etiqueta"];
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
     const r = {};
@@ -261,6 +261,7 @@
     cliente: "#o-cliente", telefone: "#o-telefone", email: "#o-email", canal: "#o-canal", cidade: "#o-cidade", peca: "#o-peca", quantidade: "#o-quantidade",
     cor: "#o-cor", prazo: "#o-prazo", entrega: "#o-entrega", detalhes: "#o-detalhes", valor: "#o-valor", sinal: "#o-sinal",
     frete: "#o-frete", envio: "#o-envio", cep: "#o-cep",
+    endereco: "#o-endereco", numero: "#o-numero", complemento: "#o-complemento", bairro: "#o-bairro", uf: "#o-uf", documento: "#o-documento",
     notas: "#o-notas", mensagem: "#o-mensagem", status: "#o-status",
     transportadora: "#o-transportadora", rastreio: "#o-rastreio", link_rastreio: "#o-link-rastreio",
   };
@@ -309,6 +310,7 @@
     desenharReferencias(atual.referencias || []);
     $("#o-pago").checked = !!atual.pago;
     atualizarRastreio(false);
+    desenharEtiqueta();
     $("#o-frete-opcoes").innerHTML = "";
     const doSite = atual.origem === "site" && atual.frete != null;
     $("#o-frete-dica").hidden = !doSite;
@@ -398,6 +400,9 @@
         (r.opcoes.length ? `<div class="frete-adm-opcoes">${r.opcoes.map((o, i) => `<button type="button" class="filtro" data-frete="${i}">${esc(o.nome)} · ${o.valor > 0 ? brl(o.valor) : "grátis"}${o.prazo ? ` <small>${esc(o.prazo)}</small>` : ""}</button>`).join("")}</div>`
           : `<p class="dica alerta">Sem valor para essa região. Preencha a tabela de frete na aba Loja.</p>`);
       if (!$("#o-cidade").value.trim()) $("#o-cidade").value = `${r.endereco.cidade}/${r.endereco.uf}`;
+      if (!$("#o-endereco").value.trim()) $("#o-endereco").value = r.endereco.rua || "";
+      if (!$("#o-bairro").value.trim()) $("#o-bairro").value = r.endereco.bairro || "";
+      $("#o-uf").value = r.endereco.uf || $("#o-uf").value;
     } catch {
       alvo.innerHTML = `<p class="dica erro">CEP não encontrado.</p>`;
     }
@@ -466,6 +471,8 @@
       valor: d.valor === "" ? null : P.num(d.valor),
       frete: d.frete === "" ? null : P.num(d.frete),
       cep: window.HPR_FRETE.formatarCep(d.cep) || null,
+      uf: d.uf.toUpperCase().slice(0, 2),
+      documento: d.documento.replace(/\D/g, "") || null,
       sinal: d.sinal === "" ? null : P.num(d.sinal),
       criadoEm: atual.criadoEm || agora(),
       atualizadoEm: agora(),
@@ -511,6 +518,134 @@
       avisar("Não consegui excluir: " + erroLegivel(e), true);
     }
   });
+
+  // ---------- Etiqueta do Melhor Envio ----------
+  async function chamarEtiqueta(corpo) {
+    const { data, error } = await db.functions.invoke("etiqueta", { body: corpo });
+    if (error) {
+      let j = {};
+      try { j = await error.context.json(); } catch {}
+      const e = new Error(j.erro || error.message);
+      e.dados = j;
+      throw e;
+    }
+    return data;
+  }
+  function desenharEtiqueta() {
+    const et = atual?.etiqueta;
+    const info = $("#o-etiqueta-info");
+    const botao = $("#o-gerar-etiqueta");
+    botao.hidden = !!et?.gerada;
+    botao.textContent = et?.id && !et.gerada ? "Concluir etiqueta" : "Gerar etiqueta no Melhor Envio";
+    if (!et?.id) { info.innerHTML = `<p class="dica">Compra a etiqueta com o saldo do Melhor Envio e já preenche o código de rastreio.</p>`; return; }
+    const desc = [et.nome_servico, et.empresa].filter(Boolean).join(" · ");
+    info.innerHTML = et.gerada
+      ? `<p class="dica"><b>Etiqueta gerada</b>${desc ? ` (${esc(desc)}${et.valor ? `, ${brl(et.valor)}` : ""})` : ""}${et.rastreio ? ` · rastreio ${esc(et.rastreio)}` : " · o código de rastreio pode levar alguns minutos"}.</p>
+         <div class="acoes-linha">
+           ${et.url ? `<a class="botao botao-principal botao-pequeno" href="${esc(et.url)}" target="_blank" rel="noopener">Imprimir etiqueta</a>` : ""}
+           <button class="botao botao-contorno botao-pequeno" type="button" id="o-etiqueta-atualizar">${et.url && et.rastreio ? "Atualizar" : "Buscar link e rastreio"}</button>
+         </div>
+         <p class="dica">Depois de postar, mude o status para <b>Enviado</b> e salve: o cliente recebe o rastreio.</p>`
+      : `<p class="dica alerta">A etiqueta está no carrinho do Melhor Envio, mas ainda não foi paga. Coloque saldo lá e toque em <b>Concluir etiqueta</b>.</p>`;
+  }
+  function aplicarEtiqueta(et) {
+    atual.etiqueta = et;
+    if (et.rastreio) {
+      atual.rastreio = et.rastreio;
+      $("#o-rastreio").value = et.rastreio;
+      const t = /^ME/i.test(et.rastreio) ? "outra" : /correios/i.test(et.empresa) ? "correios" : /jadlog/i.test(et.empresa) ? "jadlog" : /loggi/i.test(et.empresa) ? "loggi" : /j&t/i.test(et.empresa) ? "jt" : "outra";
+      atual.transportadora = t;
+      $("#o-transportadora").value = t;
+    }
+    if (et.envio_texto && !$("#o-envio").value) $("#o-envio").value = et.envio_texto;
+    const salvo = estado.pedidos.find((x) => x.id === atual.id);
+    if (salvo) Object.assign(salvo, { etiqueta: et, rastreio: atual.rastreio, transportadora: atual.transportadora });
+    atualizarRastreio(false);
+    desenharEtiqueta();
+    atualizarLado();
+  }
+
+  const dlgEt = $("#dlg-etiqueta");
+  let opcoesEt = [];
+  $("#o-gerar-etiqueta").addEventListener("click", async () => {
+    if (!atual?.id || !estado.pedidos.some((x) => x.id === atual.id)) { avisar("Salve o pedido antes de gerar a etiqueta.", true); return; }
+    const d = lerForm();
+    const salvo = estado.pedidos.find((x) => x.id === atual.id);
+    const norm = (k, v) => (k === "cep" || k === "documento" ? String(v || "").replace(/\D/g, "") : String(v || "").trim().toLowerCase());
+    const mudou = ["cliente", "cep", "endereco", "numero", "complemento", "bairro", "uf", "documento", "telefone"]
+      .some((k) => norm(k, d[k]) !== norm(k, salvo[k]));
+    if (mudou) { avisar("Salve o pedido primeiro: o endereço ou os dados do cliente mudaram.", true, 6000); return; }
+    if (!d.endereco || !d.numero || d.cep.replace(/\D/g, "").length !== 8) { avisar("Preencha CEP, rua e número do cliente e salve.", true, 6000); $("#o-endereco").focus(); return; }
+    // Etiqueta que ficou no carrinho: só conclui
+    if (atual.etiqueta?.id && !atual.etiqueta.gerada) return concluirEtiqueta();
+    const F = window.HPR_FRETE;
+    const cfg = F.config(estado.site);
+    const peca = estado.pecas.find((p) => p.id === d.pecaId);
+    const cx = F.caixa(cfg, peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, d.quantidade);
+    $("#et-altura").value = cx.altura; $("#et-largura").value = cx.largura; $("#et-comprimento").value = cx.comprimento; $("#et-peso").value = cx.peso;
+    $("#et-caixa-origem").textContent = cx.origem === "peca" ? "(pelas medidas da peça + folga)" : "(caixa padrão + folga; confira)";
+    $("#et-valor").value = (P.num(d.valor, 0) || cx.valor).toFixed(2);
+    $("#et-opcoes").innerHTML = "";
+    $("#et-comprar").disabled = true;
+    opcoesEt = [];
+    dlgEt.showModal();
+    $("#et-saldo").textContent = "Consultando saldo do Melhor Envio…";
+    try {
+      const r = await chamarEtiqueta({ acao: "saldo" });
+      $("#et-saldo").innerHTML = `Saldo no Melhor Envio: <b>${brl(r.saldo)}</b>`;
+    } catch (e) { $("#et-saldo").innerHTML = `<span class="erro">${esc(e.message)}</span>`; }
+    cotarEtiqueta();
+  });
+  const volumeEt = () => ({ altura: $("#et-altura").value, largura: $("#et-largura").value, comprimento: $("#et-comprimento").value, peso: $("#et-peso").value });
+  async function cotarEtiqueta() {
+    const alvo = $("#et-opcoes");
+    alvo.innerHTML = `<p class="dica">Buscando preços…</p>`;
+    $("#et-comprar").disabled = true;
+    try {
+      const r = await chamarEtiqueta({ acao: "cotar", pedido: atual.id, volume: volumeEt(), valor: $("#et-valor").value });
+      opcoesEt = r.opcoes || [];
+      const escolhido = (atual.envio || "").toLowerCase();
+      alvo.innerHTML = opcoesEt.length
+        ? `<div class="frete-adm-opcoes et-lista">${opcoesEt.map((o, i) => {
+            const marcar = escolhido && escolhido.includes(o.nome.toLowerCase());
+            return `<label class="et-opcao"><input type="radio" name="et-servico" value="${i}" ${marcar ? "checked" : ""}>
+              <span>${esc(o.nome)} <small>${esc(o.empresa)}${o.prazoMax ? ` · ${window.HPR_FRETE.textoPrazo(o.prazoMin, o.prazoMax)}` : ""}</small></span><b>${brl(o.valor)}</b></label>`;
+          }).join("")}</div>`
+        : `<p class="dica alerta">Nenhuma opção para essa caixa e esse CEP.</p>`;
+      $("#et-comprar").disabled = !alvo.querySelector("input:checked");
+    } catch (e) { alvo.innerHTML = `<p class="dica erro">${esc(e.message)}</p>`; }
+  }
+  $("#et-cotar").addEventListener("click", cotarEtiqueta);
+  $("#et-opcoes").addEventListener("change", () => ($("#et-comprar").disabled = !$("#et-opcoes input:checked")));
+  $("#et-fechar").addEventListener("click", () => dlgEt.close());
+  $("#et-comprar").addEventListener("click", async () => {
+    const o = opcoesEt[Number($("#et-opcoes input:checked")?.value)];
+    if (!o) return;
+    if (!confirm(`Comprar etiqueta ${o.nome} (${o.empresa}) por ${brl(o.valor)} com o saldo do Melhor Envio?`)) return;
+    const b = $("#et-comprar");
+    b.disabled = true; b.textContent = "Comprando…";
+    try {
+      const r = await chamarEtiqueta({ acao: "comprar", pedido: atual.id, servico: o.servico, nome: o.nome, empresa: o.empresa, preco: o.valor, volume: volumeEt(), valor: $("#et-valor").value });
+      aplicarEtiqueta(r.etiqueta);
+      dlgEt.close();
+      avisar(`Etiqueta gerada!${r.etiqueta.rastreio ? ` Rastreio ${r.etiqueta.rastreio}.` : ""} Imprima, cole na caixa e poste.`, false, 9000);
+      if (r.etiqueta.url) window.open(r.etiqueta.url, "_blank", "noopener");
+    } catch (e) {
+      if (e.dados?.etiqueta) aplicarEtiqueta(e.dados.etiqueta);
+      avisar(e.message, true, 12000);
+    } finally { b.textContent = "Comprar etiqueta"; b.disabled = false; }
+  });
+  async function concluirEtiqueta() {
+    const b = $("#o-etiqueta-atualizar") || $("#o-gerar-etiqueta");
+    b.disabled = true;
+    try {
+      const r = await chamarEtiqueta({ acao: "atualizar", pedido: atual.id });
+      aplicarEtiqueta(r.etiqueta);
+      avisar(r.etiqueta.rastreio ? `Rastreio ${r.etiqueta.rastreio}.` : "Etiqueta ok. O rastreio ainda não saiu, tente de novo em alguns minutos.");
+    } catch (e) { avisar(e.message, true, 10000); }
+    finally { b.disabled = false; }
+  }
+  $("#o-etiqueta-info").addEventListener("click", (e) => { if (e.target.closest("#o-etiqueta-atualizar")) concluirEtiqueta(); });
 
   O.ganchos.pedidos = abrirPedidos;
   O.lerMensagemPedido = lerMensagem; // usado nos testes

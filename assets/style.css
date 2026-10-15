@@ -338,3 +338,5 @@ section[id] { scroll-margin-top: 76px; }
   .detalhe[open] { animation: detalhe-entra .18s ease-out; }
   @keyframes detalhe-entra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 }
+.frete-endereco-campos { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding-top: 10px; border-top: 1px dashed #d6ccf5; }
+.frete-endereco-campos[hidden] { display: none; }

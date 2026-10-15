@@ -360,7 +360,7 @@
       if (r.ok) return true;
       // Banco ainda sem as colunas de frete: grava sem elas (o frete continua na mensagem)
       if (r.status === 400 || r.status === 403) {
-        const { cep, envio, frete, ...semFrete } = pedido;
+        const { cep, envio, frete, endereco, numero, complemento, bairro, uf, ...semFrete } = pedido;
         return (await gravar(semFrete)).ok;
       }
       return false;
@@ -414,6 +414,10 @@
     if (!cidade.value.trim() || cidade.dataset.doCep === "1") { cidade.value = local; cidade.dataset.doCep = "1"; }
     const antes = freteEscolhido?.id;
     freteEscolhido = r.opcoes.find((o) => o.id === antes) || null;
+    const fp = document.getElementById("form-pedido");
+    if (fp.dataset.cepAnterior && fp.dataset.cepAnterior !== r.endereco.cep) { fp.endereco.value = ""; fp.bairro.value = ""; fp.numero.value = ""; fp.complemento.value = ""; }
+    fp.dataset.cepAnterior = r.endereco.cep;
+    mostrarEndereco();
     const enderecoHtml = `<p class="frete-endereco">📍 ${esc(local)}</p>`;
     if (!r.opcoes.length) {
       caixaFrete.innerHTML = enderecoHtml + `<p class="frete-aviso">Para esse endereço a gente calcula o frete junto com o orçamento, pelo WhatsApp.</p>`;
@@ -428,9 +432,22 @@
         </label>`).join("")}</div>` +
       `<p class="frete-dica">${r.fonte === "real" ? "Valores dos Correios e transportadoras agora." : "Valor estimado."} Confirmamos o frete junto com o orçamento.</p>`;
   }
+  // Endereço completo só quando vai pelos Correios/transportadora (não para retirada ou entrega em mãos)
+  const vaiPorEnvio = () => !!freteEscolhido && !["retirada", "local"].includes(freteEscolhido.id);
+  function mostrarEndereco() {
+    const bloco = document.getElementById("frete-endereco-campos");
+    bloco.hidden = !vaiPorEnvio();
+    const f = document.getElementById("form-pedido");
+    if (!bloco.hidden && freteAtual) {
+      if (!f.endereco.value.trim()) f.endereco.value = freteAtual.endereco.rua || "";
+      if (!f.bairro.value.trim()) f.bairro.value = freteAtual.endereco.bairro || "";
+    }
+  }
   caixaFrete.addEventListener("change", (e) => {
     if (e.target.name !== "frete-opcao") return;
     freteEscolhido = freteAtual?.opcoes.find((o) => o.id === e.target.value) || null;
+    mostrarEndereco();
+    if (vaiPorEnvio()) setTimeout(() => document.querySelector('#form-pedido [name="' + (document.querySelector('#form-pedido [name="endereco"]').value ? "numero" : "endereco") + '"]').focus(), 50);
   });
   document.querySelector('#form-pedido [name="cidade"]').addEventListener("input", (e) => (e.target.dataset.doCep = ""));
 
@@ -441,12 +458,13 @@
     const v = (k) => String(f.get(k) || "").trim();
     const erro = document.getElementById("pedido-erro");
     const ok = document.getElementById("pedido-ok");
-    const faltando = [!v("nome") && "seu nome", !v("peca") && "a peça ou ideia"].filter(Boolean);
+    const faltando = [!v("nome") && "seu nome", !v("peca") && "a peça ou ideia",
+      vaiPorEnvio() && (!v("endereco") || !v("numero")) && "a rua e o número da entrega"].filter(Boolean);
     const emailRuim = v("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("email"));
     if (faltando.length || emailRuim) {
       erro.textContent = faltando.length ? "Preencha " + faltando.join(" e ") + " para enviar." : "Confira o e-mail: parece que falta alguma coisa.";
       erro.hidden = false;
-      form.querySelector(!v("nome") ? '[name="nome"]' : !v("peca") ? '[name="peca"]' : '[name="email"]').focus();
+      form.querySelector(!v("nome") ? '[name="nome"]' : !v("peca") ? '[name="peca"]' : vaiPorEnvio() && !v("endereco") ? '[name="endereco"]' : vaiPorEnvio() && !v("numero") ? '[name="numero"]' : '[name="email"]').focus();
       return;
     }
     erro.hidden = true;
@@ -478,6 +496,7 @@
       v("cor") && `*Cor:* ${v("cor")}`,
       v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,
       freteAtual && `*CEP:* ${freteAtual.endereco.cep}`,
+      vaiPorEnvio() && `*Endereço:* ${v("endereco")}, ${v("numero")}${v("complemento") ? " – " + v("complemento") : ""}, ${v("bairro")} – ${freteAtual.endereco.cidade}/${freteAtual.endereco.uf}`,
       freteEscolhido && `*Entrega:* ${F.descreverOpcao(freteEscolhido)}${freteEscolhido.valor > 0 ? " (simulado no site)" : ""}`,
       v("prazo") && `*Para quando:* ${v("prazo")}`,
       v("detalhes") && `*Detalhes:* ${v("detalhes")}`,
@@ -494,6 +513,10 @@
       email: v("email").toLowerCase().slice(0, 200) || null,
       cidade: v("cidade").slice(0, 160),
       cep: freteAtual?.endereco.cep || null,
+      ...(vaiPorEnvio() ? {
+        endereco: v("endereco").slice(0, 200), numero: v("numero").slice(0, 20), complemento: v("complemento").slice(0, 120) || null,
+        bairro: v("bairro").slice(0, 120) || null, uf: freteAtual.endereco.uf,
+      } : {}),
       envio: freteEscolhido ? `${freteEscolhido.nome}${freteEscolhido.prazo ? " · " + freteEscolhido.prazo : ""}`.slice(0, 160) : null,
       frete: freteEscolhido ? Math.round(freteEscolhido.valor * 100) / 100 : null,
       peca: v("peca").slice(0, 300),

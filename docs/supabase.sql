@@ -64,6 +64,14 @@ alter table public.pedidos add column if not exists envio          text;
 alter table public.pedidos add column if not exists cep            text;
 -- Pago: só a equipe marca
 alter table public.pedidos add column if not exists pago           boolean not null default false;
+-- Endereço completo (para gerar etiqueta) e etiqueta do Melhor Envio
+alter table public.pedidos add column if not exists endereco    text;
+alter table public.pedidos add column if not exists numero      text;
+alter table public.pedidos add column if not exists complemento text;
+alter table public.pedidos add column if not exists bairro      text;
+alter table public.pedidos add column if not exists uf          text;
+alter table public.pedidos add column if not exists documento   text;
+alter table public.pedidos add column if not exists etiqueta    jsonb;
 -- Status "enviado" (postado): refaz a regra de status para bancos criados antes dele
 alter table public.pedidos drop constraint if exists pedidos_status_check;
 alter table public.pedidos add constraint pedidos_status_check
@@ -104,6 +112,12 @@ create policy "site registra pedido" on public.pedidos
     and (frete is null or (frete >= 0 and frete <= 5000))
     and char_length(coalesce(envio, '')) <= 160
     and char_length(coalesce(cep, ''))   <= 9
+    and char_length(coalesce(endereco, ''))    <= 200
+    and char_length(coalesce(numero, ''))      <= 20
+    and char_length(coalesce(complemento, '')) <= 120
+    and char_length(coalesce(bairro, ''))      <= 120
+    and char_length(coalesce(uf, ''))          <= 2
+    and documento is null and etiqueta is null
     and pago = false
     and cliente_id is null
   );
@@ -131,6 +145,12 @@ create policy "cliente registra pedido" on public.pedidos
     and (frete is null or (frete >= 0 and frete <= 5000))
     and char_length(coalesce(envio, '')) <= 160
     and char_length(coalesce(cep, ''))   <= 9
+    and char_length(coalesce(endereco, ''))    <= 200
+    and char_length(coalesce(numero, ''))      <= 20
+    and char_length(coalesce(complemento, '')) <= 120
+    and char_length(coalesce(bairro, ''))      <= 120
+    and char_length(coalesce(uf, ''))          <= 2
+    and documento is null and etiqueta is null
     and pago = false
     and cliente_id = auth.uid()
   );
@@ -304,6 +324,7 @@ create table if not exists public.lancamentos (
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );
+alter table public.lancamentos add column if not exists frete numeric(10,2);
 create index if not exists lancamentos_data_idx on public.lancamentos (data);
 create unique index if not exists lancamentos_pedido_unico on public.lancamentos (pedido_id) where pedido_id is not null and tipo = 'entrada';
 alter table public.lancamentos enable row level security;

@@ -19,6 +19,8 @@
     local: { ativo: false, valor: "", prazo: "", texto: "Entrega em mãos (motoboy)" },
     tabela: REGIOES.map((r) => ({ id: r.id, valor: "", prazo: "" })),
     pacote: { largura: 16, altura: 12, comprimento: 20, peso: 300 },
+    folgaPeso: 100, // gramas somadas sempre (embalagem, fita, papel): melhor sobrar que faltar
+    folgaCm: 3,     // centímetros somados em cada medida da peça (espaço da embalagem)
     real: false,
   };
   const num = (v) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : NaN; };
@@ -35,6 +37,8 @@
       retirada: { ...PADRAO.retirada, ...f.retirada },
       local: { ...PADRAO.local, ...f.local },
       pacote: { ...PADRAO.pacote, ...f.pacote },
+      folgaPeso: f.folgaPeso === "" || f.folgaPeso == null || !(num(f.folgaPeso) >= 0) ? PADRAO.folgaPeso : num(f.folgaPeso),
+      folgaCm: f.folgaCm === "" || f.folgaCm == null || !(num(f.folgaCm) >= 0) ? PADRAO.folgaCm : num(f.folgaCm),
       tabela,
     };
   }
@@ -48,7 +52,7 @@
     const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
     const j = await r.json();
     if (!r.ok || j.erro) throw new Error("cep");
-    return { cep: formatarCep(d), uf: j.uf, cidade: j.localidade, bairro: j.bairro || "" };
+    return { cep: formatarCep(d), uf: j.uf, cidade: j.localidade, bairro: j.bairro || "", rua: j.logradouro || "" };
   }
 
   const textoPrazo = (min, max) => {
@@ -78,24 +82,41 @@
     return [{ id: "tabela-" + reg.id, nome: "Envio pelos Correios", valor: num(linha.valor), prazo: textoPrazo(0, linha.prazo), estimado: true }];
   }
 
-  // Caixa do pedido: usa as medidas da peça do catálogo (com folga para a embalagem) ou o pacote padrão
-  function produtos(cfg, peca, quantidade) {
+  // Caixa do pedido (um volume só):
+  // - peça com medidas no catálogo: medidas + folga em cada lado; com mais de 1 unidade,
+  //   empilha pela menor medida; peso = peso da peça × quantidade + folga de peso;
+  // - peça sem medidas: caixa padrão da aba Loja (peso × quantidade + folga de peso).
+  // Respeita o mínimo dos Correios (16 × 11 × 2 cm).
+  function caixa(cfg, peca, quantidade) {
     const c = peca?.caracteristicas || {};
     const p = cfg.pacote;
+    const qtd = Math.max(1, Math.min(50, Math.round(num(quantidade)) || 1));
+    const folga = num(cfg.folgaCm) >= 0 ? num(cfg.folgaCm) : 3;
     const temMedidas = num(c.largura) > 0 && num(c.altura) > 0;
-    const larg = temMedidas ? num(c.largura) + 3 : num(p.largura);
-    const alt = temMedidas ? num(c.altura) + 3 : num(p.altura);
-    const comp = temMedidas ? (num(c.profundidade) > 0 ? num(c.profundidade) : num(c.largura)) + 3 : num(p.comprimento);
-    const pesoG = num(c.peso) > 0 ? num(c.peso) * 1.25 + 60 : num(p.peso);
-    return [{
-      id: peca?.id || "peca",
-      width: Math.max(11, Math.ceil(larg)),
-      height: Math.max(2, Math.ceil(alt)),
-      length: Math.max(16, Math.ceil(comp)),
-      weight: Math.max(0.05, Math.round(pesoG) / 1000),
-      insurance_value: Math.max(20, num(peca?.preco) || 0),
-      quantity: Math.max(1, Math.min(50, Math.round(num(quantidade)) || 1)),
-    }];
+    let medidas;
+    if (temMedidas) {
+      const m = [num(c.largura), num(c.altura), num(c.profundidade) > 0 ? num(c.profundidade) : num(c.largura)].sort((a, b) => a - b);
+      m[0] = m[0] * qtd; // empilha as unidades pela menor medida
+      medidas = m.map((x) => x + folga);
+    } else {
+      medidas = [num(p.altura), num(p.largura), num(p.comprimento)].map((x) => (x > 0 ? x : 12));
+      if (qtd > 1) medidas[0] = medidas[0] * Math.min(qtd, 4);
+    }
+    const [altura, largura, comprimento] = medidas.sort((a, b) => a - b);
+    const pesoBase = num(c.peso) > 0 ? num(c.peso) * qtd : (num(p.peso) > 0 ? num(p.peso) : 300) * qtd;
+    return {
+      altura: Math.min(100, Math.max(2, Math.ceil(altura))),
+      largura: Math.min(100, Math.max(11, Math.ceil(largura))),
+      comprimento: Math.min(100, Math.max(16, Math.ceil(comprimento))),
+      peso: Math.round(pesoBase + (num(cfg.folgaPeso) >= 0 ? num(cfg.folgaPeso) : 100)),
+      valor: Math.max(20, (num(peca?.preco) || 0) * qtd),
+      origem: temMedidas ? "peca" : "padrao",
+    };
+  }
+  // Formato que o Melhor Envio espera (um produto = a caixa inteira)
+  function produtos(cfg, peca, quantidade) {
+    const cx = caixa(cfg, peca, quantidade);
+    return [{ id: peca?.id || "pedido", width: cx.largura, height: cx.altura, length: cx.comprimento, weight: cx.peso / 1000, insurance_value: cx.valor, quantity: 1 }];
   }
 
   // Preço real pelo Melhor Envio (função "frete" no Supabase)
@@ -112,7 +133,7 @@
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !Array.isArray(j.opcoes)) throw new Error(j.erro || "frete " + r.status);
       return j.opcoes.map((o) => ({
-        id: "me-" + o.id, nome: o.empresa && !o.nome.includes(o.empresa) ? `${o.nome} (${o.empresa})` : o.nome,
+        id: "me-" + o.id, servico: o.id, empresa: o.empresa, nome: o.empresa && !o.nome.includes(o.empresa) ? `${o.nome} (${o.empresa})` : o.nome,
         valor: num(o.valor), prazo: textoPrazo(o.prazoMin, o.prazoMax),
       }));
     } finally { clearTimeout(t); }
@@ -133,5 +154,5 @@
 
   const descreverOpcao = (o) => `${o.nome} – ${o.valor > 0 ? brl(o.valor) : "grátis"}${o.prazo ? `, ${o.prazo}` : ""}`;
 
-  raiz.HPR_FRETE = { REGIOES, PADRAO, config, buscarCep, simular, produtos, cotarReal, formatarCep, textoPrazo, descreverOpcao, num };
+  raiz.HPR_FRETE = { REGIOES, PADRAO, config, buscarCep, simular, caixa, produtos, cotarReal, formatarCep, textoPrazo, descreverOpcao, num };
 })(window);

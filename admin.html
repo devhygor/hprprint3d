@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151927">
-  <link rel="stylesheet" href="assets/admin.css?v=202610151927">
+  <link rel="stylesheet" href="assets/style.css?v=202610151945">
+  <link rel="stylesheet" href="assets/admin.css?v=202610151945">
 </head>
 <body>
   <header class="topo">
@@ -152,6 +152,21 @@
 
           <fieldset class="painel" id="o-envio">
             <legend>Envio e rastreio</legend>
+            <p class="rotulo">Endereço de entrega</p>
+            <label class="campo">Rua / avenida<input id="o-endereco" autocomplete="off"></label>
+            <div class="tres">
+              <label class="campo">Número<input id="o-numero" autocomplete="off"></label>
+              <label class="campo">Complemento<input id="o-complemento" autocomplete="off"></label>
+              <label class="campo">Bairro<input id="o-bairro" autocomplete="off"></label>
+            </div>
+            <div class="duas">
+              <label class="campo">UF<input id="o-uf" maxlength="2" autocomplete="off" placeholder="DF"></label>
+              <label class="campo">CPF do cliente <small>(algumas transportadoras pedem)</small><input id="o-documento" inputmode="numeric" autocomplete="off" placeholder="só números"></label>
+            </div>
+            <div class="etiqueta-bloco" id="o-etiqueta-bloco">
+              <button class="botao botao-principal botao-pequeno" type="button" id="o-gerar-etiqueta">Gerar etiqueta no Melhor Envio</button>
+              <div id="o-etiqueta-info"></div>
+            </div>
             <div class="duas">
               <label class="campo">Transportadora
                 <select id="o-transportadora"></select>
@@ -402,6 +417,28 @@
       </div>
     </section>
 
+    <dialog class="fin-dialogo" id="dlg-etiqueta" aria-labelledby="et-titulo">
+      <div class="campos">
+        <h2 id="et-titulo" class="titulo-painel">Gerar etiqueta</h2>
+        <p class="dica" id="et-saldo">Consultando saldo do Melhor Envio…</p>
+        <p class="rotulo">Caixa <small id="et-caixa-origem"></small></p>
+        <div class="quatro">
+          <label class="campo">Altura (cm)<input id="et-altura" type="number" min="2" inputmode="numeric"></label>
+          <label class="campo">Largura (cm)<input id="et-largura" type="number" min="11" inputmode="numeric"></label>
+          <label class="campo">Comprimento (cm)<input id="et-comprimento" type="number" min="16" inputmode="numeric"></label>
+          <label class="campo">Peso (g)<input id="et-peso" type="number" min="10" inputmode="numeric"></label>
+        </div>
+        <label class="campo">Valor declarado (R$)<input id="et-valor" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <p class="dica">Confira com a caixa de verdade: se a transportadora medir maior ou mais pesado, pode cobrar a diferença.</p>
+        <button class="botao botao-contorno botao-pequeno" type="button" id="et-cotar">Ver opções de envio</button>
+        <div id="et-opcoes" role="radiogroup" aria-label="Formas de envio"></div>
+        <div class="acoes">
+          <button class="botao botao-principal" type="button" id="et-comprar" disabled>Comprar etiqueta</button>
+          <button class="botao botao-contorno" type="button" id="et-fechar">Fechar</button>
+        </div>
+      </div>
+    </dialog>
+
     <dialog class="fin-dialogo" id="fin-dialogo" aria-labelledby="fin-dialogo-titulo">
       <form method="dialog" id="fin-form" class="campos">
         <h2 class="titulo-painel" id="fin-dialogo-titulo">Nova venda</h2>
@@ -558,17 +595,42 @@
           <label class="campo">Comprimento (cm)<input id="lf-comp" type="number" min="1" inputmode="numeric"></label>
           <label class="campo">Peso (g)<input id="lf-peso" type="number" min="1" inputmode="numeric"></label>
         </div>
+        <div class="duas">
+          <label class="campo">Folga de peso (g)<input id="lf-folga-peso" type="number" min="0" inputmode="numeric" placeholder="100"></label>
+          <label class="campo">Folga em cada medida (cm)<input id="lf-folga-cm" type="number" min="0" inputmode="numeric" placeholder="3"></label>
+        </div>
+        <p class="dica">Como a caixa é calculada: medidas da peça (cadastradas em Características) + a folga em cada lado; com mais de uma unidade, as peças são empilhadas. Peso = peso da peça × quantidade + a folga de peso, para o frete nunca sair abaixo do real. Peça sem medidas usa a caixa padrão acima.</p>
         <label class="marcar"><input id="lf-real" type="checkbox"> Usar o preço real do Melhor Envio (PAC, SEDEX, Jadlog, Loggi…)</label>
         <details class="ajuda">
           <summary>Como ligar o Melhor Envio (grátis)</summary>
           <ol>
             <li>Crie uma conta em <a href="https://melhorenvio.com.br" target="_blank" rel="noopener">melhorenvio.com.br</a>.</li>
-            <li>No painel: <b>Integrações → Permissões de acesso → Gerar novo token</b>. Marque só <b>Cotação de fretes (shipping-calculate)</b> e copie o token.</li>
+            <li>No painel: <b>Integrações → Permissões de acesso → Gerar novo token</b>. Para cotar e gerar etiquetas, marque: <b>cart-read, cart-write, shipping-calculate, shipping-checkout, shipping-generate, shipping-print, shipping-tracking, orders-read</b> e <b>users-read</b> (para mostrar o saldo). Copie o token.</li>
             <li>No Supabase: <b>Edge Functions → Secrets</b>, crie <code>MELHOR_ENVIO_TOKEN</code> com o token e <code>MELHOR_ENVIO_EMAIL</code> com o e-mail da loja.</li>
             <li>Volte aqui, marque a opção acima e toque em <b>Testar cotação</b>.</li>
           </ol>
           <p>O token fica só no Supabase, nunca aparece no site. Se o Melhor Envio sair do ar, o site volta sozinho para a tabela.</p>
+          <p>As etiquetas são pagas com o saldo da conta do Melhor Envio: coloque saldo lá (Pix, boleto ou cartão) antes de gerar.</p>
         </details>
+        <h3 class="subtitulo-painel">Remetente das etiquetas</h3>
+        <p class="dica">Vai impresso na etiqueta como quem envia. Fica guardado só para a equipe (não aparece no site).</p>
+        <div class="duas">
+          <label class="campo">Nome<input id="lr-nome" autocomplete="off"></label>
+          <label class="campo">CPF<input id="lr-cpf" inputmode="numeric" autocomplete="off" placeholder="só números"></label>
+          <label class="campo">Telefone<input id="lr-telefone" inputmode="tel" autocomplete="off"></label>
+          <label class="campo">E-mail<input id="lr-email" type="email" autocomplete="off"></label>
+        </div>
+        <div class="tres">
+          <label class="campo">CEP<input id="lr-cep" inputmode="numeric" maxlength="9" autocomplete="off"></label>
+          <label class="campo">Cidade<input id="lr-cidade" autocomplete="off"></label>
+          <label class="campo">UF<input id="lr-uf" maxlength="2" autocomplete="off"></label>
+        </div>
+        <label class="campo">Rua / avenida<input id="lr-endereco" autocomplete="off"></label>
+        <div class="tres">
+          <label class="campo">Número<input id="lr-numero" autocomplete="off"></label>
+          <label class="campo">Complemento<input id="lr-complemento" autocomplete="off"></label>
+          <label class="campo">Bairro<input id="lr-bairro" autocomplete="off"></label>
+        </div>
         <div class="acoes">
           <button class="botao botao-principal" type="button" id="lf-salvar">Salvar frete</button>
           <button class="botao botao-contorno" type="button" id="lf-testar">Testar cotação</button>
@@ -600,14 +662,14 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610151927"></script>
-  <script src="assets/precificador.js?v=202610151927"></script>
-  <script src="assets/admin.js?v=202610151927"></script>
-  <script src="assets/rastreio.js?v=202610151927"></script>
-  <script src="assets/frete.js?v=202610151927"></script>
-  <script src="assets/email.js?v=202610151927"></script>
-  <script src="assets/pedidos.js?v=202610151927"></script>
-  <script src="assets/financeiro.js?v=202610151927"></script>
-  <script src="assets/frete-admin.js?v=202610151927"></script>
+  <script src="assets/supabase-config.js?v=202610151945"></script>
+  <script src="assets/precificador.js?v=202610151945"></script>
+  <script src="assets/admin.js?v=202610151945"></script>
+  <script src="assets/rastreio.js?v=202610151945"></script>
+  <script src="assets/frete.js?v=202610151945"></script>
+  <script src="assets/email.js?v=202610151945"></script>
+  <script src="assets/pedidos.js?v=202610151945"></script>
+  <script src="assets/financeiro.js?v=202610151945"></script>
+  <script src="assets/frete-admin.js?v=202610151945"></script>
 </body>
 </html>

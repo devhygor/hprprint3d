@@ -4,7 +4,31 @@
   const F = window.HPR_FRETE;
   const { estado, $, esc, brl, avisar, erroLegivel } = O;
 
+  // ---------- Remetente (ajuste "remetente": só a equipe lê) ----------
+  const CAMPOS_REM = ["nome", "cpf", "telefone", "email", "cep", "cidade", "uf", "endereco", "numero", "complemento", "bairro"];
+  async function carregarRemetente() {
+    const { data } = await O.db.from("ajustes").select("valor").eq("chave", "remetente").maybeSingle();
+    estado.remetente = data?.valor || {};
+    const r = estado.remetente;
+    for (const k of CAMPOS_REM) $("#lr-" + k).value = r[k] || "";
+    if (!r.cep) $("#lr-cep").value = F.formatarCep(F.config(estado.site).cepOrigem);
+    if (!r.email) $("#lr-email").value = estado.usuario || "";
+  }
+  const lerRemetente = () => Object.fromEntries(CAMPOS_REM.map((k) => [k, $("#lr-" + k).value.trim()]));
+  $("#lr-cep").addEventListener("input", async (e) => {
+    const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+    e.target.value = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+    if (d.length !== 8) return;
+    try {
+      const end = await F.buscarCep(d);
+      $("#lr-cidade").value = end.cidade; $("#lr-uf").value = end.uf;
+      if (!$("#lr-endereco").value) $("#lr-endereco").value = end.rua;
+      if (!$("#lr-bairro").value) $("#lr-bairro").value = end.bairro;
+    } catch {}
+  });
+
   function preencher() {
+    carregarRemetente().catch(() => {});
     const c = F.config(estado.site);
     $("#lf-cep").value = F.formatarCep(c.cepOrigem);
     $("#lf-ufs").value = c.ufsLocal;
@@ -28,6 +52,8 @@
     $("#lf-alt").value = c.pacote.altura;
     $("#lf-comp").value = c.pacote.comprimento;
     $("#lf-peso").value = c.pacote.peso;
+    $("#lf-folga-peso").value = c.folgaPeso;
+    $("#lf-folga-cm").value = c.folgaCm;
     $("#lf-real").checked = !!c.real;
     $("#lf-teste").innerHTML = "";
   }
@@ -41,6 +67,8 @@
       local: { ativo: $("#lf-local").checked, texto: $("#lf-local-texto").value.trim(), valor: n("#lf-local-valor"), prazo: n("#lf-local-prazo") },
       tabela: F.REGIOES.map((r) => ({ id: r.id, valor: n(`[data-tf-valor="${r.id}"]`), prazo: n(`[data-tf-prazo="${r.id}"]`) })),
       pacote: { largura: n("#lf-larg") || 16, altura: n("#lf-alt") || 12, comprimento: n("#lf-comp") || 20, peso: n("#lf-peso") || 300 },
+      folgaPeso: n("#lf-folga-peso") === "" ? 100 : n("#lf-folga-peso"),
+      folgaCm: n("#lf-folga-cm") === "" ? 3 : n("#lf-folga-cm"),
       real: $("#lf-real").checked,
     };
   }
@@ -54,9 +82,12 @@
     const frete = ler();
     if (frete.real && frete.cepOrigem.length !== 8) { avisar("Para o Melhor Envio, preencha o CEP de onde vocês enviam.", true); $("#lf-cep").focus(); return; }
     estado.site = { ...estado.site, frete };
+    const rem = lerRemetente();
+    rem.cpf = rem.cpf.replace(/\D/g, ""); rem.uf = rem.uf.toUpperCase();
     try {
       await O.gravarAjuste("site", estado.site);
-      avisar("Frete salvo. O simulador do site já usa esses valores.");
+      if (Object.values(rem).some(Boolean)) { await O.gravarAjuste("remetente", rem); estado.remetente = rem; }
+      avisar("Frete e remetente salvos. O simulador do site já usa esses valores.");
     } catch (e) { avisar("Não consegui salvar: " + erroLegivel(e), true, 7000); }
   });
 

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151927">
+  <link rel="stylesheet" href="assets/style.css?v=202610151945">
 </head>
 <body>
   <header class="topo">
@@ -130,6 +130,14 @@
               </div>
               <a class="frete-nao-sei" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei meu CEP</a>
               <div id="frete-resultado" aria-live="polite"></div>
+              <div class="frete-endereco-campos" id="frete-endereco-campos" hidden>
+                <label class="campo-pedido">Rua / avenida<input name="endereco" autocomplete="address-line1"></label>
+                <div class="pedido-duas">
+                  <label class="campo-pedido">Número<input name="numero" inputmode="numeric" autocomplete="address-line2"></label>
+                  <label class="campo-pedido">Complemento<input name="complemento" placeholder="Apto, bloco, quadra…"></label>
+                </div>
+                <label class="campo-pedido">Bairro<input name="bairro"></label>
+              </div>
             </div>
             <label class="campo-pedido">Cidade e bairro<input name="cidade" autocomplete="address-level2" placeholder="Pra combinar entrega ou envio"></label>
             <label class="campo-pedido">Para quando?<input name="prazo" placeholder="Ex.: aniversário dia 20"></label>
@@ -165,9 +173,9 @@
     </div>
   </footer>
 
-  <script src="assets/supabase-config.js?v=202610151927"></script>
-  <script src="assets/email.js?v=202610151927"></script>
-  <script src="assets/frete.js?v=202610151927"></script>
-  <script src="assets/app.js?v=202610151927"></script>
+  <script src="assets/supabase-config.js?v=202610151945"></script>
+  <script src="assets/email.js?v=202610151945"></script>
+  <script src="assets/frete.js?v=202610151945"></script>
+  <script src="assets/app.js?v=202610151945"></script>
 </body>
 </html>
