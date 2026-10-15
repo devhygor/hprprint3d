@@ -187,7 +187,9 @@
     $("#conta-email").textContent = `Conectado como ${u.email}`;
     db.rpc("eh_equipe").then(({ data: equipe }) => ($("#ir-oficina").hidden = !equipe)).catch(() => {});
     $("#lista").innerHTML = `<p class="apoio">Carregando seus pedidos…</p>`;
-    const { data: pedidos, error } = await db.rpc("meus_pedidos");
+    // meus_pedidos_v2 traz rastreio e frete; a versão antiga fica de reserva
+    let { data: pedidos, error } = await db.rpc("meus_pedidos_v2");
+    if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos"));
     if (error) {
       $("#lista").innerHTML = `<div class="vazio"><strong>Não consegui carregar seus pedidos</strong>${esc(traduzirErro(error))}</div>`;
       return;

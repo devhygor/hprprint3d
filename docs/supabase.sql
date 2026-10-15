@@ -221,8 +221,8 @@ as $$
   where id = auth.uid() and email_confirmed_at is not null;
 $$;
 
-drop function if exists public.meus_pedidos();
-create or replace function public.meus_pedidos()
+-- Versão 2 (com rastreio e frete). A área do cliente usa esta; a meus_pedidos antiga fica de reserva.
+create or replace function public.meus_pedidos_v2()
 returns table (
   id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
   cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer,
@@ -240,8 +240,8 @@ as $$
   order by p.criado_em desc
   limit 100;
 $$;
-revoke all on function public.meus_pedidos() from public, anon;
-grant execute on function public.meus_pedidos() to authenticated;
+revoke all on function public.meus_pedidos_v2() from public, anon;
+grant execute on function public.meus_pedidos_v2() to authenticated;
 revoke all on function public.meu_email_confirmado() from public, anon;
 grant execute on function public.meu_email_confirmado() to authenticated;
 
