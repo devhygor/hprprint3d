@@ -224,14 +224,16 @@
       return;
     }
     $("#fin-entradas").innerHTML = `<div class="fin-tabela-rolagem"><table class="fin-tabela">
-      <thead><tr><th>Data</th><th>Cliente</th><th>Peça</th><th class="num">Qtd</th><th class="num">Valor</th><th>Pagamento</th></tr></thead>
+      <thead><tr><th>Data</th><th>Cliente</th><th>Peça</th><th class="num">Qtd</th><th class="num c-pecas">Peças</th><th class="num c-frete">Frete</th><th class="num">Total</th><th>Pagamento</th></tr></thead>
       <tbody>${lista
         .map((l) => `<tr data-lanc="${l.id}" tabindex="0">
           <td class="fin-data">${dataBR(l.data)}</td>
           <td class="c-pri">${esc(l.cliente || "—")}</td>
           <td class="fin-desc c-sec">${esc(l.descricao)}${l.pedido_id ? ` <span class="fin-tag">pedido</span>` : ""}</td>
           <td class="num c-qtd"><span class="so-celular">Qtd </span>${n(l.quantidade).toLocaleString("pt-BR")}</td>
-          <td class="num c-val"><b>${brl(l.valor)}</b>${l.frete > 0 ? `<small class="fin-frete">peças ${brl(l.valor - l.frete)} + frete ${brl(l.frete)}</small>` : ""}</td>
+          <td class="num c-pecas">${brl(l.valor - (l.frete || 0))}</td>
+          <td class="num c-frete">${l.frete > 0 ? brl(l.frete) : `<span class="fin-sem">—</span>`}</td>
+          <td class="num c-val"><b>${brl(l.valor)}</b>${l.frete > 0 ? `<small class="fin-frete so-celular">peças ${brl(l.valor - l.frete)} + frete ${brl(l.frete)}</small>` : ""}</td>
           <td class="c-pag"><button type="button" class="fin-status ${l.pago ? "pago" : "pendente"}" data-alternar-pago="${l.id}" title="Toque para alternar">${l.pago ? "Pago" : "A receber"}</button></td>
         </tr>`)
         .join("")}</tbody></table></div>`;

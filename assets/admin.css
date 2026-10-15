@@ -311,6 +311,7 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
   .fin-dialogo .tres { grid-template-columns: 1fr 1fr; }
 }
 .so-celular { display: none; }
+.fin-tabela td .fin-frete.so-celular { display: none; }
 @media (max-width: 640px) {
   /* Linhas viram cartõezinhos: nome/peça à esquerda, valor e situação à direita */
   .fin-tabela-rolagem { max-height: none; }
@@ -322,6 +323,8 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
   .fin-tabela .c-sec { grid-area: sec; color: var(--texto-2); }
   .fin-tabela .c-qtd { grid-area: qtd; text-align: left; color: var(--texto-3); font-size: .8rem; }
   .fin-tabela .c-val { grid-area: val; }
+  .fin-tabela .c-pecas, .fin-tabela .c-frete { display: none; }
+  .fin-tabela td .fin-frete.so-celular { display: block; }
   .fin-tabela .c-pag { grid-area: pag; text-align: right; align-self: start; }
   .so-celular { display: inline; }
   .imp-rolagem .fin-tabela thead, .fin-tabela-numeros .fin-tabela thead { display: table-header-group; }
@@ -385,3 +388,5 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
 .marcar-pago { margin-top: 2px; }
 
 .fin-frete { display: block; font-size: .74rem; font-weight: 500; color: var(--texto-3); white-space: nowrap; }
+.fin-tabela .c-pecas, .fin-tabela .c-frete { color: var(--texto-2); }
+.fin-sem { color: var(--texto-3); }
