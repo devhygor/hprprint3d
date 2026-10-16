@@ -1,6 +1,6 @@
 # HPR Print 3D
 
-Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), hospedado no GitHub Pages.
+Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), em https://hprprint3d.hygor.com.br (servido pela VPS, que puxa a `main` a cada 5 min). O endereço antigo `devhygor.github.io/hprprint3d` continua no GitHub Pages só para redirecionar.
 
 - `index.html` — vitrine pública (lê peças e dados da loja do Supabase)
 - `admin.html` — oficina: pedidos, peças, precificador, financeiro (entradas e saídas por mês), custos e dados da loja. Login por e-mail e senha do Supabase

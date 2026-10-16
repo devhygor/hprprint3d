@@ -879,7 +879,7 @@
     if (/template ID is invalid|template.*not found/i.test(m)) return "o Template ID está errado.";
     if (/public key is invalid|user.*invalid/i.test(m)) return "a Public Key está errada (Account > General).";
     if (/insufficient authentication scopes|Gmail_API/i.test(m)) return "reconecte o Gmail no EmailJS e marque a permissão para enviar e-mails em seu nome.";
-    if (/origin|domain/i.test(m)) return "o EmailJS está bloqueando este site: libere devhygor.github.io nos domínios permitidos.";
+    if (/origin|domain/i.test(m)) return "o EmailJS está bloqueando este site: libere hprprint3d.hygor.com.br nos domínios permitidos.";
     if (/limit|quota/i.test(m)) return "o limite gratuito de e-mails do mês acabou.";
     return m;
   }

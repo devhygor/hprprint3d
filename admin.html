@@ -2,6 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
+  <script>
+    // Endereço antigo (GitHub Pages) → domínio próprio, mantendo página, query e hash
+    // (o retorno do login do Supabase vem na query/hash).
+    if (location.hostname.endsWith("github.io")) location.replace("https://hprprint3d.hygor.com.br" + location.pathname.replace(/^\/hprprint3d/, "") + location.search + location.hash);
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Oficina | HPR Print 3D</title>
   <meta name="robots" content="noindex, nofollow">

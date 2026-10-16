@@ -77,7 +77,7 @@
           link_rastreio: rastreio?.link || "",
           transportadora: rastreio?.nome || "",
           etapa: (ETAPAS.find(([id]) => id === status) || [, status === "cancelado" ? "Cancelado" : "Recebido"])[1],
-          link_conta: "https://devhygor.github.io/hprprint3d/conta.html",
+          link_conta: "https://hprprint3d.hygor.com.br/conta.html",
           whatsapp: "https://wa.me/" + (String(cfg.whatsapp || "").replace(/\D/g, "") || "5561981600889"),
         },
       }),
@@ -104,7 +104,7 @@
     if (rastreio) {
       linhas.push(`*Rastreio${rastreio.nome ? " (" + rastreio.nome + ")" : ""}:* ${rastreio.codigo}`, "", `📦 Acompanhe a entrega: ${rastreio.link}`);
     }
-    if (pedido.email) linhas.push("", `Acompanhe por aqui: https://devhygor.github.io/hprprint3d/conta.html`);
+    if (pedido.email) linhas.push("", `Acompanhe por aqui: https://hprprint3d.hygor.com.br/conta.html`);
     return linhas.join("\n");
   }
 

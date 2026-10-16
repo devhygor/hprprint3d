@@ -2,14 +2,20 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
+  <script>
+    // Endereço antigo (GitHub Pages) → domínio próprio, mantendo página, query e hash
+    // (o retorno do login do Supabase vem na query/hash).
+    if (location.hostname.endsWith("github.io")) location.replace("https://hprprint3d.hygor.com.br" + location.pathname.replace(/^\/hprprint3d/, "") + location.search + location.hash);
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HPR Print 3D | Peças impressas em 3D</title>
   <meta name="description" content="Peças decorativas, presentes e personalizados feitos em impressão 3D. Faça seu pedido pelo WhatsApp ou Instagram.">
   <meta name="theme-color" content="#110628">
   <meta property="og:title" content="HPR Print 3D">
   <meta property="og:description" content="Peças impressas em 3D, feitas por encomenda.">
-  <meta property="og:image" content="https://devhygor.github.io/hprprint3d/img/compartilhar.jpg">
+  <meta property="og:image" content="https://hprprint3d.hygor.com.br/img/compartilhar.jpg">
   <meta property="og:type" content="website">
+  <link rel="canonical" href="https://hprprint3d.hygor.com.br/">
   <link rel="icon" href="img/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="img/logo-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
