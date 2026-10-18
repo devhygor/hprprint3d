@@ -386,6 +386,7 @@
   });
 
   // ---------- Editor ----------
+  const STATUS_MW = "Cole o link do modelo: ao colar, o nome, as fotos (copiadas para o Supabase), o material, as cores, as gramas e o tempo já vêm preenchidos. Tudo pode ser editado. As medidas o MakerWorld não informa, preencha em Características. As gramas e o tempo são do perfil de impressão do autor; se vocês fatiam diferente, ajuste no Bambu Studio.";
   const CAMPOS = {
     makerworld: "#p-makerworld", nome: "#p-nome", categoria: "#p-categoria", ordem: "#p-ordem", descricao: "#p-descricao",
     gramas: "#p-gramas", horas: "#p-horas", minutos: "#p-minutos", pecasPorImpressao: "#p-qtd", falhaPct: "#p-falha",
@@ -522,6 +523,8 @@
     $("#p-ativo").checked = p ? p.ativo !== false : true;
     $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
     $("#p-foto-url").value = "";
+    $("#status-mw").className = "dica";
+    $("#status-mw").textContent = STATUS_MW;
     $("#p-makerworld").dispatchEvent(new Event("input"));
     desenharGaleria();
     mostrar("editor");
@@ -659,6 +662,100 @@
   $("#p-makerworld").addEventListener("input", (e) => {
     const u = e.target.value.trim();
     $("#abrir-mw").href = /^https?:\/\/(www\.)?makerworld\.com\//i.test(u) ? u : "https://makerworld.com/";
+  });
+
+  // Importa nome, fotos, material, cores, gramas e tempo a partir do link do MakerWorld
+  const corProxima = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+    if (!m) return null;
+    const rgb = (h) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const a = rgb(m[1]);
+    let melhor = null, dist = Infinity;
+    for (const [nome, h] of CORES_PADRAO) {
+      if (!/^#/.test(h)) continue;
+      const b = rgb(h.slice(1));
+      const d = a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0);
+      if (d < dist) { dist = d; melhor = { nome, hex: h }; }
+    }
+    return melhor;
+  };
+  const ehLinkMW = (u) => /^https:\/\/(www\.)?makerworld\.com\/(?:[a-z]{2}(?:-[A-Za-z]+)?\/)?models\/\d+/i.test(u);
+  let importandoMW = false;
+  async function importarMakerworld() {
+    const u = $("#p-makerworld").value.trim();
+    const st = $("#status-mw");
+    if (!ehLinkMW(u)) { avisar("Cole o link de um modelo do MakerWorld (makerworld.com/.../models/123456).", true); $("#p-makerworld").focus(); return; }
+    if (importandoMW) return;
+    if ($("#p-nome").value.trim() && !confirm("Já tem dados nesta peça. Substituir nome, gramas, tempo, material e cores pelos do MakerWorld? (As fotos novas são só somadas à galeria.)")) return;
+    importandoMW = true;
+    const botao = $("#importar-mw");
+    botao.disabled = true;
+    botao.textContent = "Importando…";
+    st.className = "dica";
+    st.textContent = "Buscando o modelo e copiando as fotos…";
+    try {
+      const { data, error } = await db.functions.invoke("importar-makerworld", { body: { url: u } });
+      if (error) {
+        let msg = error.message;
+        try { msg = (await error.context.json()).erro || msg; } catch {}
+        throw new Error(msg);
+      }
+      if (!data?.nome) throw new Error(data?.erro || "não consegui ler o modelo");
+
+      $("#p-nome").value = data.nome.slice(0, 120);
+      if (data.gramas) $("#p-gramas").value = Math.round(data.gramas * 10) / 10;
+      if (data.segundos) {
+        const min = Math.round(data.segundos / 60);
+        $("#p-horas").value = Math.floor(min / 60);
+        $("#p-minutos").value = min % 60;
+      }
+      const tipos = [...new Set((data.filamentos || []).map((f) => f.tipo).filter(Boolean))];
+      if (tipos.length) $("#c-material").value = tipos[0];
+      const cores = [];
+      for (const f of data.filamentos || []) {
+        const c = corProxima(f.cor);
+        if (c && !cores.some((x) => x.nome === c.nome)) cores.push(c);
+      }
+      if (cores.length) { coresSel = cores; desenharCores(); }
+      if (!$("#p-categoria").value.trim() && data.categoria) $("#p-categoria").value = data.categoria;
+      for (const url of data.fotos || []) {
+        if (estado.fotos.length >= MAX_FOTOS) break;
+        if (!estado.fotos.some((f) => f.url === url)) estado.fotos.push({ url, origem: u });
+      }
+      desenharGaleria();
+      $("#p-makerworld").dispatchEvent(new Event("input"));
+      $("#form-peca").dispatchEvent(new Event("input"));
+
+      const avisos = [];
+      if (/NC/i.test(data.licenca)) avisos.push(`A licença do modelo (${data.licenca}) NÃO permite uso comercial. Não venda sem autorização do autor.`);
+      else if (!data.licenca) avisos.push("Confira a licença do modelo antes de vender.");
+      else avisos.push(`Licença: ${data.licenca}. Confira se permite venda.`);
+      if (data.placas > 1) avisos.push(`O perfil tem ${data.placas} placas; gramas e tempo são a soma de todas.`);
+      avisos.push("Medidas não vêm do MakerWorld: preencha em Características.");
+
+      // Descrição: usa a IA (se cadastrada) a partir do texto original, que costuma estar em inglês
+      if (!$("#p-descricao").value.trim()) {
+        $("#p-descricao").value = data.descricaoOriginal.slice(0, 600);
+        $("#p-descricao").dispatchEvent(new Event("input", { bubbles: true }));
+        if (estado.ia?.chave) $("#gerar-descricao").click();
+        else avisos.push("Cadastre a chave da OpenAI na aba Loja para a descrição sair em português automaticamente.");
+      }
+      st.className = /NÃO permite/.test(avisos[0]) ? "dica erro" : "dica";
+      st.textContent = "Importado de " + (data.autor || "MakerWorld") + ". " + avisos.join(" ");
+      avisar("Dados do MakerWorld importados. Revise e salve.");
+    } catch (e) {
+      st.className = "dica erro";
+      st.textContent = "Não consegui importar: " + e.message;
+    } finally {
+      importandoMW = false;
+      botao.disabled = false;
+      botao.textContent = "Importar dados";
+    }
+  }
+  $("#importar-mw").addEventListener("click", importarMakerworld);
+  // Colou o link em peça nova (sem nome ainda): importa sozinho
+  $("#p-makerworld").addEventListener("paste", () => {
+    setTimeout(() => { if (ehLinkMW($("#p-makerworld").value.trim()) && !$("#p-nome").value.trim()) importarMakerworld(); }, 50);
   });
 
   // ---------- Descrição com IA (OpenAI) ----------
