@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151948">
+  <link rel="stylesheet" href="assets/style.css?v=202610220702">
 </head>
 <body>
   <header class="topo">
@@ -35,6 +35,7 @@
         <a class="discreto" href="#como-pedir">Como pedir</a>
         <a class="discreto" data-link="instagram" href="https://www.instagram.com/hprprint3d/" target="_blank" rel="noopener">Instagram</a>
         <a class="discreto" href="conta.html" id="link-conta">Meus pedidos</a>
+        <button type="button" class="botao botao-contorno botao-pequeno botao-carrinho" id="abrir-carrinho" aria-haspopup="dialog">Carrinho <span class="carrinho-qtd" id="carrinho-qtd" hidden>0</span></button>
         <a class="botao botao-principal botao-pequeno" href="#pedido">Fazer pedido</a>
       </nav>
     </div>
@@ -122,11 +123,18 @@
               <label class="campo-pedido">Seu WhatsApp<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="61 99999-9999"></label>
             </div>
             <label class="campo-pedido">Seu e-mail<input name="email" type="email" autocomplete="email" placeholder="Pra receber o andamento do pedido"></label>
-            <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
-            <div class="pedido-duas">
-              <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
-              <label class="campo-pedido">Cor preferida<input name="cor" list="cores-sugeridas" placeholder="Ex.: azul e branco"></label>
-              <datalist id="cores-sugeridas"></datalist>
+            <div class="pedido-carrinho" id="bloco-carrinho" hidden>
+              <div class="pc-cabeca"><span>Seu carrinho</span><button type="button" class="botao-link-inline" id="editar-carrinho">Editar</button></div>
+              <ul id="resumo-carrinho"></ul>
+              <small>Quer algo personalizado junto? Conte em “Detalhes” abaixo.</small>
+            </div>
+            <div id="campos-livres">
+              <label class="campo-pedido">Peça ou ideia<input name="peca" id="pedido-peca" required placeholder="Ex.: dragão articulado, chaveiro com nome"></label>
+              <div class="pedido-duas">
+                <label class="campo-pedido">Quantidade<input name="quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
+                <label class="campo-pedido">Cor preferida<input name="cor" list="cores-sugeridas" placeholder="Ex.: azul e branco"></label>
+                <datalist id="cores-sugeridas"></datalist>
+              </div>
             </div>
             <div class="campo-pedido frete-bloco">
               <label for="pedido-cep">Entrega <small>(coloque o CEP para ver o frete)</small></label>
@@ -172,6 +180,23 @@
     <div class="detalhe-conteudo"></div>
   </dialog>
 
+  <dialog class="carrinho" id="carrinho" aria-labelledby="carrinho-titulo">
+    <button type="button" class="detalhe-fechar" data-fechar-carrinho aria-label="Fechar carrinho">×</button>
+    <div class="carrinho-conteudo">
+      <h2 id="carrinho-titulo">Seu carrinho</h2>
+      <div id="carrinho-lista"></div>
+      <p class="carrinho-total" id="carrinho-total"></p>
+      <div class="carrinho-acoes">
+        <button type="button" class="botao botao-contorno" data-fechar-carrinho>Continuar vendo peças</button>
+        <button type="button" class="botao botao-principal" id="carrinho-finalizar">Finalizar pedido</button>
+      </div>
+    </div>
+  </dialog>
+  <div class="toast-carrinho" id="toast-carrinho" role="status" hidden>
+    <span id="toast-carrinho-texto"></span>
+    <button type="button" id="toast-carrinho-ver">Ver carrinho</button>
+  </div>
+
   <footer class="rodape">
     <div class="envoltorio">
       <span>HPR Print 3D, impressão 3D por encomenda</span>
@@ -179,9 +204,10 @@
     </div>
   </footer>
 
-  <script src="assets/supabase-config.js?v=202610151948"></script>
-  <script src="assets/email.js?v=202610151948"></script>
-  <script src="assets/frete.js?v=202610151948"></script>
-  <script src="assets/app.js?v=202610151948"></script>
+  <script src="assets/supabase-config.js?v=202610220702"></script>
+  <script src="assets/email.js?v=202610220702"></script>
+  <script src="assets/frete.js?v=202610220702"></script>
+  <script src="assets/itens.js?v=202610220702"></script>
+  <script src="assets/app.js?v=202610220702"></script>
 </body>
 </html>

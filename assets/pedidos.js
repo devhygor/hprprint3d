@@ -2,6 +2,7 @@
 (function () {
   const O = window.Oficina;
   const P = window.Precificador;
+  const H = window.HPR_ITENS;
   const { estado, $, $$, brl, esc, avisar, mostrar, db, erroLegivel } = O;
 
   const STATUS = [
@@ -22,22 +23,28 @@
   // ---------- Supabase ----------
   let canal = null;
   const COLUNAS = ["id", "criado_em", "atualizado_em", "origem", "status", "cliente", "telefone", "email", "canal", "cliente_id", "referencias", "cidade", "peca", "peca_id",
-    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep", "pago", "endereco", "numero", "complemento", "bairro", "uf", "documento", "etiqueta"];
+    "quantidade", "cor", "prazo", "entrega", "detalhes", "valor", "sinal", "notas", "mensagem", "historico", "transportadora", "rastreio", "link_rastreio", "frete", "envio", "cep", "pago", "endereco", "numero", "complemento", "bairro", "uf", "documento", "etiqueta", "itens"];
+  let colunaItens = true; // vira false se o banco ainda não tem a coluna "itens" (SQL novo não rodado)
   const deDb = (r) => ({ ...r, pecaId: r.peca_id || "", criadoEm: r.criado_em, atualizadoEm: r.atualizado_em, entrega: r.entrega || "" });
   function paraDb(p) {
     const r = {};
     const fonte = { ...p, peca_id: p.pecaId || null, criado_em: p.criadoEm, atualizado_em: p.atualizadoEm, entrega: p.entrega || null };
     for (const c of COLUNAS) if (fonte[c] !== undefined) r[c] = fonte[c] === "" ? null : fonte[c];
+    if (!colunaItens && !(r.itens && r.itens.length)) delete r.itens;
     return r;
   }
   async function carregar() {
     const { data, error } = await db.from("pedidos").select("*").order("criado_em", { ascending: false }).limit(1000);
     if (error) throw error;
+    colunaItens = !data?.length || "itens" in data[0];
     estado.pedidos = (data || []).map(deDb);
   }
   async function salvarPedido(p) {
     const { error } = await db.from("pedidos").upsert(paraDb(p));
-    if (error) throw error;
+    if (error) {
+      if (/itens/.test(error.message || "")) error.message = "o banco ainda não tem a coluna de itens: rode o docs/supabase.sql atualizado no Supabase";
+      throw error;
+    }
   }
   async function excluirPedido(id) {
     const { error } = await db.from("pedidos").delete().eq("id", id);
@@ -108,10 +115,20 @@
 
   // ---------- Lista ----------
   function contas(p) {
-    const peca = estado.pecas.find((x) => x.id === p.pecaId);
-    const qtd = Math.max(1, P.num(p.quantidade, 1));
-    const custoUn = peca ? P.precificar(peca, estado.config).custo.total : NaN;
-    const custo = custoUn * qtd;
+    const its = H.lista(p);
+    let peca = estado.pecas.find((x) => x.id === p.pecaId);
+    let qtd = Math.max(1, P.num(p.quantidade, 1));
+    let custoUn = peca ? P.precificar(peca, estado.config).custo.total : NaN;
+    let custo = custoUn * qtd;
+    if (its.length) {
+      // Carrinho: o custo é a soma das peças do catálogo (se alguma não estiver ligada, fica sem custo)
+      const partes = its.map((i) => ({ peca: estado.pecas.find((x) => x.id === i.id), qtd: i.qtd }));
+      const todas = partes.every((x) => x.peca);
+      qtd = H.unidades(its);
+      peca = todas ? partes[0].peca : undefined;
+      custo = todas ? partes.reduce((s, x) => s + P.precificar(x.peca, estado.config).custo.total * x.qtd, 0) : NaN;
+      custoUn = custo / qtd;
+    }
     const valor = p.valor == null || p.valor === "" ? NaN : P.num(p.valor, NaN);
     const frete = p.frete == null || p.frete === "" ? 0 : P.num(p.frete, 0);
     const sinal = P.num(p.sinal, 0);
@@ -131,6 +148,27 @@
     $("#filtros-pedidos").innerHTML = opcoes
       .map((o) => `<button class="filtro" type="button" data-filtro="${o.id}" aria-pressed="${o.id === filtro}">${esc(o.nome)} <span class="contagem">${o.n}</span></button>`)
       .join("");
+  }
+
+  // Produção por peça no cartão: barra de progresso e, aberto, um contador (− n/total +) por item
+  const producaoAberta = new Set();
+  function producaoCartao(p) {
+    const its = H.lista(p);
+    if (!its.length) return "";
+    const g = H.progresso(its);
+    return `<details class="cp-producao" data-prod="${esc(p.id)}" ${producaoAberta.has(p.id) ? "open" : ""}>
+      <summary>
+        <span class="cp-prog-topo"><span>Produção<span class="seta" aria-hidden="true">›</span></span><b>${g.feitas} de ${g.total} ${g.total > 1 ? "peças" : "peça"}</b></span>
+        <span class="barra-prod" role="progressbar" aria-valuemin="0" aria-valuemax="${g.total}" aria-valuenow="${g.feitas}" aria-label="Peças prontas de ${esc(p.id)}"><i style="width:${g.pct}%"></i></span>
+      </summary>
+      <ul class="cp-itens">${its.map((i, k) => `<li class="${i.feito >= i.qtd ? "pronto" : ""}">
+        <span class="cpi-nome">${esc(i.nome)}${i.cor ? `<small>${esc(i.cor)}</small>` : ""}</span>
+        <span class="cpi-ctrl">
+          <button type="button" data-feito="${esc(p.id)}|${k}|-1" ${i.feito <= 0 ? "disabled" : ""} aria-label="Uma a menos: ${esc(i.nome)}">−</button>
+          <b>${i.feito}/${i.qtd}</b>
+          <button type="button" data-feito="${esc(p.id)}|${k}|1" ${i.feito >= i.qtd ? "disabled" : ""} aria-label="Mais uma pronta: ${esc(i.nome)}">+</button>
+        </span></li>`).join("")}</ul>
+    </details>`;
   }
 
   function desenharLista() {
@@ -163,7 +201,7 @@
             <span class="cp-codigo">${esc(p.id)}</span>
             <span class="cp-data">${dataCurta(p.criadoEm)}</span>
           </div>
-          <h3>${esc(p.peca || "Pedido sem descrição")}${c.qtd > 1 ? ` <span class="cp-qtd">× ${c.qtd}</span>` : ""}</h3>
+          <h3>${esc(p.peca || "Pedido sem descrição")}${c.qtd > 1 && !H.lista(p).length ? ` <span class="cp-qtd">× ${c.qtd}</span>` : ""}</h3>
           <p class="cp-cliente">${esc(p.cliente || "Cliente sem nome")}${p.cidade ? `, ${esc(p.cidade)}` : ""}${(p.canal || p.origem === "site") ? ` <span class="cp-canal">${esc(p.canal || "Site")}</span>` : ""}</p>
           <div class="cp-info">
             ${entrega}
@@ -172,6 +210,7 @@
             ${Number.isFinite(c.valor) ? `<span>${brl(c.total)}${c.frete > 0 ? ` <small class="cp-frete">(frete ${brl(c.frete)})</small>` : ""}${c.pago ? ` <span class="cp-pago">pago</span>` : c.total > 0 ? ` <span class="cp-a-receber">${c.sinal > 0 ? `falta ${brl(c.falta)}` : "a receber"}</span>` : ""}</span>` : ""}
             ${p.envio ? `<span class="cp-envio">${esc(p.envio.split(" · ")[0])}</span>` : ""}
           </div>
+          ${producaoCartao(p)}
           <div class="cp-acoes">
             <label class="cp-status"><span class="sr">Status de ${esc(p.id)}</span>
               <select data-status="${esc(p.id)}">${STATUS.map((x) => `<option value="${x.id}" ${x.id === p.status ? "selected" : ""}>${x.nome}</option>`).join("")}</select>
@@ -195,23 +234,44 @@
     pronto: "está pronto", enviado: "foi postado", entregue: "foi entregue", cancelado: "foi cancelado",
   };
   // Depois de mudar o status: oferece mandar a mensagem pronta no WhatsApp do cliente
-  function oferecerWhatsapp(p) {
+  // opcoes.andamento: avisa que peças ficaram prontas, sem mudar de etapa
+  let oferta = null;
+  function oferecerWhatsapp(p, opcoes = {}) {
     const caixa = $("#aviso-zap");
-    if (!soNumeros(p.telefone)) { caixa.hidden = true; return; }
-    $("#aviso-zap-titulo").innerHTML = `Avisar <b>${esc((p.cliente || "o cliente").split(" ")[0])}</b> que o pedido <b>${FRASE_STATUS[p.status] || "mudou de etapa"}</b>?`;
-    $("#aviso-zap-link").href = linkZap(p.telefone, window.HPR_EMAIL.mensagemWhatsapp(p, p.status));
+    const temZap = !!soNumeros(p.telefone);
+    const temEmail = !!opcoes.andamento && !!p.email && !!window.HPR_EMAIL?.configurado(estado.site?.email);
+    if (!temZap && !temEmail) { caixa.hidden = true; return; }
+    oferta = { p, opcoes };
+    const nome = esc((p.cliente || "o cliente").split(" ")[0]);
+    const g = H.progresso(H.lista(p));
+    $("#aviso-zap-titulo").innerHTML = opcoes.andamento
+      ? `Avisar <b>${nome}</b> que <b>${g.feitas} de ${g.total} ${g.total > 1 ? "peças" : "peça"}</b> do pedido ${g.completo ? "ficaram prontas" : "estão prontas"}?`
+      : `Avisar <b>${nome}</b> que o pedido <b>${FRASE_STATUS[p.status] || "mudou de etapa"}</b>?`;
+    $("#aviso-zap-link").hidden = !temZap;
+    if (temZap) $("#aviso-zap-link").href = linkZap(p.telefone, window.HPR_EMAIL.mensagemWhatsapp(p, p.status, opcoes));
+    $("#aviso-zap-email").hidden = !temEmail;
     caixa.hidden = false;
     clearTimeout(oferecerWhatsapp.t);
     oferecerWhatsapp.t = setTimeout(() => (caixa.hidden = true), 20000);
   }
   $("#aviso-zap-fechar").addEventListener("click", () => ($("#aviso-zap").hidden = true));
+  $("#aviso-zap-email").addEventListener("click", async () => {
+    if (!oferta) return;
+    const { p, opcoes } = oferta;
+    const b = $("#aviso-zap-email");
+    b.disabled = true;
+    const r = await window.HPR_EMAIL.enviarEmailPedido({ ...estado.site.email, whatsapp: estado.site.whatsapp }, p, p.status, opcoes).catch(() => ({ ok: false }));
+    b.disabled = false;
+    $("#aviso-zap").hidden = true;
+    avisar(r.ok ? `E-mail enviado para ${p.email}.` : "O e-mail para o cliente falhou.", !r.ok, 5000);
+  });
   $("#aviso-zap-link").addEventListener("click", () => setTimeout(() => ($("#aviso-zap").hidden = true), 300));
 
   // E-mail para o cliente quando o status muda (EmailJS, configurado na aba Loja)
-  async function avisarCliente(p) {
+  async function avisarCliente(p, opcoes = {}) {
     const cfg = estado.site?.email;
     if (!window.HPR_EMAIL?.configurado(cfg) || !p.email) return "";
-    const r = await window.HPR_EMAIL.enviarEmailPedido({ ...cfg, whatsapp: estado.site.whatsapp }, p, p.status).catch((e) => ({ ok: false, motivo: e.message }));
+    const r = await window.HPR_EMAIL.enviarEmailPedido({ ...cfg, whatsapp: estado.site.whatsapp }, p, p.status, opcoes).catch((e) => ({ ok: false, motivo: e.message }));
     return r.ok ? ` E-mail enviado para ${p.email}.` : " (o e-mail para o cliente falhou)";
   }
 
@@ -253,7 +313,59 @@
   $("#lista-pedidos").addEventListener("click", (e) => {
     const b = e.target.closest("[data-abrir]");
     if (b) abrir(b.dataset.abrir);
+    const f = e.target.closest("[data-feito]");
+    if (f) {
+      const [id, k, delta] = f.dataset.feito.split("|");
+      mudarProducao(id, Number(k), Number(delta));
+    }
   });
+  $("#lista-pedidos").addEventListener("toggle", (e) => {
+    const d = e.target.closest?.("[data-prod]");
+    if (d) d.open ? producaoAberta.add(d.dataset.prod) : producaoAberta.delete(d.dataset.prod);
+  }, true);
+
+  // A etapa acompanha a produção: primeira peça pronta = Imprimindo; todas prontas = Pronto
+  function etapaPelaProducao(status, itens, delta) {
+    const g = H.progresso(itens);
+    if (g.completo && ["aprovado", "imprimindo"].includes(status)) return "pronto";
+    if (g.feitas > 0 && status === "aprovado") return "imprimindo";
+    if (delta < 0 && !g.completo && status === "pronto") return "imprimindo";
+    return status;
+  }
+  async function mudarProducao(id, k, delta) {
+    const p = estado.pedidos.find((x) => x.id === id);
+    const its = p ? H.lista(p) : [];
+    const it = its[k];
+    if (!it) return;
+    const feito = Math.min(it.qtd, Math.max(0, it.feito + delta));
+    if (feito === it.feito) return;
+    const antes = { itens: p.itens, status: p.status, historico: p.historico, atualizadoEm: p.atualizadoEm };
+    its[k] = { ...it, feito };
+    p.itens = its;
+    const novoStatus = etapaPelaProducao(p.status, its, delta);
+    const mudouStatus = novoStatus !== p.status;
+    if (mudouStatus) {
+      p.status = novoStatus;
+      p.historico = [...(p.historico || []), { status: novoStatus, em: agora() }];
+    }
+    p.atualizadoEm = agora();
+    desenharLista();
+    try {
+      await salvarPedido(p);
+      if (mudouStatus) {
+        // Mudou de etapa: o aviso é o de sempre (e-mail automático + WhatsApp pronto)
+        const extra = (await avisarCliente(p)) + ((await O.lancarPedido?.(p)) || "");
+        avisar(`${p.id} agora está ${statusDe(p.status).nome.toLowerCase()}.${extra}`, extra.includes("falhou"), 6000);
+        oferecerWhatsapp(p);
+      } else {
+        oferecerWhatsapp(p, { andamento: true });
+      }
+    } catch (err) {
+      Object.assign(p, antes);
+      desenharLista();
+      avisar("Não consegui salvar: " + erroLegivel(err), true, 7000);
+    }
+  }
   $("#novo-pedido").addEventListener("click", () => abrir(null));
 
   // ---------- Editor de pedido ----------
@@ -296,6 +408,7 @@
   function abrir(id) {
     const existente = id ? estado.pedidos.find((x) => x.id === id) : null;
     atual = existente ? JSON.parse(JSON.stringify(existente)) : { id: "", status: "novo", quantidade: 1, historico: [] };
+    atual.itens = H.lista(atual);
     $("#titulo-pedido").textContent = existente ? `Pedido ${existente.id}` : "Novo pedido";
     $("#o-status").innerHTML = STATUS.map((s) => `<option value="${s.id}">${s.nome}</option>`).join("");
     for (const [k, sel] of Object.entries(CAMPOS)) $(sel).value = atual[k] ?? "";
@@ -308,6 +421,7 @@
     $("#o-avisar-campo").hidden = !comEmail;
     $("#o-avisar").checked = true;
     desenharReferencias(atual.referencias || []);
+    desenharItens();
     $("#o-pago").checked = !!atual.pago;
     atualizarRastreio(false);
     desenharEtiqueta();
@@ -339,14 +453,138 @@
     d.pago = $("#o-pago").checked;
     const peca = estado.pecas.find((p) => p.nome.toLowerCase() === d.peca.toLowerCase());
     d.pecaId = peca ? peca.id : atual.pecaId && d.peca === atual.peca ? atual.pecaId : "";
+    // Com itens, peça, quantidade e cor do pedido vêm da lista (as colunas antigas servem de resumo)
+    const its = H.lista({ itens: atual.itens || [] });
+    if (its.length) {
+      d.peca = H.resumo(its).slice(0, 300);
+      d.quantidade = String(Math.min(10000, H.unidades(its)));
+      d.cor = [...new Set(its.map((i) => i.cor).filter(Boolean))].join(", ").slice(0, 120);
+      d.pecaId = its.length === 1 ? its[0].id || "" : "";
+    }
     return d;
+  }
+
+  // ---------- Itens do pedido (carrinho) e produção ----------
+  const pecaPorNome = (nome) => estado.pecas.find((p) => p.nome.toLowerCase() === String(nome).trim().toLowerCase());
+  function desenharItens() {
+    const its = atual.itens || [];
+    const tem = its.length > 0;
+    for (const s of ["#o-peca-campo", "#o-quantidade-campo", "#o-cor-campo"]) $(s).hidden = tem;
+    $("#o-tudo-pronto").hidden = !tem;
+    const norm = H.lista({ itens: its });
+    const g = H.progresso(norm);
+    const pr = $("#o-progresso");
+    pr.hidden = !norm.length;
+    pr.innerHTML = norm.length
+      ? `<div class="cp-prog-topo"><span>Peças prontas</span><b>${g.feitas} de ${g.total} (${g.pct}%)</b></div><div class="barra-prod" role="progressbar" aria-valuemin="0" aria-valuemax="${g.total}" aria-valuenow="${g.feitas}"><i style="width:${g.pct}%"></i></div>`
+      : "";
+    $("#o-itens").innerHTML = its.map((i, k) => {
+      const qtd = Math.max(1, parseInt(i.qtd, 10) || 1);
+      const feito = Math.min(qtd, Math.max(0, parseInt(i.feito, 10) || 0));
+      return `<div class="o-item${feito >= qtd ? " pronto" : ""}" data-k="${k}">
+        <input data-campo="nome" list="o-lista-pecas" value="${esc(i.nome)}" placeholder="Peça" aria-label="Peça do item ${k + 1}">
+        <input data-campo="qtd" type="number" min="1" inputmode="numeric" value="${qtd}" aria-label="Quantidade do item ${k + 1}">
+        <input data-campo="cor" value="${esc(i.cor || "")}" placeholder="Cor" aria-label="Cor do item ${k + 1}">
+        <div class="cpi-ctrl">
+          <button type="button" data-delta="-1" ${feito <= 0 ? "disabled" : ""} aria-label="Uma a menos produzida">−</button>
+          <b>${feito}/${qtd}</b>
+          <button type="button" data-delta="1" ${feito >= qtd ? "disabled" : ""} aria-label="Mais uma produzida">+</button>
+          <button type="button" class="ok" data-pronto ${feito >= qtd ? "disabled" : ""}>Pronto</button>
+        </div>
+        <button type="button" class="o-rem" data-rem aria-label="Remover item ${k + 1}">×</button>
+      </div>`;
+    }).join("");
+    $("#o-itens-dica").textContent = tem
+      ? "Use + a cada peça que sair da impressora. O cliente vê o andamento em Meus pedidos e, ao salvar, dá para avisar por e-mail e WhatsApp."
+      : "Pedido de uma peça só ou ideia livre. Para acompanhar a produção peça por peça, adicione itens.";
+  }
+  // A etapa do pedido acompanha a produção (só sugere mudando o campo Status; quem confirma é o Salvar)
+  function acertarEtapaDoEditor(delta) {
+    const novo = etapaPelaProducao($("#o-status").value, H.lista({ itens: atual.itens || [] }), delta);
+    if (novo !== $("#o-status").value) {
+      $("#o-status").value = novo;
+      avisar(`Pedido passou para ${statusDe(novo).nome}. Salve para avisar o cliente.`, false, 4000);
+    }
+  }
+  function mexeuNosItens(delta = 0) {
+    if (delta) acertarEtapaDoEditor(delta);
+    desenharItens();
+    atualizarLado();
+  }
+  $("#o-itens").addEventListener("input", (e) => {
+    const campo = e.target.closest("[data-campo]");
+    if (!campo) return;
+    const i = atual.itens[Number(campo.closest("[data-k]").dataset.k)];
+    if (!i) return;
+    const c = campo.dataset.campo;
+    if (c === "nome") {
+      i.nome = campo.value;
+      const pc = pecaPorNome(campo.value);
+      i.id = pc ? pc.id : null;
+      i.foto = pc ? pc.foto || pc.fotos?.[0] || "" : "";
+      i.preco = pc ? pc.precoVitrine || null : null;
+    } else if (c === "qtd") {
+      i.qtd = Math.max(1, parseInt(campo.value, 10) || 1);
+      i.feito = Math.min(i.qtd, i.feito || 0);
+    } else i.cor = campo.value;
+    atualizarLado();
+  });
+  // Ao sair do campo de quantidade, redesenha (o contador "n/total" muda)
+  $("#o-itens").addEventListener("change", (e) => { if (e.target.closest('[data-campo="qtd"], [data-campo="nome"]')) mexeuNosItens(); });
+  $("#o-itens").addEventListener("click", (e) => {
+    const linha = e.target.closest("[data-k]");
+    if (!linha) return;
+    const k = Number(linha.dataset.k);
+    const i = atual.itens[k];
+    if (!i) return;
+    const qtd = Math.max(1, parseInt(i.qtd, 10) || 1);
+    if (e.target.closest("[data-delta]")) {
+      const delta = Number(e.target.closest("[data-delta]").dataset.delta);
+      i.feito = Math.min(qtd, Math.max(0, (i.feito || 0) + delta));
+      mexeuNosItens(delta);
+    } else if (e.target.closest("[data-pronto]")) {
+      i.feito = qtd;
+      mexeuNosItens(1);
+    } else if (e.target.closest("[data-rem]")) {
+      atual.itens.splice(k, 1);
+      mexeuNosItens();
+    }
+  });
+  $("#o-add-item").addEventListener("click", () => {
+    atual.itens ||= [];
+    const d = lerForm();
+    if (!atual.itens.length && d.peca) {
+      // Primeiro item: aproveita a peça, quantidade e cor que já estavam preenchidas
+      atual.itens.push({ id: d.pecaId || null, nome: d.peca, qtd: Math.max(1, parseInt(d.quantidade, 10) || 1), cor: d.cor, feito: 0 });
+      avisar("Passei a peça do pedido para a lista de itens. Toque de novo para somar outro item.", false, 5000);
+    } else {
+      atual.itens.push({ id: null, nome: "", qtd: 1, cor: "", feito: 0 });
+    }
+    mexeuNosItens();
+    const linhas = $$("#o-itens .o-item");
+    linhas[linhas.length - 1]?.querySelector('[data-campo="nome"]').focus();
+  });
+  $("#o-tudo-pronto").addEventListener("click", () => {
+    (atual.itens || []).forEach((i) => (i.feito = Math.max(1, parseInt(i.qtd, 10) || 1)));
+    mexeuNosItens(1);
+  });
+  // Frete e etiqueta consideram todas as peças numa caixa só
+  function listaFreteAdm() {
+    const its = H.lista({ itens: atual.itens || [] });
+    if (its.length < 2) return null;
+    return its.map((i) => {
+      const pc = estado.pecas.find((x) => x.id === i.id);
+      return { peca: pc && { id: pc.id, preco: pc.precoVitrine, caracteristicas: pc.caracteristicas }, quantidade: i.qtd };
+    });
   }
 
   function atualizarLado() {
     const d = { ...atual, ...lerForm() };
     $("#o-codigo").textContent = atual.id || "será gerado ao salvar";
     const c = contas(d);
-    $("#o-peca-ligada").textContent = c.peca
+    $("#o-peca-ligada").textContent = H.lista(d).length
+      ? ""
+      : c.peca
       ? `Ligado à peça do catálogo: custo de ${brl(c.custoUn)} cada.`
       : estado.pecas.length ? "Digite o nome igual ao da aba Peças para ver custo e lucro." : "";
     const linhas = [];
@@ -394,7 +632,7 @@
     alvo.innerHTML = `<p class="dica">Calculando…</p>`;
     try {
       const peca = estado.pecas.find((p) => p.id === d.pecaId);
-      const r = await F.simular({ sb: window.HPR_SUPABASE, site: estado.site, cep: d.cep, peca: peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, quantidade: d.quantidade });
+      const r = await F.simular({ sb: window.HPR_SUPABASE, site: estado.site, cep: d.cep, peca: peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, quantidade: d.quantidade, lista: listaFreteAdm() });
       opcoesAdm = r.opcoes;
       alvo.innerHTML = `<p class="dica">${esc(r.endereco.cidade)}/${esc(r.endereco.uf)} · ${r.fonte === "real" ? "preço do Melhor Envio" : "tabela da loja"}. Toque para usar:</p>` +
         (r.opcoes.length ? `<div class="frete-adm-opcoes">${r.opcoes.map((o, i) => `<button type="button" class="filtro" data-frete="${i}">${esc(o.nome)} · ${o.valor > 0 ? brl(o.valor) : "grátis"}${o.prazo ? ` <small>${esc(o.prazo)}</small>` : ""}</button>`).join("")}</div>`
@@ -474,6 +712,7 @@
       uf: d.uf.toUpperCase().slice(0, 2),
       documento: d.documento.replace(/\D/g, "") || null,
       sinal: d.sinal === "" ? null : P.num(d.sinal),
+      itens: H.lista({ itens: atual.itens || [] }),
       criadoEm: atual.criadoEm || agora(),
       atualizadoEm: agora(),
       historico,
@@ -487,13 +726,17 @@
       // Mudou o status, ou trocou o código de rastreio de um pedido já enviado: avisa o cliente de novo
     const mudouStatus = !existente || existente.status !== pedido.status ||
       (pedido.status === "enviado" && !!pedido.rastreio && R.limpar(existente.rastreio) !== pedido.rastreio);
-      // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status
-      const extra = (mudouStatus && $("#o-avisar").checked ? await avisarCliente(pedido) : "") +
+      // Peças prontas a mais (ou a menos) sem mudar de etapa: avisa o andamento
+      const mudouProducao = !!existente && !mudouStatus && pedido.itens.length > 0 &&
+        H.progresso(pedido.itens).feitas !== H.progresso(H.lista(existente)).feitas;
+      // E-mail: ao criar um pedido manual (Recebemos seu pedido) e a cada mudança de status ou de produção
+      const extra = ((mudouStatus || mudouProducao) && $("#o-avisar").checked ? await avisarCliente(pedido, { andamento: mudouProducao }) : "") +
         (mudouStatus ? (await O.lancarPedido?.(pedido)) || "" : "");
       if (existente && (!!existente.pago !== !!pedido.pago || P.num(existente.valor, 0) !== P.num(pedido.valor, 0) || P.num(existente.frete, 0) !== P.num(pedido.frete, 0)))
         await O.sincronizarPago?.(pedido);
       avisar(`Pedido ${id} salvo.${extra}`, extra.includes("falhou"), extra ? 6000 : 3800);
       if (mudouStatus) oferecerWhatsapp(pedido);
+      else if (mudouProducao) oferecerWhatsapp(pedido, { andamento: true });
       mostrar("pedidos");
     } catch (e) {
       estado.pedidos = antes;
@@ -581,7 +824,8 @@
     const F = window.HPR_FRETE;
     const cfg = F.config(estado.site);
     const peca = estado.pecas.find((p) => p.id === d.pecaId);
-    const cx = F.caixa(cfg, peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, d.quantidade);
+    const varias = listaFreteAdm();
+    const cx = varias ? F.caixaVarios(cfg, varias) : F.caixa(cfg, peca && { id: peca.id, preco: peca.precoVitrine, caracteristicas: peca.caracteristicas }, d.quantidade);
     $("#et-altura").value = cx.altura; $("#et-largura").value = cx.largura; $("#et-comprimento").value = cx.comprimento; $("#et-peso").value = cx.peso;
     $("#et-caixa-origem").textContent = cx.origem === "peca" ? "(pelas medidas da peça + folga)" : "(caixa padrão + folga; confira)";
     $("#et-valor").value = (P.num(d.valor, 0) || cx.valor).toFixed(2);

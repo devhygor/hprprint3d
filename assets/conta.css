@@ -71,3 +71,18 @@
   .etapas li::before { top: -50%; left: 9px; width: 3px; height: 100%; }
   .etapas .quando { margin-left: auto; }
 }
+
+/* Produção por peça (pedido com carrinho) */
+.pc-producao { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--noite); border: 1px solid var(--linha); display: flex; flex-direction: column; gap: 10px; }
+.pc-prod-topo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: .8rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--neon-claro); }
+.pc-prod-topo b { color: var(--texto); letter-spacing: 0; text-transform: none; font-size: .95rem; }
+.barra-prod { height: 8px; border-radius: 999px; background: var(--linha); overflow: hidden; }
+.barra-prod i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--neon), var(--menta)); transition: width .4s ease; }
+.pc-itens { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pc-itens li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--linha); }
+.pi-nome { min-width: 0; overflow-wrap: anywhere; }
+.pi-nome small { color: var(--texto-3); margin-left: 4px; }
+.pi-estado { white-space: nowrap; font-weight: 600; color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.pc-itens li.andando .pi-estado { color: var(--neon-claro); }
+.pc-itens li.pronto .pi-estado { color: var(--menta); }
+.pc-itens li.pronto .pi-estado::before { content: "✓ "; }

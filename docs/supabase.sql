@@ -72,6 +72,9 @@ alter table public.pedidos add column if not exists bairro      text;
 alter table public.pedidos add column if not exists uf          text;
 alter table public.pedidos add column if not exists documento   text;
 alter table public.pedidos add column if not exists etiqueta    jsonb;
+-- Carrinho: lista de itens do pedido. Cada item: { id, nome, qtd, cor, foto, preco, feito }
+-- "feito" = quantas unidades daquele item já foram produzidas (progresso do pedido)
+alter table public.pedidos add column if not exists itens          jsonb not null default '[]'::jsonb;
 -- Status "enviado" (postado): refaz a regra de status para bancos criados antes dele
 alter table public.pedidos drop constraint if exists pedidos_status_check;
 alter table public.pedidos add constraint pedidos_status_check
@@ -118,6 +121,7 @@ create policy "site registra pedido" on public.pedidos
     and char_length(coalesce(bairro, ''))      <= 120
     and char_length(coalesce(uf, ''))          <= 2
     and documento is null and etiqueta is null
+    and jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) <= 30
     and pago = false
     and cliente_id is null
   );
@@ -151,6 +155,7 @@ create policy "cliente registra pedido" on public.pedidos
     and char_length(coalesce(bairro, ''))      <= 120
     and char_length(coalesce(uf, ''))          <= 2
     and documento is null and etiqueta is null
+    and jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) <= 30
     and pago = false
     and cliente_id = auth.uid()
   );
@@ -288,6 +293,28 @@ as $$
 $$;
 revoke all on function public.meus_pedidos_v3() from public, anon;
 grant execute on function public.meus_pedidos_v3() to authenticated;
+
+-- Versão 4 (v3 + itens do carrinho com o progresso de produção). A área do cliente usa esta.
+create or replace function public.meus_pedidos_v4()
+returns table (
+  id text, criado_em timestamptz, atualizado_em timestamptz, status text, peca text, quantidade integer,
+  cor text, prazo text, entrega date, valor numeric, sinal numeric, historico jsonb, qtd_referencias integer,
+  transportadora text, rastreio text, link_rastreio text, frete numeric, envio text, pago boolean, itens jsonb
+)
+language sql stable security definer
+set search_path = ''
+as $$
+  select p.id, p.criado_em, p.atualizado_em, p.status, p.peca, p.quantidade, p.cor, p.prazo, p.entrega,
+         p.valor, p.sinal, p.historico, jsonb_array_length(p.referencias),
+         p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio, p.pago, p.itens
+  from public.pedidos p
+  where auth.uid() is not null
+    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+  order by p.criado_em desc
+  limit 100;
+$$;
+revoke all on function public.meus_pedidos_v4() from public, anon;
+grant execute on function public.meus_pedidos_v4() to authenticated;
 revoke all on function public.meu_email_confirmado() from public, anon;
 grant execute on function public.meu_email_confirmado() to authenticated;
 

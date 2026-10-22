@@ -113,9 +113,24 @@
       origem: temMedidas ? "peca" : "padrao",
     };
   }
+  // Carrinho com várias peças numa caixa só: empilha as alturas, usa a maior largura e o maior comprimento
+  // e soma os pesos (a folga de peso entra uma vez só). `lista`: [{ peca, quantidade }]
+  function caixaVarios(cfg, lista) {
+    const cx = lista.map(({ peca, quantidade }) => caixa(cfg, peca, quantidade));
+    if (cx.length === 1) return cx[0];
+    const folga = num(cfg.folgaPeso) >= 0 ? num(cfg.folgaPeso) : 100;
+    return {
+      altura: Math.min(100, cx.reduce((s, c) => s + c.altura, 0)),
+      largura: Math.max(...cx.map((c) => c.largura)),
+      comprimento: Math.max(...cx.map((c) => c.comprimento)),
+      peso: Math.round(cx.reduce((s, c) => s + c.peso, 0) - folga * (cx.length - 1)),
+      valor: cx.reduce((s, c) => s + c.valor, 0),
+      origem: cx.every((c) => c.origem === "peca") ? "peca" : "padrao",
+    };
+  }
   // Formato que o Melhor Envio espera (um produto = a caixa inteira)
-  function produtos(cfg, peca, quantidade) {
-    const cx = caixa(cfg, peca, quantidade);
+  function produtos(cfg, peca, quantidade, lista) {
+    const cx = lista?.length > 1 ? caixaVarios(cfg, lista) : caixa(cfg, peca, quantidade);
     return [{ id: peca?.id || "pedido", width: cx.largura, height: cx.altura, length: cx.comprimento, weight: cx.peso / 1000, insurance_value: cx.valor, quantity: 1 }];
   }
 
@@ -140,13 +155,13 @@
   }
 
   // Tudo junto: endereço + opções. Nunca joga erro por causa do Melhor Envio.
-  async function simular({ sb, site, cep, peca, quantidade }) {
+  async function simular({ sb, site, cep, peca, quantidade, lista }) {
     const cfg = config(site);
     const end = await buscarCep(cep);
     let envio = [];
     let fonte = "tabela";
     if (cfg.real && sb?.url && soDigitos(cfg.cepOrigem).length === 8) {
-      try { envio = await cotarReal(sb, cfg, end.cep, produtos(cfg, peca, quantidade)); fonte = "real"; } catch { envio = []; }
+      try { envio = await cotarReal(sb, cfg, end.cep, produtos(cfg, peca, quantidade, lista)); fonte = "real"; } catch { envio = []; }
     }
     if (!envio.length) { envio = opcoesTabela(cfg, end); fonte = "tabela"; }
     return { endereco: end, fonte, opcoes: [...opcoesLocais(cfg, end), ...envio] };
@@ -154,5 +169,5 @@
 
   const descreverOpcao = (o) => `${o.nome} – ${o.valor > 0 ? brl(o.valor) : "grátis"}${o.prazo ? `, ${o.prazo}` : ""}`;
 
-  raiz.HPR_FRETE = { REGIOES, PADRAO, config, buscarCep, simular, caixa, produtos, cotarReal, formatarCep, textoPrazo, descreverOpcao, num };
+  raiz.HPR_FRETE = { REGIOES, PADRAO, config, buscarCep, simular, caixa, caixaVarios, produtos, cotarReal, formatarCep, textoPrazo, descreverOpcao, num };
 })(window);

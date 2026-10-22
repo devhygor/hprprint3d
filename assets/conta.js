@@ -135,6 +135,21 @@
     catch { avisar("Não consegui copiar. Segure o dedo no código para copiar.", true); }
   });
 
+  // Carrinho: cada peça com a sua barrinha de produção
+  function blocoProducao(p) {
+    const itens = window.HPR_ITENS?.lista(p) || [];
+    if (!itens.length || p.status === "cancelado") return "";
+    const g = window.HPR_ITENS.progresso(itens);
+    return `<div class="pc-producao">
+      <div class="pc-prod-topo"><span>Produção das peças</span><b>${g.feitas} de ${g.total} prontas</b></div>
+      <div class="barra-prod" role="progressbar" aria-valuemin="0" aria-valuemax="${g.total}" aria-valuenow="${g.feitas}" aria-label="Peças prontas"><i style="width:${g.pct}%"></i></div>
+      <ul class="pc-itens">${itens.map((i) => `<li class="${i.feito >= i.qtd ? "pronto" : i.feito > 0 ? "andando" : ""}">
+        <span class="pi-nome">${esc(i.nome)}${i.cor ? ` <small>${esc(i.cor)}</small>` : ""}</span>
+        <span class="pi-estado">${i.feito >= i.qtd ? "Pronto" : `${i.feito} de ${i.qtd}`}</span>
+      </li>`).join("")}</ul>
+    </div>`;
+  }
+
   function cartao(p) {
     const cancelado = p.status === "cancelado";
     const atual = Math.max(0, ETAPAS.findIndex((e) => e.id === p.status));
@@ -150,9 +165,10 @@
     const falta = p.pago ? 0 : total != null ? total - Number(p.sinal || 0) : null;
     return `<article class="pedido-conta${cancelado ? " cancelado" : ""}">
       <div class="pc-topo"><span class="pc-codigo">${esc(p.id)}</span><span>Feito em ${data(p.criado_em)}</span></div>
-      <h2>${esc(p.peca || "Pedido")}${p.quantidade > 1 ? ` <span class="pc-qtd">× ${p.quantidade}</span>` : ""}</h2>
+      <h2>${esc(p.peca || "Pedido")}${p.quantidade > 1 && !(p.itens || []).length ? ` <span class="pc-qtd">× ${p.quantidade}</span>` : ""}</h2>
       ${cancelado ? `<p class="pc-status">Pedido cancelado. Qualquer dúvida, fale com a gente no WhatsApp.</p>` : `<p class="pc-status">${esc(etapa.texto)}</p>`}
       <ol class="etapas" aria-label="Andamento do pedido">${passos}</ol>
+      ${blocoProducao(p)}
       ${blocoRastreio(p)}
       <dl class="pc-info">
         ${p.cor ? `<div><dt>Cor</dt><dd>${esc(p.cor)}</dd></div>` : ""}
@@ -188,7 +204,8 @@
     db.rpc("eh_equipe").then(({ data: equipe }) => ($("#ir-oficina").hidden = !equipe)).catch(() => {});
     $("#lista").innerHTML = `<p class="apoio">Carregando seus pedidos…</p>`;
     // meus_pedidos_v2 traz rastreio e frete; a versão antiga fica de reserva
-    let { data: pedidos, error } = await db.rpc("meus_pedidos_v3");
+    let { data: pedidos, error } = await db.rpc("meus_pedidos_v4");
+    if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos_v3"));
     if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos_v2"));
     if (error) ({ data: pedidos, error } = await db.rpc("meus_pedidos"));
     if (error) {

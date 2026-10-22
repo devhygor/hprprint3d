@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610151948">
-  <link rel="stylesheet" href="assets/admin.css?v=202610151948">
+  <link rel="stylesheet" href="assets/style.css?v=202610220702">
+  <link rel="stylesheet" href="assets/admin.css?v=202610220702">
 </head>
 <body>
   <header class="topo">
@@ -43,6 +43,7 @@
       <p id="aviso-zap-titulo"></p>
       <div class="acoes">
         <a class="botao botao-zap" id="aviso-zap-link" href="#" target="_blank" rel="noopener">Avisar no WhatsApp</a>
+        <button class="botao botao-contorno botao-pequeno" type="button" id="aviso-zap-email" hidden>Mandar e-mail</button>
         <button class="botao botao-contorno botao-pequeno" type="button" id="aviso-zap-fechar">Agora não</button>
       </div>
     </div>
@@ -120,12 +121,12 @@
 
           <fieldset class="painel">
             <legend>Pedido</legend>
-            <label class="campo">Peça ou ideia<input id="o-peca" list="o-lista-pecas" required></label>
+            <label class="campo" id="o-peca-campo">Peça ou ideia<input id="o-peca" list="o-lista-pecas" required></label>
             <datalist id="o-lista-pecas"></datalist>
             <p class="dica" id="o-peca-ligada"></p>
             <div class="duas">
-              <label class="campo">Quantidade<input id="o-quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
-              <label class="campo">Cor<input id="o-cor"></label>
+              <label class="campo" id="o-quantidade-campo">Quantidade<input id="o-quantidade" type="number" inputmode="numeric" min="1" value="1"></label>
+              <label class="campo" id="o-cor-campo">Cor<input id="o-cor"></label>
               <label class="campo">Prazo pedido pelo cliente<input id="o-prazo"></label>
               <label class="campo">Entrega combinada<input id="o-entrega" type="date"></label>
             </div>
@@ -134,6 +135,17 @@
               <p class="rotulo">Imagens de referência do cliente</p>
               <div class="refs-adm" id="o-refs"></div>
             </div>
+          </fieldset>
+
+          <fieldset class="painel" id="o-itens-bloco">
+            <legend>Itens e produção</legend>
+            <div id="o-progresso" class="o-progresso" hidden></div>
+            <div id="o-itens"></div>
+            <div class="acoes">
+              <button class="botao botao-contorno botao-pequeno" type="button" id="o-add-item">+ Adicionar item</button>
+              <button class="botao botao-contorno botao-pequeno" type="button" id="o-tudo-pronto" hidden>Marcar tudo como produzido</button>
+            </div>
+            <p class="dica" id="o-itens-dica"></p>
           </fieldset>
 
           <fieldset class="painel">
@@ -668,14 +680,15 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610151948"></script>
-  <script src="assets/precificador.js?v=202610151948"></script>
-  <script src="assets/admin.js?v=202610151948"></script>
-  <script src="assets/rastreio.js?v=202610151948"></script>
-  <script src="assets/frete.js?v=202610151948"></script>
-  <script src="assets/email.js?v=202610151948"></script>
-  <script src="assets/pedidos.js?v=202610151948"></script>
-  <script src="assets/financeiro.js?v=202610151948"></script>
-  <script src="assets/frete-admin.js?v=202610151948"></script>
+  <script src="assets/supabase-config.js?v=202610220702"></script>
+  <script src="assets/precificador.js?v=202610220702"></script>
+  <script src="assets/admin.js?v=202610220702"></script>
+  <script src="assets/rastreio.js?v=202610220702"></script>
+  <script src="assets/frete.js?v=202610220702"></script>
+  <script src="assets/email.js?v=202610220702"></script>
+  <script src="assets/itens.js?v=202610220702"></script>
+  <script src="assets/pedidos.js?v=202610220702"></script>
+  <script src="assets/financeiro.js?v=202610220702"></script>
+  <script src="assets/frete-admin.js?v=202610220702"></script>
 </body>
 </html>

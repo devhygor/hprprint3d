@@ -51,12 +51,28 @@
 
   const configurado = (cfg) => !!(cfg && cfg.servico && cfg.template && cfg.chave);
 
-  async function enviarEmailPedido(cfg, pedido, status) {
+  // Pedido com carrinho: a lista de peças com a barrinha de produção entra nas etapas de produção
+  const ETAPAS_PRODUCAO = ["aprovado", "imprimindo", "pronto"];
+  const itensDe = (pedido) => raiz.HPR_ITENS?.lista(pedido) || [];
+  // "andamento" = aviso de peça pronta sem mudar de etapa
+  function textoAndamento(pedido) {
+    const g = raiz.HPR_ITENS.progresso(itensDe(pedido));
+    return [
+      g.completo ? "Todas as peças ficaram prontas" : "Novidade na produção do seu pedido",
+      g.completo ? "Todas as peças do seu pedido já foram feitas! Vamos combinar a entrega ou o envio pelo WhatsApp."
+        : `${g.feitas} de ${g.total} ${g.total > 1 ? "peças" : "peça"} do seu pedido ${g.feitas > 1 ? "já ficaram prontas" : "já ficou pronta"}. Veja como está cada uma abaixo.`,
+    ];
+  }
+
+  async function enviarEmailPedido(cfg, pedido, status, opcoes = {}) {
     if (!configurado(cfg)) return { ok: false, motivo: "E-mail não configurado na aba Loja." };
     const para = String(pedido.email || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) return { ok: false, motivo: "Pedido sem e-mail do cliente." };
-    const [titulo, mensagem] = TEXTOS[status] || TEXTOS.novo;
+    const itens = itensDe(pedido);
+    const andamento = !!opcoes.andamento && itens.length > 0;
+    const [titulo, mensagem] = andamento ? textoAndamento(pedido) : TEXTOS[status] || TEXTOS.novo;
     const rastreio = rastreioDe(pedido, status);
+    const producao = itens.length && (andamento || ETAPAS_PRODUCAO.includes(status)) ? raiz.HPR_ITENS.progressoHtml(itens) : "";
     const r = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       keepalive: true,
@@ -72,7 +88,7 @@
           titulo,
           mensagem,
           peca: pedido.peca || "",
-          progresso: progressoHtml(status) + rastreioHtml(rastreio),
+          progresso: progressoHtml(status) + producao + rastreioHtml(rastreio),
           rastreio: rastreio?.codigo || "",
           link_rastreio: rastreio?.link || "",
           transportadora: rastreio?.nome || "",
@@ -87,8 +103,10 @@
   }
 
   // Mensagem pronta para o WhatsApp do cliente, de acordo com o status
-  function mensagemWhatsapp(pedido, status) {
-    const [titulo, mensagem] = TEXTOS[status] || TEXTOS.novo;
+  function mensagemWhatsapp(pedido, status, opcoes = {}) {
+    const itens = itensDe(pedido);
+    const andamento = !!opcoes.andamento && itens.length > 0;
+    const [titulo, mensagem] = andamento ? textoAndamento(pedido) : TEXTOS[status] || TEXTOS.novo;
     const nome = (pedido.cliente || "").trim().split(" ")[0];
     const etapa = (ETAPAS.find(([id]) => id === status) || [, status === "cancelado" ? "Cancelado" : "Recebido"])[1];
     const linhas = [
@@ -100,6 +118,10 @@
       `*Pedido:* ${pedido.id}${pedido.peca ? " – " + pedido.peca : ""}`,
       `*Etapa:* ${etapa}`,
     ];
+    if (itens.length && (andamento || ETAPAS_PRODUCAO.includes(status))) {
+      const g = raiz.HPR_ITENS.progresso(itens);
+      linhas.push("", `*Produção:* ${g.feitas} de ${g.total} peças prontas`, ...raiz.HPR_ITENS.linhasTexto(itens));
+    }
     const rastreio = rastreioDe(pedido, status);
     if (rastreio) {
       linhas.push(`*Rastreio${rastreio.nome ? " (" + rastreio.nome + ")" : ""}:* ${rastreio.codigo}`, "", `📦 Acompanhe a entrega: ${rastreio.link}`);
@@ -108,5 +130,5 @@
     return linhas.join("\n");
   }
 
-  raiz.HPR_EMAIL = { TEXTOS, configurado, enviarEmailPedido, progressoHtml, rastreioHtml, mensagemWhatsapp };
+  raiz.HPR_EMAIL = { TEXTOS, configurado, enviarEmailPedido, progressoHtml, rastreioHtml, mensagemWhatsapp, textoAndamento };
 })(window);

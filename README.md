@@ -5,6 +5,7 @@ Site da loja [@hprprint3d](https://www.instagram.com/hprprint3d/), em https://hp
 - `index.html` — vitrine pública (lê peças e dados da loja do Supabase)
 - `admin.html` — oficina: pedidos, peças, precificador, financeiro (entradas e saídas por mês), custos e dados da loja. Login por e-mail e senha do Supabase
 - Todos os dados ficam no Supabase. `docs/supabase.sql` cria tabelas, regras de segurança (RLS) e o armazenamento de fotos
+- Carrinho: o cliente junta várias peças num pedido só (guardado no navegador até enviar). O pedido continua sendo uma linha em `pedidos`; os itens ficam na coluna `itens` (`{ id, nome, qtd, cor, foto, preco, feito }`), onde `feito` é quantas unidades já foram produzidas. As colunas `peca`/`quantidade`/`cor` guardam o resumo, para o financeiro e os e-mails seguirem funcionando
 - `data/*.json` são só reserva caso o Supabase não responda
 - `.github/workflows/manter-supabase.yml` evita que o projeto gratuito pause
 

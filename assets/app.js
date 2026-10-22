@@ -78,7 +78,7 @@
             </div>` : ""}
             <div class="peca-rodape">
               ${preco}
-              <a class="botao botao-principal botao-pequeno" href="#pedido" data-pedir="${esc(p.nome)}" data-id="${esc(p.id)}">Pedir</a>
+              <button type="button" class="botao botao-principal botao-pequeno" data-add="${esc(p.id)}">Adicionar</button>
             </div>
           </div>
         </article>`;
@@ -137,7 +137,7 @@
         ${cores.length ? `<h3>Cores disponíveis</h3>
           <ul class="detalhe-cores">${cores.map((cor) => `<li><span class="peca-cor" style="${amostraCor(cor.hex)}"></span>${esc(cor.nome)}</li>`).join("")}</ul>
           ${c.outrasCores ? `<p class="detalhe-obs">Outras cores sob encomenda, é só pedir.</p>` : ""}` : ""}
-        <a class="botao botao-principal detalhe-pedir" href="#pedido" data-pedir="${esc(p.nome)}" data-id="${esc(p.id)}">Pedir esta peça</a>
+        <button type="button" class="botao botao-principal detalhe-pedir" data-add="${esc(p.id)}">Adicionar ao carrinho</button>
       </div>`;
     if (!dialogo.open) dialogo.showModal();
     dialogo.querySelector(".detalhe-conteudo").scrollTop = 0;
@@ -220,8 +220,8 @@
   }
   dialogo.addEventListener("click", (e) => {
     if (e.target === dialogo || e.target.closest("[data-fechar]")) { fecharDetalhe(true); return; }
-    const b = e.target.closest("[data-pedir]");
-    if (b) { e.preventDefault(); fecharDetalhe(true); prepararPedido(b.dataset.pedir, b.dataset.id); }
+    const b = e.target.closest("[data-add]");
+    if (b) { adicionar(b.dataset.add); fecharDetalhe(true); }
   });
   dialogo.addEventListener("cancel", (e) => { e.preventDefault(); fecharDetalhe(true); });
   window.addEventListener("popstate", () => {
@@ -237,27 +237,150 @@
     desenharGrade();
   });
 
-  // ---------- Pedido pelo WhatsApp ----------
+  // ---------- Carrinho ----------
   const numeroZap = () => String(site.whatsapp || "5561981600889").replace(/\D/g, "");
-
-  // Botão "Pedir": leva ao formulário já com a peça preenchida e sugere as cores dela
+  const H = window.HPR_ITENS;
+  const CHAVE_CARRINHO = "hpr-carrinho";
+  const MAX_ITENS = 30;
+  let carrinho = []; // { id, nome, qtd, cor }
   let pecaDoPedido = null; // peça do catálogo escolhida (para as medidas do frete)
-  function prepararPedido(nome, id) {
-    document.getElementById("pedido-peca").value = nome;
-    pecaDoPedido = pecas.find((x) => x.id === id) || null;
-    if (freteAtual) simularFrete();
-    const peca = pecas.find((x) => x.id === id);
-    const cores = (peca?.cores || []).map((c) => c.nome);
-    document.getElementById("cores-sugeridas").innerHTML = cores.map((n) => `<option value="${esc(n)}">`).join("");
-    document.querySelector('#form-pedido [name="cor"]').placeholder = cores.length ? `Disponível: ${cores.slice(0, 4).join(", ")}${cores.length > 4 ? "…" : ""}` : "Ex.: azul e branco";
-    document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    setTimeout(() => document.querySelector('#form-pedido [name="nome"]').focus({ preventScroll: true }), 400);
+  const qtdLimite = (v) => Math.min(99, Math.max(1, parseInt(v, 10) || 1));
+  const lerSalvo = (texto) => {
+    try {
+      const l = JSON.parse(texto || "[]");
+      return Array.isArray(l) ? l.filter((i) => i && i.id && i.nome).slice(0, MAX_ITENS)
+        .map((i) => ({ id: String(i.id), nome: String(i.nome).slice(0, 120), qtd: qtdLimite(i.qtd), cor: String(i.cor || "").slice(0, 120) })) : [];
+    } catch { return []; }
+  };
+  try { carrinho = lerSalvo(localStorage.getItem(CHAVE_CARRINHO)); } catch {}
+  const guardarCarrinho = () => { try { localStorage.setItem(CHAVE_CARRINHO, JSON.stringify(carrinho)); } catch {} };
+  const pecaDe = (id) => pecas.find((x) => x.id === id);
+  const totalUnidades = () => carrinho.reduce((s, i) => s + i.qtd, 0);
+
+  const dlgCarrinho = document.getElementById("carrinho");
+  const formPedido = document.getElementById("form-pedido");
+
+  function adicionar(id) {
+    const p = pecaDe(id);
+    if (!p) return;
+    const existente = carrinho.find((i) => i.id === id && !i.cor);
+    if (existente) existente.qtd = qtdLimite(existente.qtd + 1);
+    else if (carrinho.length >= MAX_ITENS) { avisarCarrinho("O carrinho está cheio. Finalize este pedido e faça outro para o resto."); return; }
+    else carrinho.push({ id, nome: p.nome, qtd: 1, cor: "" });
+    guardarCarrinho();
+    desenharCarrinho();
+    avisarCarrinho(`${p.nome} está no carrinho`, true);
   }
+  let tempoToast;
+  function avisarCarrinho(texto, comLink) {
+    const t = document.getElementById("toast-carrinho");
+    document.getElementById("toast-carrinho-texto").textContent = texto;
+    document.getElementById("toast-carrinho-ver").hidden = !comLink;
+    t.hidden = false;
+    clearTimeout(tempoToast);
+    tempoToast = setTimeout(() => (t.hidden = true), 4500);
+  }
+  document.getElementById("toast-carrinho-ver").addEventListener("click", () => { document.getElementById("toast-carrinho").hidden = true; abrirCarrinho(); });
+
+  function desenharCarrinho() {
+    const n = totalUnidades();
+    const contagem = document.getElementById("carrinho-qtd");
+    contagem.textContent = n;
+    contagem.hidden = !n;
+    document.getElementById("abrir-carrinho").setAttribute("aria-label", n ? `Carrinho, ${n} ${n > 1 ? "itens" : "item"}` : "Carrinho");
+
+    // No formulário: o resumo do carrinho entra no lugar dos campos de peça, quantidade e cor
+    const vazio = !carrinho.length;
+    document.getElementById("bloco-carrinho").hidden = vazio;
+    document.getElementById("campos-livres").hidden = !vazio;
+    document.getElementById("pedido-peca").required = vazio;
+    document.getElementById("resumo-carrinho").innerHTML = carrinho
+      .map((i) => `<li><b>${i.qtd}×</b> ${esc(i.nome)}${i.cor ? ` <small>(${esc(i.cor)})</small>` : ""}</li>`).join("");
+
+    // Janela do carrinho
+    const lista = document.getElementById("carrinho-lista");
+    if (!vazio) {
+      lista.innerHTML = carrinho.map((i, k) => {
+        const p = pecaDe(i.id);
+        const cores = (p?.cores || []).map((c) => c.nome);
+        const preco = Number(p?.preco) > 0 ? brl(Number(p.preco) * i.qtd) : "Sob consulta";
+        return `<div class="carrinho-item" data-k="${k}">
+          <div class="ci-foto">${p?.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy">` : ""}</div>
+          <div class="ci-corpo">
+            <strong>${esc(i.nome)}</strong>
+            <input class="ci-cor" data-cor list="cores-item-${k}" value="${esc(i.cor)}" maxlength="120" placeholder="${cores.length ? `Cor: ${esc(cores.slice(0, 3).join(", "))}…` : "Cor (opcional)"}" aria-label="Cor de ${esc(i.nome)}">
+            <datalist id="cores-item-${k}">${cores.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+            <span class="ci-preco">${preco}</span>
+          </div>
+          <div class="ci-qtd" role="group" aria-label="Quantidade de ${esc(i.nome)}">
+            <button type="button" data-menos aria-label="Diminuir">−</button><output>${i.qtd}</output><button type="button" data-mais aria-label="Aumentar">+</button>
+          </div>
+          <button type="button" class="ci-remover" data-remover-item aria-label="Remover ${esc(i.nome)}">×</button>
+        </div>`;
+      }).join("");
+      const todosComPreco = carrinho.every((i) => Number(pecaDe(i.id)?.preco) > 0);
+      const soma = carrinho.reduce((s, i) => s + Number(pecaDe(i.id)?.preco || 0) * i.qtd, 0);
+      document.getElementById("carrinho-total").innerHTML = soma > 0
+        ? `${todosComPreco ? "Estimativa das peças" : "Estimativa (sem as peças sob consulta)"}: <b>${brl(soma)}</b><small>Confirmamos o valor final, com cor e tamanho, antes de começar.</small>`
+        : `<small>Confirmamos o valor, a cor e o prazo antes de começar a imprimir.</small>`;
+    } else {
+      lista.innerHTML = `<div class="vazio"><strong>Seu carrinho está vazio</strong>Toque em “Adicionar” nas peças que quiser levar. Dá para juntar várias num pedido só.</div>`;
+      document.getElementById("carrinho-total").innerHTML = "";
+    }
+    document.getElementById("carrinho-finalizar").hidden = vazio;
+    atualizarFreteDoCarrinho();
+  }
+
+  function abrirCarrinho() { desenharCarrinho(); if (!dlgCarrinho.open) dlgCarrinho.showModal(); }
+  function fecharCarrinho() { if (dlgCarrinho.open) dlgCarrinho.close(); }
+  document.getElementById("abrir-carrinho").addEventListener("click", abrirCarrinho);
+  document.getElementById("editar-carrinho").addEventListener("click", abrirCarrinho);
+  dlgCarrinho.addEventListener("click", (e) => {
+    if (e.target === dlgCarrinho || e.target.closest("[data-fechar-carrinho]")) { fecharCarrinho(); return; }
+    const linha = e.target.closest("[data-k]");
+    if (!linha) return;
+    const k = Number(linha.dataset.k);
+    const i = carrinho[k];
+    if (!i) return;
+    if (e.target.closest("[data-mais]")) i.qtd = qtdLimite(i.qtd + 1);
+    else if (e.target.closest("[data-menos]")) i.qtd = qtdLimite(i.qtd - 1);
+    else if (e.target.closest("[data-remover-item]")) carrinho.splice(k, 1);
+    else return;
+    guardarCarrinho();
+    desenharCarrinho();
+  });
+  dlgCarrinho.addEventListener("input", (e) => {
+    const campo = e.target.closest("[data-cor]");
+    if (!campo) return;
+    const i = carrinho[Number(campo.closest("[data-k]").dataset.k)];
+    if (i) {
+      i.cor = campo.value.slice(0, 120);
+      guardarCarrinho();
+      document.getElementById("resumo-carrinho").innerHTML = carrinho
+        .map((x) => `<li><b>${x.qtd}×</b> ${esc(x.nome)}${x.cor ? ` <small>(${esc(x.cor)})</small>` : ""}</li>`).join("");
+    }
+  });
+  document.getElementById("carrinho-finalizar").addEventListener("click", () => {
+    fecharCarrinho();
+    document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    setTimeout(() => formPedido.querySelector('[name="nome"]').focus({ preventScroll: true }), 400);
+  });
+  // Peças que saíram do catálogo (ou mudaram de nome) são acertadas quando o catálogo chega
+  function acertarCarrinho() {
+    carrinho = carrinho.filter((i) => pecaDe(i.id)).map((i) => ({ ...i, nome: pecaDe(i.id).nome }));
+    guardarCarrinho();
+    desenharCarrinho();
+  }
+  // Com várias abas abertas, o carrinho acompanha
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CHAVE_CARRINHO) return;
+    carrinho = lerSalvo(e.newValue);
+    desenharCarrinho();
+  });
+
   grade.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-pedir]");
-    if (!b) return;
-    e.preventDefault();
-    prepararPedido(b.dataset.pedir, b.dataset.id);
+    const b = e.target.closest("[data-add]");
+    if (b) adicionar(b.dataset.add);
   });
 
   // ---------- Sessão do cliente (se ele entrou em "Meus pedidos") ----------
@@ -358,12 +481,13 @@
     try {
       const r = await gravar(pedido);
       if (r.ok) return true;
+      if (r.status !== 400 && r.status !== 403) return false;
+      // Banco ainda sem a coluna de itens: grava sem ela (a lista continua no nome da peça e na mensagem)
+      const { itens, ...semItens } = pedido;
+      if ((await gravar(semItens)).ok) return true;
       // Banco ainda sem as colunas de frete: grava sem elas (o frete continua na mensagem)
-      if (r.status === 400 || r.status === 403) {
-        const { cep, envio, frete, endereco, numero, complemento, bairro, uf, ...semFrete } = pedido;
-        return (await gravar(semFrete)).ok;
-      }
-      return false;
+      const { cep, envio, frete, endereco, numero, complemento, bairro, uf, ...semFrete } = semItens;
+      return (await gravar(semFrete)).ok;
     } catch { return false; }
   }
 
@@ -382,6 +506,10 @@
   });
   campoCep.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); simularFrete(); } });
   document.getElementById("calcular-frete").addEventListener("click", () => simularFrete());
+  // Com carrinho, o frete considera todas as peças numa caixa só
+  const listaFrete = () => (carrinho.length ? carrinho.map((i) => ({ peca: pecaDe(i.id), quantidade: i.qtd })) : null);
+  function atualizarFreteDoCarrinho() { if (freteAtual?.fonte === "real") simularFrete(); }
+  desenharCarrinho();
   document.getElementById("pedido-peca").addEventListener("change", (e) => {
     const nome = e.target.value.trim().toLowerCase();
     pecaDoPedido = pecas.find((x) => x.nome.toLowerCase() === nome) || null;
@@ -400,7 +528,7 @@
     caixaFrete.innerHTML = `<p class="frete-carregando">Calculando o frete…</p>`;
     let r;
     try {
-      r = await F.simular({ sb, site, cep: d, peca: pecaDoPedido, quantidade: document.querySelector('#form-pedido [name="quantidade"]').value });
+      r = await F.simular({ sb, site, cep: d, peca: pecaDoPedido, quantidade: document.querySelector('#form-pedido [name="quantidade"]').value, lista: listaFrete() });
     } catch {
       if (vez !== pedidoFrete) return;
       freteAtual = null; freteEscolhido = null;
@@ -458,13 +586,14 @@
     const v = (k) => String(f.get(k) || "").trim();
     const erro = document.getElementById("pedido-erro");
     const ok = document.getElementById("pedido-ok");
-    const faltando = [!v("nome") && "seu nome", !v("peca") && "a peça ou ideia",
+    const comCarrinho = carrinho.length > 0;
+    const faltando = [!v("nome") && "seu nome", !comCarrinho && !v("peca") && "a peça ou ideia",
       vaiPorEnvio() && (!v("endereco") || !v("numero")) && "a rua e o número da entrega"].filter(Boolean);
     const emailRuim = v("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("email"));
     if (faltando.length || emailRuim) {
       erro.textContent = faltando.length ? "Preencha " + faltando.join(" e ") + " para enviar." : "Confira o e-mail: parece que falta alguma coisa.";
       erro.hidden = false;
-      form.querySelector(!v("nome") ? '[name="nome"]' : !v("peca") ? '[name="peca"]' : vaiPorEnvio() && !v("endereco") ? '[name="endereco"]' : vaiPorEnvio() && !v("numero") ? '[name="numero"]' : '[name="email"]').focus();
+      form.querySelector(!v("nome") ? '[name="nome"]' : !comCarrinho && !v("peca") ? '[name="peca"]' : vaiPorEnvio() && !v("endereco") ? '[name="endereco"]' : vaiPorEnvio() && !v("numero") ? '[name="numero"]' : '[name="email"]').focus();
       return;
     }
     erro.hidden = true;
@@ -489,11 +618,16 @@
     const codigo = `HPR-${String(hoje.getMonth() + 1).padStart(2, "0")}${String(hoje.getDate()).padStart(2, "0")}-${sorteio}`;
 
     const caminhos = refs.length ? await enviarReferencias(codigo) : [];
+    // Carrinho: cada item vira uma linha; sem carrinho, vale o campo livre (peça ou ideia)
+    const itens = carrinho.map((i) => H.normalizar({ ...i, foto: pecaDe(i.id)?.foto, preco: pecaDe(i.id)?.preco, feito: 0 }));
+    const nomePedido = (itens.length ? H.resumo(itens) : v("peca")).slice(0, 300);
     const detalhes = [
       `*Código:* ${codigo}`,
-      `*Pedido:* ${v("peca")}`,
-      `*Quantidade:* ${v("quantidade") || "1"}`,
-      v("cor") && `*Cor:* ${v("cor")}`,
+      itens.length
+        ? `*Pedido (${H.unidades(itens)} ${H.unidades(itens) > 1 ? "peças" : "peça"}):*\n${itens.map((i) => `• ${i.qtd}× ${i.nome}${i.cor ? ` (${i.cor})` : ""}`).join("\n")}`
+        : `*Pedido:* ${v("peca")}`,
+      !itens.length && `*Quantidade:* ${v("quantidade") || "1"}`,
+      !itens.length && v("cor") && `*Cor:* ${v("cor")}`,
       v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,
       freteAtual && `*CEP:* ${freteAtual.endereco.cep}`,
       vaiPorEnvio() && `*Endereço:* ${v("endereco")}, ${v("numero")}${v("complemento") ? " – " + v("complemento") : ""}, ${v("bairro")} – ${freteAtual.endereco.cidade}/${freteAtual.endereco.uf}`,
@@ -519,9 +653,10 @@
       } : {}),
       envio: freteEscolhido ? `${freteEscolhido.nome}${freteEscolhido.prazo ? " · " + freteEscolhido.prazo : ""}`.slice(0, 160) : null,
       frete: freteEscolhido ? Math.round(freteEscolhido.valor * 100) / 100 : null,
-      peca: v("peca").slice(0, 300),
-      quantidade: Math.min(10000, Math.max(1, parseInt(v("quantidade"), 10) || 1)),
-      cor: v("cor").slice(0, 120),
+      peca: nomePedido,
+      quantidade: itens.length ? Math.min(10000, H.unidades(itens)) : Math.min(10000, Math.max(1, parseInt(v("quantidade"), 10) || 1)),
+      cor: itens.length ? [...new Set(itens.map((i) => i.cor).filter(Boolean))].join(", ").slice(0, 120) : v("cor").slice(0, 120),
+      itens,
       prazo: v("prazo").slice(0, 160),
       detalhes: v("detalhes").slice(0, 2000),
       mensagem: texto.slice(0, 4000),
@@ -554,6 +689,7 @@
     }
     if (gravado) {
       form.reset();
+      if (itens.length) { carrinho = []; guardarCarrinho(); desenharCarrinho(); }
       refs.forEach((r) => URL.revokeObjectURL(r.url));
       refs = [];
       desenharRefs();
@@ -639,6 +775,7 @@
     document.querySelectorAll('[data-link="instagram"]').forEach((a) => (a.href = site.instagram || a.href));
     desenharFiltros();
     desenharGrade();
+    if (pecas.length) acertarCarrinho();
     desenharInstagram();
     const m = location.hash.match(/^#peca-(.+)$/);
     if (m) abrirDetalhe(decodeURIComponent(m[1]), false);
