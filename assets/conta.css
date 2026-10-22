@@ -86,3 +86,6 @@
 .pc-itens li.andando .pi-estado { color: var(--neon-claro); }
 .pc-itens li.pronto .pi-estado { color: var(--menta); }
 .pc-itens li.pronto .pi-estado::before { content: "✓ "; }
+
+.pc-aprovacao { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(255, 178, 64, .12); border: 1px solid rgba(255, 178, 64, .45); color: #ffd9a0; font-size: .9rem; line-height: 1.4; }
+.pi-nome .pi-medida { display: block; margin-left: 0; color: #ffb240; }

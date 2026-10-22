@@ -242,14 +242,19 @@
   const H = window.HPR_ITENS;
   const CHAVE_CARRINHO = "hpr-carrinho";
   const MAX_ITENS = 30;
-  let carrinho = []; // { id, nome, qtd, cor }
+  let carrinho = []; // { id, nome, qtd, cor, medida? }  (medida = { largura, altura, profundidade, obs } em texto)
   let pecaDoPedido = null; // peça do catálogo escolhida (para as medidas do frete)
   const qtdLimite = (v) => Math.min(99, Math.max(1, parseInt(v, 10) || 1));
   const lerSalvo = (texto) => {
     try {
       const l = JSON.parse(texto || "[]");
-      return Array.isArray(l) ? l.filter((i) => i && i.id && i.nome).slice(0, MAX_ITENS)
-        .map((i) => ({ id: String(i.id), nome: String(i.nome).slice(0, 120), qtd: qtdLimite(i.qtd), cor: String(i.cor || "").slice(0, 120) })) : [];
+      return Array.isArray(l) ? l.filter((i) => i && i.id && i.nome).slice(0, MAX_ITENS).map((i) => {
+        const item = { id: String(i.id), nome: String(i.nome).slice(0, 120), qtd: qtdLimite(i.qtd), cor: String(i.cor || "").slice(0, 120) };
+        if (i.medida && typeof i.medida === "object") {
+          item.medida = { largura: String(i.medida.largura ?? ""), altura: String(i.medida.altura ?? ""), profundidade: String(i.medida.profundidade ?? ""), obs: String(i.medida.obs ?? "").slice(0, 200) };
+        }
+        return item;
+      }) : [];
     } catch { return []; }
   };
   try { carrinho = lerSalvo(localStorage.getItem(CHAVE_CARRINHO)); } catch {}
@@ -257,13 +262,33 @@
   const pecaDe = (id) => pecas.find((x) => x.id === id);
   const totalUnidades = () => carrinho.reduce((s, i) => s + i.qtd, 0);
 
+  // Cor: bolinhas do catálogo (pode marcar mais de uma) + campo livre para outra cor. Tudo vira o texto "Azul, Branco, verde-água".
+  const partesCor = (i) => {
+    const catalogo = (pecaDe(i.id)?.cores || []).map((c) => c.nome);
+    const sel = [], livre = [];
+    for (const x of String(i.cor || "").split(/\s*,\s*/).filter(Boolean)) {
+      const nome = catalogo.find((n) => n.toLowerCase() === x.toLowerCase());
+      (nome ? sel : livre).push(nome || x);
+    }
+    return { sel, livre: livre.join(", ") };
+  };
+  const comporCor = (sel, livre) => [...sel, String(livre).trim()].filter(Boolean).join(", ").slice(0, 120);
+  const temMedida = (i) => !!i.medida;
+  const medidaPreenchida = (m) => ["largura", "altura", "profundidade"].some((k) => Number(String(m?.[k] ?? "").replace(",", ".")) > 0);
+  const indiceMedidaIncompleta = () => carrinho.findIndex((i) => temMedida(i) && !medidaPreenchida(i.medida));
+  const tamanhoPadrao = (p) => {
+    const c = p?.caracteristicas || {};
+    const m = [c.largura, c.altura, c.profundidade].filter((x) => Number(x) > 0);
+    return m.length ? `${m.map(fmt).join(" × ")} cm` : "";
+  };
+
   const dlgCarrinho = document.getElementById("carrinho");
   const formPedido = document.getElementById("form-pedido");
 
   function adicionar(id) {
     const p = pecaDe(id);
     if (!p) return;
-    const existente = carrinho.find((i) => i.id === id && !i.cor);
+    const existente = carrinho.find((i) => i.id === id && !i.cor && !i.medida);
     if (existente) existente.qtd = qtdLimite(existente.qtd + 1);
     else if (carrinho.length >= MAX_ITENS) { avisarCarrinho("O carrinho está cheio. Finalize este pedido e faça outro para o resto."); return; }
     else carrinho.push({ id, nome: p.nome, qtd: 1, cor: "" });
@@ -282,6 +307,8 @@
   }
   document.getElementById("toast-carrinho-ver").addEventListener("click", () => { document.getElementById("toast-carrinho").hidden = true; abrirCarrinho(); });
 
+  const linhaResumo = (i) => `<li><b>${i.qtd}×</b> ${esc(i.nome)}${i.cor ? ` <small>(${esc(i.cor)})</small>` : ""}${temMedida(i) ? ` <small class="resumo-medida">medida personalizada</small>` : ""}</li>`;
+
   function desenharCarrinho() {
     const n = totalUnidades();
     const contagem = document.getElementById("carrinho-qtd");
@@ -291,37 +318,60 @@
 
     // No formulário: o resumo do carrinho entra no lugar dos campos de peça, quantidade e cor
     const vazio = !carrinho.length;
+    const comMedida = carrinho.some(temMedida);
     document.getElementById("bloco-carrinho").hidden = vazio;
     document.getElementById("campos-livres").hidden = !vazio;
     document.getElementById("pedido-peca").required = vazio;
-    document.getElementById("resumo-carrinho").innerHTML = carrinho
-      .map((i) => `<li><b>${i.qtd}×</b> ${esc(i.nome)}${i.cor ? ` <small>(${esc(i.cor)})</small>` : ""}</li>`).join("");
+    document.getElementById("resumo-carrinho").innerHTML = carrinho.map(linhaResumo).join("");
+    document.getElementById("resumo-aprovacao").hidden = !comMedida;
+    document.getElementById("carrinho-aviso").hidden = !comMedida;
 
     // Janela do carrinho
     const lista = document.getElementById("carrinho-lista");
     if (!vazio) {
       lista.innerHTML = carrinho.map((i, k) => {
         const p = pecaDe(i.id);
-        const cores = (p?.cores || []).map((c) => c.nome);
-        const preco = Number(p?.preco) > 0 ? brl(Number(p.preco) * i.qtd) : "Sob consulta";
+        const cores = p?.cores || [];
+        const { sel, livre } = partesCor(i);
+        const m = i.medida;
+        const padrao = tamanhoPadrao(p);
+        const preco = temMedida(i) ? "Valor sob orçamento" : Number(p?.preco) > 0 ? brl(Number(p.preco) * i.qtd) : "Sob consulta";
         return `<div class="carrinho-item" data-k="${k}">
           <div class="ci-foto">${p?.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy">` : ""}</div>
           <div class="ci-corpo">
             <strong>${esc(i.nome)}</strong>
-            <input class="ci-cor" data-cor list="cores-item-${k}" value="${esc(i.cor)}" maxlength="120" placeholder="${cores.length ? `Cor: ${esc(cores.slice(0, 3).join(", "))}…` : "Cor (opcional)"}" aria-label="Cor de ${esc(i.nome)}">
-            <datalist id="cores-item-${k}">${cores.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
             <span class="ci-preco">${preco}</span>
           </div>
           <div class="ci-qtd" role="group" aria-label="Quantidade de ${esc(i.nome)}">
             <button type="button" data-menos aria-label="Diminuir">−</button><output>${i.qtd}</output><button type="button" data-mais aria-label="Aumentar">+</button>
           </div>
           <button type="button" class="ci-remover" data-remover-item aria-label="Remover ${esc(i.nome)}">×</button>
+          <div class="ci-opcoes">
+            <div class="ci-bloco">
+              <span class="ci-rotulo">Cor <small>${cores.length ? "toque nas bolinhas (pode escolher mais de uma)" : "escreva a cor que você quer"}</small></span>
+              ${cores.length ? `<div class="ci-cores">${cores.map((c) => `<button type="button" class="ci-chip" data-cor-nome="${esc(c.nome)}" aria-pressed="${sel.includes(c.nome)}"><span class="peca-cor" style="${amostraCor(c.hex)}"></span>${esc(c.nome)}</button>`).join("")}</div>` : ""}
+              <input class="ci-livre" data-cor-livre value="${esc(livre)}" maxlength="80" placeholder="${cores.length ? "Outra cor? Escreva aqui (ex.: verde-água)" : "Ex.: azul e branco"}" aria-label="Outra cor para ${esc(i.nome)}">
+            </div>
+            <div class="ci-bloco">
+              <label class="ci-medida-toggle"><input type="checkbox" data-medida-on ${m ? "checked" : ""}> <span>Quero uma <b>medida personalizada</b>${padrao ? ` <small>(padrão: ${esc(padrao)})</small>` : ""}</span></label>
+              ${m ? `<div class="ci-medida">
+                <div class="ci-medidas-campos">
+                  <label>Largura<input data-med="largura" inputmode="decimal" value="${esc(m.largura)}" placeholder="cm"></label>
+                  <label>Altura<input data-med="altura" inputmode="decimal" value="${esc(m.altura)}" placeholder="cm"></label>
+                  <label>Profundidade<input data-med="profundidade" inputmode="decimal" value="${esc(m.profundidade)}" placeholder="cm"></label>
+                </div>
+                <input class="ci-livre" data-med="obs" value="${esc(m.obs)}" maxlength="200" placeholder="Algo mais sobre o tamanho? (opcional)" aria-label="Observação sobre a medida">
+                <p class="ci-aprovacao">Medida diferente muda o material, o tempo de impressão e o custo. Por isso o orçamento passa por aprovação nossa antes de você pagar ou de a gente começar.</p>
+              </div>` : ""}
+            </div>
+          </div>
         </div>`;
       }).join("");
-      const todosComPreco = carrinho.every((i) => Number(pecaDe(i.id)?.preco) > 0);
-      const soma = carrinho.reduce((s, i) => s + Number(pecaDe(i.id)?.preco || 0) * i.qtd, 0);
+      const contaveis = carrinho.filter((i) => !temMedida(i));
+      const todosComPreco = contaveis.every((i) => Number(pecaDe(i.id)?.preco) > 0) && contaveis.length === carrinho.length;
+      const soma = contaveis.reduce((s, i) => s + Number(pecaDe(i.id)?.preco || 0) * i.qtd, 0);
       document.getElementById("carrinho-total").innerHTML = soma > 0
-        ? `${todosComPreco ? "Estimativa das peças" : "Estimativa (sem as peças sob consulta)"}: <b>${brl(soma)}</b><small>Confirmamos o valor final, com cor e tamanho, antes de começar.</small>`
+        ? `${todosComPreco ? "Estimativa das peças" : "Estimativa (sem as peças sob consulta ou com medida personalizada)"}: <b>${brl(soma)}</b><small>Confirmamos o valor final, com cor e tamanho, antes de começar.</small>`
         : `<small>Confirmamos o valor, a cor e o prazo antes de começar a imprimir.</small>`;
     } else {
       lista.innerHTML = `<div class="vazio"><strong>Seu carrinho está vazio</strong>Toque em “Adicionar” nas peças que quiser levar. Dá para juntar várias num pedido só.</div>`;
@@ -345,22 +395,41 @@
     if (e.target.closest("[data-mais]")) i.qtd = qtdLimite(i.qtd + 1);
     else if (e.target.closest("[data-menos]")) i.qtd = qtdLimite(i.qtd - 1);
     else if (e.target.closest("[data-remover-item]")) carrinho.splice(k, 1);
-    else return;
+    else if (e.target.closest("[data-cor-nome]")) {
+      const nome = e.target.closest("[data-cor-nome]").dataset.corNome;
+      const { sel, livre } = partesCor(i);
+      i.cor = comporCor(sel.includes(nome) ? sel.filter((x) => x !== nome) : [...sel, nome], livre);
+    } else if (e.target.closest("[data-medida-on]")) {
+      if (e.target.closest("[data-medida-on]").checked) i.medida = { largura: "", altura: "", profundidade: "", obs: "" };
+      else delete i.medida;
+    } else return;
     guardarCarrinho();
     desenharCarrinho();
   });
   dlgCarrinho.addEventListener("input", (e) => {
-    const campo = e.target.closest("[data-cor]");
-    if (!campo) return;
-    const i = carrinho[Number(campo.closest("[data-k]").dataset.k)];
-    if (i) {
-      i.cor = campo.value.slice(0, 120);
-      guardarCarrinho();
-      document.getElementById("resumo-carrinho").innerHTML = carrinho
-        .map((x) => `<li><b>${x.qtd}×</b> ${esc(x.nome)}${x.cor ? ` <small>(${esc(x.cor)})</small>` : ""}</li>`).join("");
-    }
+    const linha = e.target.closest("[data-k]");
+    const i = linha && carrinho[Number(linha.dataset.k)];
+    if (!i) return;
+    if (e.target.matches("[data-cor-livre]")) {
+      i.cor = comporCor(partesCor(i).sel, e.target.value);
+    } else if (e.target.matches("[data-med]")) {
+      i.medida = { ...i.medida, [e.target.dataset.med]: e.target.value };
+    } else return;
+    guardarCarrinho();
+    document.getElementById("resumo-carrinho").innerHTML = carrinho.map(linhaResumo).join("");
   });
+  // Antes de seguir: medida personalizada precisa de pelo menos uma medida
+  function conferirMedidas() {
+    const k = indiceMedidaIncompleta();
+    if (k < 0) return true;
+    abrirCarrinho();
+    const campo = dlgCarrinho.querySelector(`[data-k="${k}"] [data-med="largura"]`);
+    campo?.focus();
+    avisarCarrinho(`Informe pelo menos uma medida (em cm) de ${carrinho[k].nome}, ou desmarque a medida personalizada.`);
+    return false;
+  }
   document.getElementById("carrinho-finalizar").addEventListener("click", () => {
+    if (!conferirMedidas()) return;
     fecharCarrinho();
     document.getElementById("pedido").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     setTimeout(() => formPedido.querySelector('[name="nome"]').focus({ preventScroll: true }), 400);
@@ -507,7 +576,7 @@
   campoCep.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); simularFrete(); } });
   document.getElementById("calcular-frete").addEventListener("click", () => simularFrete());
   // Com carrinho, o frete considera todas as peças numa caixa só
-  const listaFrete = () => (carrinho.length ? carrinho.map((i) => ({ peca: pecaDe(i.id), quantidade: i.qtd })) : null);
+  const listaFrete = () => (carrinho.length ? carrinho.map((i) => ({ peca: H.pecaComMedida(pecaDe(i.id), i.medida), quantidade: i.qtd })) : null);
   function atualizarFreteDoCarrinho() { if (freteAtual?.fonte === "real") simularFrete(); }
   desenharCarrinho();
   document.getElementById("pedido-peca").addEventListener("change", (e) => {
@@ -587,6 +656,7 @@
     const erro = document.getElementById("pedido-erro");
     const ok = document.getElementById("pedido-ok");
     const comCarrinho = carrinho.length > 0;
+    if (comCarrinho && indiceMedidaIncompleta() >= 0) { conferirMedidas(); return; }
     const faltando = [!v("nome") && "seu nome", !comCarrinho && !v("peca") && "a peça ou ideia",
       vaiPorEnvio() && (!v("endereco") || !v("numero")) && "a rua e o número da entrega"].filter(Boolean);
     const emailRuim = v("email") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v("email"));
@@ -619,13 +689,14 @@
 
     const caminhos = refs.length ? await enviarReferencias(codigo) : [];
     // Carrinho: cada item vira uma linha; sem carrinho, vale o campo livre (peça ou ideia)
-    const itens = carrinho.map((i) => H.normalizar({ ...i, foto: pecaDe(i.id)?.foto, preco: pecaDe(i.id)?.preco, feito: 0 }));
+    const itens = carrinho.map((i) => H.normalizar({ ...i, foto: pecaDe(i.id)?.foto, preco: i.medida ? null : pecaDe(i.id)?.preco, feito: 0 }));
     const nomePedido = (itens.length ? H.resumo(itens) : v("peca")).slice(0, 300);
     const detalhes = [
       `*Código:* ${codigo}`,
       itens.length
-        ? `*Pedido (${H.unidades(itens)} ${H.unidades(itens) > 1 ? "peças" : "peça"}):*\n${itens.map((i) => `• ${i.qtd}× ${i.nome}${i.cor ? ` (${i.cor})` : ""}`).join("\n")}`
+        ? `*Pedido (${H.unidades(itens)} ${H.unidades(itens) > 1 ? "peças" : "peça"}):*\n${itens.map((i) => `• ${i.qtd}× ${i.nome}${i.cor ? ` (${i.cor})` : ""}${i.medida ? ` — *medida personalizada:* ${H.textoMedida(i.medida)}` : ""}`).join("\n")}`
         : `*Pedido:* ${v("peca")}`,
+      H.comMedida(itens) && `*Atenção:* tem peça com medida personalizada, então o orçamento passa por aprovação (muda o custo de produção).`,
       !itens.length && `*Quantidade:* ${v("quantidade") || "1"}`,
       !itens.length && v("cor") && `*Cor:* ${v("cor")}`,
       v("cidade") && `*Cidade/bairro:* ${v("cidade")}`,

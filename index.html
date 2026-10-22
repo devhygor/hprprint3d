@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610220702">
+  <link rel="stylesheet" href="assets/style.css?v=202610220725">
 </head>
 <body>
   <header class="topo">
@@ -126,6 +126,7 @@
             <div class="pedido-carrinho" id="bloco-carrinho" hidden>
               <div class="pc-cabeca"><span>Seu carrinho</span><button type="button" class="botao-link-inline" id="editar-carrinho">Editar</button></div>
               <ul id="resumo-carrinho"></ul>
+              <p class="resumo-aprovacao" id="resumo-aprovacao" hidden>Tem peça com medida personalizada: mandamos o orçamento para você aprovar antes de começar.</p>
               <small>Quer algo personalizado junto? Conte em “Detalhes” abaixo.</small>
             </div>
             <div id="campos-livres">
@@ -184,6 +185,7 @@
     <button type="button" class="detalhe-fechar" data-fechar-carrinho aria-label="Fechar carrinho">×</button>
     <div class="carrinho-conteudo">
       <h2 id="carrinho-titulo">Seu carrinho</h2>
+      <p class="carrinho-aviso" id="carrinho-aviso" role="note" hidden><b>Orçamento sob aprovação.</b> Peças com medida personalizada mudam o custo de produção, então a gente calcula o valor e o prazo e só começa depois que você aprovar.</p>
       <div id="carrinho-lista"></div>
       <p class="carrinho-total" id="carrinho-total"></p>
       <div class="carrinho-acoes">
@@ -204,10 +206,10 @@
     </div>
   </footer>
 
-  <script src="assets/supabase-config.js?v=202610220702"></script>
-  <script src="assets/email.js?v=202610220702"></script>
-  <script src="assets/frete.js?v=202610220702"></script>
-  <script src="assets/itens.js?v=202610220702"></script>
-  <script src="assets/app.js?v=202610220702"></script>
+  <script src="assets/supabase-config.js?v=202610220725"></script>
+  <script src="assets/email.js?v=202610220725"></script>
+  <script src="assets/frete.js?v=202610220725"></script>
+  <script src="assets/itens.js?v=202610220725"></script>
+  <script src="assets/app.js?v=202610220725"></script>
 </body>
 </html>

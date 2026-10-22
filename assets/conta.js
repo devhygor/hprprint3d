@@ -140,11 +140,13 @@
     const itens = window.HPR_ITENS?.lista(p) || [];
     if (!itens.length || p.status === "cancelado") return "";
     const g = window.HPR_ITENS.progresso(itens);
+    const aguardando = window.HPR_ITENS.comMedida(itens) && ["novo", "orcamento"].includes(p.status);
     return `<div class="pc-producao">
+      ${aguardando ? `<p class="pc-aprovacao"><b>Orçamento em aprovação.</b> Como tem peça com medida personalizada, a gente calcula o valor e o prazo e só começa a imprimir depois que você aprovar.</p>` : ""}
       <div class="pc-prod-topo"><span>Produção das peças</span><b>${g.feitas} de ${g.total} prontas</b></div>
       <div class="barra-prod" role="progressbar" aria-valuemin="0" aria-valuemax="${g.total}" aria-valuenow="${g.feitas}" aria-label="Peças prontas"><i style="width:${g.pct}%"></i></div>
       <ul class="pc-itens">${itens.map((i) => `<li class="${i.feito >= i.qtd ? "pronto" : i.feito > 0 ? "andando" : ""}">
-        <span class="pi-nome">${esc(i.nome)}${i.cor ? ` <small>${esc(i.cor)}</small>` : ""}</span>
+        <span class="pi-nome">${esc(i.nome)}${i.cor ? ` <small>${esc(i.cor)}</small>` : ""}${i.medida ? `<small class="pi-medida">Medida personalizada: ${esc(window.HPR_ITENS.textoMedida(i.medida))}</small>` : ""}</span>
         <span class="pi-estado">${i.feito >= i.qtd ? "Pronto" : `${i.feito} de ${i.qtd}`}</span>
       </li>`).join("")}</ul>
     </div>`;

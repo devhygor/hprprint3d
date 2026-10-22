@@ -130,7 +130,7 @@
   }
   // Formato que o Melhor Envio espera (um produto = a caixa inteira)
   function produtos(cfg, peca, quantidade, lista) {
-    const cx = lista?.length > 1 ? caixaVarios(cfg, lista) : caixa(cfg, peca, quantidade);
+    const cx = lista?.length ? caixaVarios(cfg, lista) : caixa(cfg, peca, quantidade);
     return [{ id: peca?.id || "pedido", width: cx.largura, height: cx.altura, length: cx.comprimento, weight: cx.peso / 1000, insurance_value: cx.valor, quantity: 1 }];
   }
 

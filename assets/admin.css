@@ -435,3 +435,11 @@ body.ordenando, body.ordenando * { cursor: grabbing !important; user-select: non
   .o-item .cpi-ctrl { grid-column: 1 / 3; justify-self: start; }
 }
 #o-peca-campo[hidden], #o-quantidade-campo[hidden], #o-cor-campo[hidden], #o-progresso[hidden], #o-tudo-pronto[hidden], #aviso-zap-email[hidden], #aviso-zap-link[hidden] { display: none; }
+
+.cp-medida { font-size: .76rem; font-weight: 700; color: #ffb240; background: rgba(255, 178, 64, .12); padding: 2px 8px; border-radius: 999px; }
+.o-item-med { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .88rem; color: var(--texto-2); }
+.o-item-med label.med-liga { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.o-item-med .med-campos { display: contents; }
+.o-item-med input[type="text"], .o-item-med input[type="number"] { width: 86px; }
+.o-item-med input[data-med="obs"] { flex: 1; min-width: 160px; width: auto; }
+.o-item-med .med-aviso { flex-basis: 100%; color: #ffb240; font-size: .82rem; }

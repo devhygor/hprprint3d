@@ -162,7 +162,7 @@
         <span class="barra-prod" role="progressbar" aria-valuemin="0" aria-valuemax="${g.total}" aria-valuenow="${g.feitas}" aria-label="Peças prontas de ${esc(p.id)}"><i style="width:${g.pct}%"></i></span>
       </summary>
       <ul class="cp-itens">${its.map((i, k) => `<li class="${i.feito >= i.qtd ? "pronto" : ""}">
-        <span class="cpi-nome">${esc(i.nome)}${i.cor ? `<small>${esc(i.cor)}</small>` : ""}</span>
+        <span class="cpi-nome">${esc(i.nome)}${i.cor ? `<small>${esc(i.cor)}</small>` : ""}${i.medida ? `<small class="cp-medida-i">${esc(H.textoMedida(i.medida))}</small>` : ""}</span>
         <span class="cpi-ctrl">
           <button type="button" data-feito="${esc(p.id)}|${k}|-1" ${i.feito <= 0 ? "disabled" : ""} aria-label="Uma a menos: ${esc(i.nome)}">−</button>
           <b>${i.feito}/${i.qtd}</b>
@@ -206,6 +206,7 @@
           <div class="cp-info">
             ${entrega}
             ${p.rastreio ? `<a class="cp-rastreio" href="${esc(window.HPR_RASTREIO.dePedido(p).link)}" target="_blank" rel="noopener" title="Abrir o rastreio">📦 ${esc(window.HPR_RASTREIO.limpar(p.rastreio))}</a>` : ""}
+            ${H.comMedida(H.lista(p)) && ["novo", "orcamento"].includes(p.status) ? `<span class="cp-medida" title="Medida personalizada muda o custo: confira o valor antes de mandar o orçamento">Medida personalizada: aprovar orçamento</span>` : ""}
             ${(p.referencias || []).length ? `<span class="cp-ref">${p.referencias.length} ${p.referencias.length > 1 ? "imagens" : "imagem"} de referência</span>` : ""}
             ${Number.isFinite(c.valor) ? `<span>${brl(c.total)}${c.frete > 0 ? ` <small class="cp-frete">(frete ${brl(c.frete)})</small>` : ""}${c.pago ? ` <span class="cp-pago">pago</span>` : c.total > 0 ? ` <span class="cp-a-receber">${c.sinal > 0 ? `falta ${brl(c.falta)}` : "a receber"}</span>` : ""}</span>` : ""}
             ${p.envio ? `<span class="cp-envio">${esc(p.envio.split(" · ")[0])}</span>` : ""}
@@ -492,9 +493,20 @@
           <button type="button" class="ok" data-pronto ${feito >= qtd ? "disabled" : ""}>Pronto</button>
         </div>
         <button type="button" class="o-rem" data-rem aria-label="Remover item ${k + 1}">×</button>
+        <div class="o-item-med">
+          <label class="med-liga"><input type="checkbox" data-med-on ${i.medida ? "checked" : ""}> Medida personalizada</label>
+          ${i.medida ? `<span class="med-campos">
+            ${["largura", "altura", "profundidade"].map((m) => `<input type="number" step="0.1" min="0" inputmode="decimal" data-med="${m}" value="${esc(i.medida[m] ?? "")}" placeholder="${m} cm" aria-label="${m} em cm do item ${k + 1}">`).join("")}
+            <input type="text" data-med="obs" maxlength="200" value="${esc(i.medida.obs || "")}" placeholder="Observação" aria-label="Observação da medida do item ${k + 1}">
+            <span class="med-aviso">Medida diferente muda o custo: ajuste o valor das peças antes de mandar o orçamento.</span>
+          </span>` : ""}
+        </div>
       </div>`;
     }).join("");
-    $("#o-itens-dica").textContent = tem
+    const comMed = H.comMedida(norm);
+    $("#o-itens-dica").textContent = comMed
+      ? "Tem item com medida personalizada: o custo muda. Confira o valor em Combinado e mande o orçamento para o cliente aprovar antes de imprimir."
+      : tem
       ? "Use + a cada peça que sair da impressora. O cliente vê o andamento em Meus pedidos e, ao salvar, dá para avisar por e-mail e WhatsApp."
       : "Pedido de uma peça só ou ideia livre. Para acompanhar a produção peça por peça, adicione itens.";
   }
@@ -512,6 +524,12 @@
     atualizarLado();
   }
   $("#o-itens").addEventListener("input", (e) => {
+    const med = e.target.closest("[data-med]");
+    if (med) {
+      const im = atual.itens[Number(med.closest("[data-k]").dataset.k)];
+      if (im) { im.medida = { ...(im.medida || {}), [med.dataset.med]: med.value }; atualizarLado(); }
+      return;
+    }
     const campo = e.target.closest("[data-campo]");
     if (!campo) return;
     const i = atual.itens[Number(campo.closest("[data-k]").dataset.k)];
@@ -530,7 +548,14 @@
     atualizarLado();
   });
   // Ao sair do campo de quantidade, redesenha (o contador "n/total" muda)
-  $("#o-itens").addEventListener("change", (e) => { if (e.target.closest('[data-campo="qtd"], [data-campo="nome"]')) mexeuNosItens(); });
+  $("#o-itens").addEventListener("change", (e) => {
+    if (e.target.closest('[data-campo="qtd"], [data-campo="nome"]')) mexeuNosItens();
+    const on = e.target.closest("[data-med-on]");
+    if (on) {
+      const im = atual.itens[Number(on.closest("[data-k]").dataset.k)];
+      if (im) { im.medida = on.checked ? { largura: "", altura: "", profundidade: "", obs: "" } : null; mexeuNosItens(); }
+    }
+  });
   $("#o-itens").addEventListener("click", (e) => {
     const linha = e.target.closest("[data-k]");
     if (!linha) return;
@@ -571,10 +596,10 @@
   // Frete e etiqueta consideram todas as peças numa caixa só
   function listaFreteAdm() {
     const its = H.lista({ itens: atual.itens || [] });
-    if (its.length < 2) return null;
+    if (!its.length) return null;
     return its.map((i) => {
       const pc = estado.pecas.find((x) => x.id === i.id);
-      return { peca: pc && { id: pc.id, preco: pc.precoVitrine, caracteristicas: pc.caracteristicas }, quantidade: i.qtd };
+      return { peca: pc && H.pecaComMedida({ id: pc.id, preco: pc.precoVitrine, caracteristicas: pc.caracteristicas }, i.medida), quantidade: i.qtd };
     });
   }
 
