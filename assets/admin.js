@@ -792,8 +792,7 @@
       if (!$("#p-descricao").value.trim()) {
         $("#p-descricao").value = data.descricaoOriginal.slice(0, 600);
         $("#p-descricao").dispatchEvent(new Event("input", { bubbles: true }));
-        if (estado.ia?.chave) $("#gerar-descricao").click();
-        else avisos.push("Cadastre a chave da OpenAI na aba Loja para a descrição sair em português automaticamente.");
+        $("#gerar-descricao").click(); // IA da loja (PC ou nuvem gratuita); o resultado aparece abaixo do campo
       }
       st.className = /NÃO permite/.test(avisos[0]) ? "dica erro" : "dica";
       st.textContent = "Importado de " + (data.autor || "MakerWorld") + ". " + avisos.join(" ");
@@ -904,13 +903,42 @@
     const st = $("#status-ia");
     st.hidden = false;
     st.className = "dica";
-    if (!estado.ia?.chave) {
-      st.className = "dica erro";
-      st.textContent = "Cadastre a chave da OpenAI na aba Loja para usar a IA.";
-      return;
-    }
     const nome = $("#p-nome").value.trim();
     if (!nome) { st.className = "dica erro"; st.textContent = "Escreva o nome da peça primeiro."; $("#p-nome").focus(); return; }
+    // 1º a IA da loja (função "ia": PC e depois nuvem gratuita); a OpenAI só entra se ainda houver chave cadastrada
+    const botaoIA = $("#gerar-descricao");
+    botaoIA.disabled = true;
+    st.textContent = "Escrevendo a descrição…";
+    let erroFuncao = "";
+    try {
+      const { data, error } = await db.functions.invoke("ia", {
+        body: {
+          acao: "descricao", nome, categoria: $("#p-categoria").value.trim(), material: $("#c-material").value.trim(),
+          ideia: $("#p-descricao").value.trim(),
+          kit: lerKit().map((k) => (k.qtd > 1 ? `${k.qtd}× ` : "") + (k.nome || "peça")),
+          fotos: estado.fotos.slice(0, 2).map((f) => (f.dataUrl ? "" : urlFoto(f.url))).filter((u) => /^https:\/\//.test(u)),
+        },
+      });
+      if (error) {
+        let msg = error.message;
+        try { msg = (await error.context.json()).erro || msg; } catch {}
+        throw new Error(msg);
+      }
+      if (!data?.texto) throw new Error(data?.erro || "a IA não respondeu");
+      $("#p-descricao").value = data.texto.slice(0, 1000);
+      $("#p-descricao").dispatchEvent(new Event("input", { bubbles: true }));
+      st.textContent = `Pronto (${data.via === "pc" ? "IA do nosso PC" : "IA gratuita na nuvem"}). Revise e ajuste se quiser; clicar de novo gera outra opção.`;
+      botaoIA.disabled = false;
+      return;
+    } catch (e) {
+      erroFuncao = e.message;
+    }
+    botaoIA.disabled = false;
+    if (!estado.ia?.chave) {
+      st.className = "dica erro";
+      st.textContent = "Não consegui gerar: " + erroFuncao + " Você pode escrever à mão.";
+      return;
+    }
     const categoria = $("#p-categoria").value.trim();
     const texto = `Peça: ${nome}${categoria ? `\nCategoria: ${categoria}` : ""}${$("#p-descricao").value.trim() ? `\nIdeia atual da descrição: ${$("#p-descricao").value.trim()}` : ""}`;
     const fotosIA = estado.fotos.slice(0, 2).map(srcFoto).filter(Boolean);
