@@ -1,0 +1,156 @@
+{
+  "listas": ["Ideias", "Próximo", "Fazendo", "Testando", "Feito"],
+  "etiquetas": {
+    "Cadastro": "green",
+    "Frete": "orange",
+    "Produção": "blue",
+    "Estúdio": "purple",
+    "Loja": "sky",
+    "Operação": "black"
+  },
+  "cards": [
+    {
+      "titulo": "Cadastro: soltar o 3MF e preencher medidas, peso, tempo e cores",
+      "lista": "Próximo",
+      "etiqueta": "Cadastro",
+      "descricao": "O MakerWorld não entrega medidas, mas o .3mf entrega. No formulário de peça, arrastar o .3mf (baixado do MakerWorld ou exportado do Bambu Studio) e ler NO NAVEGADOR (JSZip): caixa envolvente (largura x profundidade x altura), gramas por cor, tempo por placa, nº de placas. Preenche Características + gramas + horas. Sem servidor novo.",
+      "checklist": ["Ler Metadata/slice_info.config (peso, tempo, filamentos)", "Calcular bbox pelos vértices de 3D/3dmodel.model (considerar transformações dos itens)", "Preencher #c-largura/altura/profundidade/peso", "Testar com 3 arquivos reais", "Aviso quando o 3mf não tiver fatiamento (só geometria)"]
+    },
+    {
+      "titulo": "Cadastro: colar link do MakerWorld e já pedir o 3MF quando faltar medida",
+      "lista": "Ideias",
+      "etiqueta": "Cadastro",
+      "descricao": "Depois do importar-makerworld, se não houver medidas, mostrar o campo 'solte o 3MF aqui' destacado e o link direto da página de download."
+    },
+    {
+      "titulo": "Cadastro: estimar medidas quando só há STL/gramas",
+      "lista": "Ideias",
+      "etiqueta": "Cadastro",
+      "descricao": "Aceitar STL/OBJ solto também (bbox direto). Último recurso: estimar caixa pelas gramas e densidade do PLA/PETG com aviso de 'estimado'."
+    },
+    {
+      "titulo": "Cadastro: copiar peça existente como modelo (variações de cor/tamanho)",
+      "lista": "Ideias",
+      "etiqueta": "Cadastro",
+      "descricao": "Botão 'duplicar' na oficina para criar variações sem digitar tudo de novo."
+    },
+    {
+      "titulo": "Cadastro: cadastro em lote (lista de links do MakerWorld)",
+      "lista": "Ideias",
+      "etiqueta": "Cadastro",
+      "descricao": "Colar vários links, importar todos como rascunho (ativo = false) e revisar depois. Respeitar a licença: bloquear/avisar BY-NC."
+    },
+    {
+      "titulo": "Cadastro: checklist de qualidade antes de publicar",
+      "lista": "Ideias",
+      "etiqueta": "Cadastro",
+      "descricao": "Peça só vai para a vitrine se tiver foto, preço, medidas, peso, cor e licença conferida. Mostra o que falta."
+    },
+    {
+      "titulo": "Frete: peso e caixa calculados sempre a partir da peça (sem digitar)",
+      "lista": "Próximo",
+      "etiqueta": "Frete",
+      "descricao": "Garantir que toda peça tenha largura/altura/profundidade/peso preenchidos (vindos do 3MF) e que o frete use isso. Hoje, sem medida, cai na caixa padrão da aba Loja.",
+      "checklist": ["Marcar na lista de peças quais estão sem medida/peso", "Peso = soma dos gramas de todas as cores + suportes", "Revisar folga de peso e de cm com pesagens reais", "Mostrar na oficina a caixa que será enviada ao Melhor Envio"]
+    },
+    {
+      "titulo": "Frete: caixas padrão (P/M/G) e escolher a menor que cabe",
+      "lista": "Ideias",
+      "etiqueta": "Frete",
+      "descricao": "Cadastrar as caixas que você realmente compra; o carrinho escolhe a menor onde cabe tudo (hoje empilha alturas). Reduz frete cobrado."
+    },
+    {
+      "titulo": "Frete: peça frágil/grande vai com folga e seguro maior",
+      "lista": "Ideias",
+      "etiqueta": "Frete",
+      "descricao": "Característica 'frágil' por peça aumenta folga e valor declarado."
+    },
+    {
+      "titulo": "Produção: fila de impressão a partir dos pedidos aprovados",
+      "lista": "Próximo",
+      "etiqueta": "Produção",
+      "descricao": "Aba que junta todos os itens pendentes de pedidos aprovados (peça, cor, quantidade que falta), agrupa por cor/material e mostra quantas mesas (placas) são necessárias.",
+      "checklist": ["Somar itens com feito < qtd", "Agrupar por material e cor", "Estimar horas por mesa usando o tempo da peça", "Marcar 'mesa impressa' e dar baixa nos itens"]
+    },
+    {
+      "titulo": "Produção: agrupar peças em mesas (placas) da A1 por cor e tempo",
+      "lista": "Ideias",
+      "etiqueta": "Produção",
+      "descricao": "Encaixe aproximado na mesa 256x256 mm usando as caixas das peças. Sugere 'imprimir 4 do Dragão + 6 Chaveiros na mesma mesa' para reduzir trocas de filamento e troca de mesa."
+    },
+    {
+      "titulo": "Produção: guardar o 3MF/perfil de cada peça (receita de impressão)",
+      "lista": "Ideias",
+      "etiqueta": "Produção",
+      "descricao": "Salvar no Supabase Storage o 3MF afinado de cada peça, com perfil, bico, material, altura de camada e observações do que deu certo."
+    },
+    {
+      "titulo": "Produção: registrar falhas e desperdício por peça",
+      "lista": "Ideias",
+      "etiqueta": "Produção",
+      "descricao": "Botão 'falhou' no item: soma gramas e horas perdidas; alimenta a reserva para falhas do precificador com dados reais."
+    },
+    {
+      "titulo": "Produção: aviso 'mesa pronta' e baixa automática",
+      "lista": "Ideias",
+      "etiqueta": "Produção",
+      "descricao": "Ao fim da impressão (Bambu Cloud/LAN), perguntar 'imprimiu certo?' e dar +1 em feito dos itens da mesa."
+    },
+    {
+      "titulo": "Estúdio de impressão: ferramenta local que lê o 3MF e analisa a peça",
+      "lista": "Próximo",
+      "etiqueta": "Estúdio",
+      "descricao": "App separado (Python + interface web local) em /estudio. Arrasta 3MF/STL e mostra: medidas, volume, gramas, tempo, orientação atual, base de apoio, paredes finas, balanços (overhang), necessidade de suporte. Gera recomendações de qualidade para a peça.",
+      "checklist": ["Definir stack (Python + trimesh + FastAPI, interface HTML simples)", "Leitor de 3MF e STL", "Análise: paredes finas, overhang >45°, área de contato com a mesa", "Tela de relatório com notas e fotos 3D (three.js)", "Exportar sugestões como notas da peça"]
+    },
+    {
+      "titulo": "Estúdio: recomendar orientação e divisão de peças em mesas separadas",
+      "lista": "Ideias",
+      "etiqueta": "Estúdio",
+      "descricao": "Para cada parte: melhor orientação (menos suporte, camadas na direção da carga), e sugerir imprimir peças delicadas/grandes/coloridas em mesas separadas. Ex.: parte fina em mesa própria com perfil de maior qualidade e menor velocidade."
+    },
+    {
+      "titulo": "Estúdio: perfis por tipo de peça (qualidade x rapidez x resistência)",
+      "lista": "Ideias",
+      "etiqueta": "Estúdio",
+      "descricao": "Presets aplicados na peça: miniatura/detalhe (0.12 mm, 0.2 bico), uso/estrutural (paredes e infill maiores), decoração rápida (0.2 mm). Cada preset vira um perfil de processo do Bambu Studio."
+    },
+    {
+      "titulo": "Estúdio: fatiar automaticamente pelo Bambu Studio (linha de comando)",
+      "lista": "Ideias",
+      "etiqueta": "Estúdio",
+      "descricao": "Usar a CLI do Bambu Studio (--arrange, --orient, --slice) para organizar e fatiar o lote da fila. Devolve tempo e gramas REAIS e grava na peça. Precisa validar quais flags a versão instalada aceita para a A1."
+    },
+    {
+      "titulo": "Estúdio: enviar para a A1 pela rede local (modo LAN)",
+      "lista": "Ideias",
+      "etiqueta": "Estúdio",
+      "descricao": "Pela rede local (MQTT + FTPS, ex.: biblioteca bambulabs_api): enviar o .gcode.3mf, iniciar, acompanhar progresso e câmera. Exige ativar o modo LAN/Developer na impressora e anotar IP, serial e código de acesso (ficam só no seu PC, nunca no repositório)."
+    },
+    {
+      "titulo": "Loja: página da peça mostra medidas, peso e material",
+      "lista": "Ideias",
+      "etiqueta": "Loja",
+      "descricao": "Usar os dados do 3MF na vitrine (tamanho real, tempo de produção estimado, prazo)."
+    },
+    {
+      "titulo": "Loja: prazo de entrega calculado pela fila de produção",
+      "lista": "Ideias",
+      "etiqueta": "Loja",
+      "descricao": "Prazo = horas na fila + horas do pedido + prazo do frete. Mostrado no carrinho."
+    },
+    {
+      "titulo": "Operação: etiqueta e rastreio automáticos ao marcar 'pronto'",
+      "lista": "Ideias",
+      "etiqueta": "Operação",
+      "descricao": "Já existe a função etiqueta. Ligar ao fluxo: pedido pronto -> gera etiqueta no Melhor Envio -> envia rastreio ao cliente."
+    },
+    {
+      "titulo": "Operação: aplicar SQL pendente e publicar função importar-makerworld",
+      "lista": "Próximo",
+      "etiqueta": "Operação",
+      "descricao": "Pendências já conhecidas: rodar o SQL novo de docs/supabase.sql (coluna itens etc.) e fazer deploy manual da função importar-makerworld no Supabase.",
+      "checklist": ["Rodar docs/supabase.sql no SQL Editor", "Deploy da função importar-makerworld", "Testar importação de um link real"]
+    }
+  ]
+}

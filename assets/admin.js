@@ -758,6 +758,55 @@
     setTimeout(() => { if (ehLinkMW($("#p-makerworld").value.trim()) && !$("#p-nome").value.trim()) importarMakerworld(); }, 50);
   });
 
+  // ---------- Arquivo 3MF: medidas, peso, tempo e cores exatos ----------
+  async function lerArquivo3mf(arquivo) {
+    const st = $("#status-3mf");
+    if (!arquivo) return;
+    if (!/\.3mf$/i.test(arquivo.name)) { st.className = "dica erro"; st.textContent = "Esse não é um arquivo .3mf."; return; }
+    if (!window.JSZip) { st.className = "dica erro"; st.textContent = "Não consegui carregar o leitor de 3MF (sem internet?). Preencha as medidas à mão."; return; }
+    st.className = "dica";
+    st.textContent = "Lendo " + arquivo.name + "…";
+    try {
+      const r = await HPR_3MF.ler(arquivo);
+      $("#c-largura").value = r.largura;
+      $("#c-profundidade").value = r.profundidade;
+      $("#c-altura").value = r.altura;
+      const partes = [`Medidas ${r.largura} × ${r.profundidade} × ${r.altura} cm`];
+      if (r.fatiado) {
+        $("#p-gramas").value = r.gramas;
+        const min = Math.round(r.segundos / 60);
+        $("#p-horas").value = Math.floor(min / 60);
+        $("#p-minutos").value = min % 60;
+        if (r.pesaPorPeca) $("#c-peso").value = r.pesaPorPeca;
+        if (r.iguais && r.objetos > 1) $("#p-qtd").value = r.objetos;
+        const tipos = [...new Set(r.filamentos.map((f) => f.tipo).filter(Boolean))];
+        if (tipos.length && !$("#c-material").value.trim()) $("#c-material").value = tipos[0];
+        const cores = [];
+        for (const f of r.filamentos) {
+          const c = corProxima(f.cor);
+          if (c && !cores.some((x) => x.nome === c.nome)) cores.push(c);
+        }
+        if (cores.length) { coresSel = cores; desenharCores(); }
+        partes.push(`${r.gramas} g e ${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")} no total${r.mesas > 1 ? ` (${r.mesas} mesas)` : ""}`);
+        if (r.iguais && r.objetos > 1) partes.push(`${r.objetos} cópias por impressão, ${r.pesaPorPeca} g cada`);
+      }
+      const avisos = [];
+      if (!r.fatiado) avisos.push("O arquivo não foi fatiado: só as medidas vieram. Salve o projeto fatiado no Bambu Studio para trazer peso e tempo.");
+      if (!r.iguais) avisos.push(`Há ${r.objetos} objetos diferentes na mesa: as medidas são do maior e o peso é do conjunto. Confira.`);
+      $("#form-peca").dispatchEvent(new Event("input"));
+      st.className = avisos.length ? "dica alerta" : "dica";
+      st.textContent = partes.join(". ") + "." + (avisos.length ? " " + avisos.join(" ") : "");
+      avisar("Dados do 3MF aplicados. Revise e salve.");
+    } catch (e) {
+      st.className = "dica erro";
+      st.textContent = "Não consegui ler: " + e.message;
+    }
+  }
+  $("#p-3mf").addEventListener("change", (e) => { lerArquivo3mf(e.target.files[0]); e.target.value = ""; });
+  const zona3mf = $("#zona-3mf").closest("fieldset");
+  zona3mf.addEventListener("dragover", (e) => { if ([...(e.dataTransfer?.items || [])].some((i) => i.kind === "file")) e.preventDefault(); });
+  zona3mf.addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); lerArquivo3mf(f); } });
+
   // ---------- Descrição com IA (OpenAI) ----------
   const MODELOS_RESERVA = ["gpt-5.4-nano", "gpt-5-nano", "gpt-4.1-mini", "gpt-4o-mini"];
   async function pedirDescricao(modelo, conteudo) {
