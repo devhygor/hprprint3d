@@ -770,8 +770,8 @@
       const r = await HPR_3MF.ler(arquivo);
       $("#c-largura").value = r.largura;
       $("#c-profundidade").value = r.profundidade;
-      $("#c-altura").value = r.altura;
-      const partes = [`Medidas ${r.largura} × ${r.profundidade} × ${r.altura} cm`];
+      if (r.altura > 0) $("#c-altura").value = r.altura;
+      const partes = [`Medidas ${r.largura} × ${r.profundidade}${r.altura > 0 ? " × " + r.altura : ""} cm`];
       if (r.fatiado) {
         $("#p-gramas").value = r.gramas;
         const min = Math.round(r.segundos / 60);

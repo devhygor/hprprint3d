@@ -99,6 +99,22 @@
       if (!Number.isFinite(c.min[0])) continue;
       objetos.push({ largura: (c.max[0] - c.min[0]) * unidade, profundidade: (c.max[1] - c.min[1]) * unidade, altura: (c.max[2] - c.min[2]) * unidade });
     }
+    // Arquivo fatiado exportado (.gcode.3mf) vem sem a malha 3D: usa o contorno de cada objeto na mesa
+    // (plate_N.json, em mm) e a altura máxima da mesa (cabeçalho do gcode)
+    if (!objetos.length) {
+      for (const jn of nomes.filter((n) => /(^|\/)plate_(\d+)\.json$/i.test(n))) {
+        const num = jn.match(/plate_(\d+)\.json$/i)[1];
+        let info;
+        try { info = JSON.parse(await zip.files[jn].async("string")); } catch { continue; }
+        const gn = nomes.find((n) => new RegExp(`plate_${num}\\.gcode$`, "i").test(n));
+        const cab = gn ? (await zip.files[gn].async("string")).slice(0, 400000) : "";
+        const alturaMm = Number((cab.match(/;\s*max_z_height:\s*([\d.]+)/) || [])[1]) || 0;
+        for (const o of info.bbox_objects || []) {
+          if (!Array.isArray(o.bbox) || o.bbox.length < 4) continue;
+          objetos.push({ largura: (o.bbox[2] - o.bbox[0]) / 10, profundidade: (o.bbox[3] - o.bbox[1]) / 10, altura: alturaMm / 10 });
+        }
+      }
+    }
     if (!objetos.length) throw new Error("Não achei nenhum objeto imprimível dentro do arquivo.");
 
     // Peça = o maior objeto (pela maior área na mesa)
