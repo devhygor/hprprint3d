@@ -119,7 +119,8 @@
     const c = p.caracteristicas || {};
     const medidas = [["Largura", c.largura], ["Altura", c.altura], ["Profundidade", c.profundidade]].filter(([, v]) => Number(v) > 0);
     const linhas = [
-      medidas.length && ["Tamanho", `${medidas.map(([, v]) => fmt(v)).join(" × ")} cm`, medidas.map(([n]) => n.toLowerCase()).join(" × ")],
+      medidas.length && [c.kit?.length ? "Tamanho do kit" : "Tamanho", `${medidas.map(([, v]) => fmt(v)).join(" × ")} cm`, medidas.map(([n]) => n.toLowerCase()).join(" × ")],
+      c.kit?.length > 0 && ["Contém", c.kit.map((k) => `${k.qtd > 1 ? k.qtd + "× " : ""}${k.nome || "peça"}`).join(", ")],
       Number(c.peso) > 0 && ["Peso", `${fmt(c.peso)} g`],
       c.material && ["Material", c.material],
       ...(c.extras || []).map((x) => [x.nome, x.valor || "Sim"]),

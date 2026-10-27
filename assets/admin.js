@@ -474,7 +474,61 @@
   $("#c-extra-adicionar").addEventListener("click", () => linhaExtra().querySelector("input").focus());
   $("#c-extras").addEventListener("click", (e) => { const b = e.target.closest(".c-extra-tirar"); if (b) b.parentElement.remove(); });
 
+  // ---------- Kit: várias peças na mesma caixa ----------
+  function linhaKit(k = {}) {
+    const el = document.createElement("div");
+    el.className = "c-kit-linha";
+    const num = (v) => (v ?? "") === "" ? "" : v;
+    el.innerHTML = `<input class="c-kit-nome" placeholder="Peça (ex.: Maria)" value="${esc(k.nome || "")}" aria-label="Nome da peça do kit">
+      <input class="c-kit-l" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Larg." value="${num(k.largura)}" aria-label="Largura em cm">
+      <input class="c-kit-p" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Prof." value="${num(k.profundidade)}" aria-label="Profundidade em cm">
+      <input class="c-kit-a" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Alt." value="${num(k.altura)}" aria-label="Altura em cm">
+      <input class="c-kit-g" type="number" inputmode="decimal" step="1" min="0" placeholder="Peso g" value="${num(k.peso)}" aria-label="Peso em gramas">
+      <input class="c-kit-q" type="number" inputmode="numeric" step="1" min="1" max="20" placeholder="Qtd" value="${num(k.qtd || 1)}" aria-label="Quantidade desta peça no kit">
+      <button type="button" class="c-kit-tirar" aria-label="Remover peça do kit">×</button>`;
+    $("#c-kit").appendChild(el);
+    return el;
+  }
+  function lerKit() {
+    const n = (el, s) => { const v = P.num(el.querySelector(s).value, NaN); return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null; };
+    return $$("#c-kit .c-kit-linha").map((el) => ({
+      nome: el.querySelector(".c-kit-nome").value.trim().slice(0, 60),
+      largura: n(el, ".c-kit-l"), profundidade: n(el, ".c-kit-p"), altura: n(el, ".c-kit-a"), peso: n(el, ".c-kit-g"),
+      qtd: Math.max(1, Math.min(20, Math.round(P.num(el.querySelector(".c-kit-q").value, 1)) || 1)),
+    })).filter((k) => k.nome || k.largura || k.profundidade || k.altura || k.peso);
+  }
+  // Soma o kit: a menor caixa onde cabem todas as peças e o peso total vão para os campos de medidas e peso,
+  // que são os que o frete já usa
+  function recalcularKit() {
+    const resumo = $("#c-kit-resumo");
+    const kit = lerKit();
+    const completas = kit.filter((k) => k.largura && k.profundidade && k.altura);
+    if (!completas.length) { resumo.hidden = true; return; }
+    const todas = completas.flatMap((k) => Array.from({ length: k.qtd }, () => k));
+    const cx = HPR_3MF.caixaConjunto(todas);
+    const r1 = (x) => Math.round(x * 10) / 10;
+    $("#c-largura").value = r1(cx.largura);
+    $("#c-profundidade").value = r1(cx.profundidade);
+    $("#c-altura").value = r1(cx.altura);
+    const comPeso = kit.every((k) => k.peso) && kit.length;
+    let txt = `Caixa do kit (${todas.length} ${todas.length === 1 ? "peça" : "peças"} juntas): ${r1(cx.largura)} × ${r1(cx.profundidade)} × ${r1(cx.altura)} cm`;
+    if (comPeso) {
+      const total = kit.reduce((s, k) => s + k.peso * k.qtd, 0);
+      $("#c-peso").value = Math.round(total);
+      txt += `, ${Math.round(total)} g`;
+    } else txt += ". Falta o peso de alguma peça: o peso total continua o que está no campo acima";
+    if (completas.length < kit.length) txt += ". Há peça sem as três medidas e ela ficou fora da conta";
+    resumo.textContent = txt + ". Conta aproximada (fila ou pilha), confira se cabe na caixa real.";
+    resumo.hidden = false;
+  }
+  $("#c-kit-adicionar").addEventListener("click", () => linhaKit().querySelector("input").focus());
+  $("#c-kit").addEventListener("input", recalcularKit);
+  $("#c-kit").addEventListener("click", (e) => { const b = e.target.closest(".c-kit-tirar"); if (b) { b.parentElement.remove(); recalcularKit(); } });
+
   function preencherCaracteristicas(c = {}) {
+    $("#c-kit").innerHTML = "";
+    $("#c-kit-resumo").hidden = true;
+    (c.kit || []).forEach((k) => linhaKit(k));
     $("#c-largura").value = c.largura ?? "";
     $("#c-altura").value = c.altura ?? "";
     $("#c-profundidade").value = c.profundidade ?? "";
@@ -488,6 +542,7 @@
     const c = {
       largura: n("#c-largura"), altura: n("#c-altura"), profundidade: n("#c-profundidade"), peso: n("#c-peso"),
       material: $("#c-material").value.trim().slice(0, 40) || null,
+      kit: lerKit().slice(0, 30),
       extras: $$("#c-extras .c-extra")
         .map((el) => ({ nome: el.querySelector(".c-extra-nome").value.trim().slice(0, 40), valor: el.querySelector(".c-extra-valor").value.trim().slice(0, 60) }))
         .filter((x) => x.nome)
@@ -768,10 +823,15 @@
     st.textContent = "Lendo " + arquivo.name + "…";
     try {
       const r = await HPR_3MF.ler(arquivo);
-      $("#c-largura").value = r.largura;
-      $("#c-profundidade").value = r.profundidade;
-      if (r.altura > 0) $("#c-altura").value = r.altura;
-      const partes = [`Medidas ${r.largura} × ${r.profundidade}${r.altura > 0 ? " × " + r.altura : ""} cm`];
+      // Objetos diferentes = kit vendido junto: cada objeto vira uma peça do kit e a caixa que comporta todos
+      // vai para as medidas (é o que o frete precisa)
+      const m = r.conjunto;
+      $("#c-kit").innerHTML = "";
+      if (!r.iguais) r.pecas.forEach((p) => linhaKit(p));
+      $("#c-largura").value = m.largura;
+      $("#c-profundidade").value = m.profundidade;
+      if (m.altura > 0) $("#c-altura").value = m.altura;
+      const partes = [`${r.iguais ? "Medidas" : `Medidas do kit (${r.objetos} peças, todas juntas)`} ${m.largura} × ${m.profundidade}${m.altura > 0 ? " × " + m.altura : ""} cm`];
       if (r.fatiado) {
         $("#p-gramas").value = r.gramas;
         const min = Math.round(r.segundos / 60);
@@ -792,7 +852,8 @@
       }
       const avisos = [];
       if (!r.fatiado) avisos.push("O arquivo não foi fatiado: só as medidas vieram. Salve o projeto fatiado no Bambu Studio para trazer peso e tempo.");
-      if (!r.iguais) avisos.push(`Há ${r.objetos} objetos diferentes na mesa: as medidas são do maior e o peso é do conjunto. Confira.`);
+      if (!r.iguais) avisos.push(`Há ${r.objetos} objetos diferentes: medidas e peso são do conjunto inteiro, numa caixa só (cálculo aproximado, confira se as peças cabem assim).`);
+      if (!r.iguais) recalcularKit();
       $("#form-peca").dispatchEvent(new Event("input"));
       st.className = avisos.length ? "dica alerta" : "dica";
       st.textContent = partes.join(". ") + "." + (avisos.length ? " " + avisos.join(" ") : "");

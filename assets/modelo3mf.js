@@ -35,7 +35,7 @@
       const componentes = [];
       for (const c of bloco.match(/<component\b[^>]*>/g) || [])
         componentes.push({ id: attr(c, "objectid"), arquivo: attr(c, "p:path") || attr(c, "path") || arquivo, m: lerMatriz(attr(c, "transform")) });
-      objetos[id] = { vertices: v.length ? Float64Array.from(v) : null, componentes, tipo: attr(abre, "type") || "model" };
+      objetos[id] = { vertices: v.length ? Float64Array.from(v) : null, componentes, tipo: attr(abre, "type") || "model", nome: attr(abre, "name") || "" };
     }
     const itens = (xml.match(/<build\b[\s\S]*?<\/build>/) || [""])[0].match(/<item\b[^>]*>/g) || [];
     return {
@@ -62,6 +62,24 @@
   }
 
   const arred = (n, casas = 1) => Math.round(n * 10 ** casas) / 10 ** casas;
+
+  // Menor caixa (aproximada) onde cabem todos os objetos juntos: lado a lado em uma fila (nos dois sentidos,
+  // com cada peça deitada pelo lado mais curto ou não) ou empilhados. Escolhe a de menor volume.
+  function caixaConjunto(objs) {
+    if (objs.length === 1) return { largura: objs[0].largura, profundidade: objs[0].profundidade, altura: objs[0].altura };
+    const soma = (f) => objs.reduce((s, o) => s + f(o), 0);
+    const maxi = (f) => Math.max(...objs.map(f));
+    const curto = (o) => Math.min(o.largura, o.profundidade), longo = (o) => Math.max(o.largura, o.profundidade);
+    const H = maxi((o) => o.altura);
+    const opcoes = [
+      { largura: soma((o) => o.largura), profundidade: maxi((o) => o.profundidade), altura: H },
+      { largura: maxi((o) => o.largura), profundidade: soma((o) => o.profundidade), altura: H },
+      { largura: soma(curto), profundidade: maxi(longo), altura: H },
+      { largura: maxi((o) => o.largura), profundidade: maxi((o) => o.profundidade), altura: soma((o) => o.altura) },
+    ];
+    const vol = (c) => c.largura * c.profundidade * c.altura;
+    return opcoes.reduce((a, b) => (vol(b) < vol(a) ? b : a));
+  }
 
   function lerFatiamento(xml) {
     const doc = new DOMParser().parseFromString(xml, "text/xml");
@@ -97,7 +115,7 @@
       const c = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
       caixa(modelos, "/" + principal, item.id, item.m, c);
       if (!Number.isFinite(c.min[0])) continue;
-      objetos.push({ largura: (c.max[0] - c.min[0]) * unidade, profundidade: (c.max[1] - c.min[1]) * unidade, altura: (c.max[2] - c.min[2]) * unidade });
+      objetos.push({ nome: o.nome, largura: (c.max[0] - c.min[0]) * unidade, profundidade: (c.max[1] - c.min[1]) * unidade, altura: (c.max[2] - c.min[2]) * unidade });
     }
     // Arquivo fatiado exportado (.gcode.3mf) vem sem a malha 3D: usa o contorno de cada objeto na mesa
     // (plate_N.json, em mm) e a altura máxima da mesa (cabeçalho do gcode)
@@ -111,7 +129,7 @@
         const alturaMm = Number((cab.match(/;\s*max_z_height:\s*([\d.]+)/) || [])[1]) || 0;
         for (const o of info.bbox_objects || []) {
           if (!Array.isArray(o.bbox) || o.bbox.length < 4) continue;
-          objetos.push({ largura: (o.bbox[2] - o.bbox[0]) / 10, profundidade: (o.bbox[3] - o.bbox[1]) / 10, altura: alturaMm / 10 });
+          objetos.push({ nome: String(o.name || "").replace(/\.(stl|obj|3mf|step)(_\w)?$/i, ""), largura: (o.bbox[2] - o.bbox[0]) / 10, profundidade: (o.bbox[3] - o.bbox[1]) / 10, altura: alturaMm / 10 });
         }
       }
     }
@@ -134,6 +152,8 @@
 
     return {
       largura: arred(maior.largura), profundidade: arred(maior.profundidade), altura: arred(maior.altura),
+      conjunto: (() => { const c = caixaConjunto(iguais ? [maior] : objetos); return { largura: arred(c.largura), profundidade: arred(c.profundidade), altura: arred(c.altura) }; })(),
+      pecas: objetos.map((o, i) => ({ nome: (o.nome || `Peça ${i + 1}`).slice(0, 60), largura: arred(o.largura), profundidade: arred(o.profundidade), altura: arred(o.altura), qtd: 1 })),
       objetos: objetos.length, iguais, mesas: mesas ? mesas.length : 0,
       fatiado: !!mesas && (gramas > 0 || segundos > 0),
       gramas: arred(gramas), segundos, filamentos,
@@ -142,5 +162,5 @@
     };
   }
 
-  raiz.HPR_3MF = { ler, lerModelo, compor };
+  raiz.HPR_3MF = { ler, lerModelo, compor, caixaConjunto };
 })(typeof window !== "undefined" ? window : globalThis);
