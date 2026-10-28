@@ -17,13 +17,20 @@
     return site.instagram || "https://www.instagram.com/hprprint3d/";
   }
 
+  // Uma peça pode ter várias categorias, separadas por vírgula no campo "categoria"
+  const catsDe = (p) => {
+    const vistas = new Set();
+    const lista = String(p.categoria || "").split(",").map((c) => c.trim()).filter((c) => c && !vistas.has(c.toLowerCase()) && vistas.add(c.toLowerCase()));
+    return lista.length ? lista : ["Outros"];
+  };
+  const todasCats = () => [...new Set(pecas.flatMap(catsDe))];
   function corDaCategoria(cat) {
-    const cats = [...new Set(pecas.map((p) => p.categoria || "Outros"))];
-    return CORES[Math.max(0, cats.indexOf(cat)) % CORES.length];
+    return CORES[Math.max(0, todasCats().indexOf(cat)) % CORES.length];
   }
+  const categoriasHtml = (p) => `<span class="peca-categorias">${catsDe(p).map((c) => `<span class="peca-categoria" style="--cor:${corDaCategoria(c)}">${esc(c)}</span>`).join("")}</span>`;
 
   function desenharFiltros() {
-    const cats = ["Todas", ...new Set(pecas.map((p) => p.categoria || "Outros"))];
+    const cats = ["Todas", ...todasCats()];
     if (cats.length <= 2) { filtros.innerHTML = ""; return; }
     filtros.innerHTML = cats
       .map((c) => `<button class="filtro" type="button" aria-pressed="${c === filtroAtual}" data-cat="${esc(c)}">${esc(c)}</button>`)
@@ -44,7 +51,7 @@
   }
 
   function desenharGrade() {
-    const lista = pecas.filter((p) => filtroAtual === "Todas" || (p.categoria || "Outros") === filtroAtual);
+    const lista = pecas.filter((p) => filtroAtual === "Todas" || catsDe(p).includes(filtroAtual));
     if (!lista.length) {
       grade.innerHTML = `<div class="vazio" style="grid-column:1/-1"><strong>As peças estão na impressora</strong>Enquanto o catálogo não fica pronto, veja as novidades no nosso Instagram ou peça um orçamento.<br><br><a class="botao botao-principal" href="#pedido">Pedir orçamento</a></div>`;
       return;
@@ -58,7 +65,7 @@
         return `<article class="peca" data-peca="${esc(p.id)}">
           <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}${p.fotos.length > 1 ? `<span class="peca-qtd-fotos" aria-label="${p.fotos.length} fotos">${p.fotos.length} fotos</span>` : ""}</a>
           <div class="peca-corpo">
-            <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
+            ${categoriasHtml(p)}
             <h3><a href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}">${esc(p.nome)}</a></h3>
             ${p.descricao ? `<div class="peca-desc-bloco"><p class="peca-desc" id="desc-${esc(p.id)}">${esc(p.descricao)}</p><button type="button" class="ver-mais" data-ver-mais aria-expanded="false" aria-controls="desc-${esc(p.id)}" hidden>Ver mais</button></div>` : ""}
             ${(() => {
@@ -129,7 +136,7 @@
     dialogo.querySelector(".detalhe-conteudo").innerHTML = `
       ${galeriaHtml(p)}
       <div class="detalhe-info">
-        <span class="peca-categoria" style="--cor:${corDaCategoria(p.categoria || "Outros")}">${esc(p.categoria || "Outros")}</span>
+        ${categoriasHtml(p)}
         <h2 id="detalhe-titulo">${esc(p.nome)}</h2>
         <p class="detalhe-preco">${p.preco ? `<small>a partir de</small>${brl(Number(p.preco))}` : `<small>valor</small>Sob consulta`}</p>
         ${p.descricao ? `<div class="detalhe-desc">${esc(p.descricao).split(/\n{2,}/).map((par) => `<p>${par.replace(/\n/g, "<br>")}</p>`).join("")}</div>` : ""}

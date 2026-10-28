@@ -264,10 +264,11 @@
             <legend>Peça</legend>
             <label class="campo">Nome<input id="p-nome" required></label>
             <div class="duas">
-              <label class="campo">Categoria<input id="p-categoria" list="lista-categorias" placeholder="Decoração"></label>
+              <label class="campo">Categorias<input id="p-categoria" autocomplete="off" placeholder="Decoração, Cristão, Natal"></label>
               <label class="campo">Ordem na vitrine<input id="p-ordem" type="number" inputmode="numeric" value="0"></label>
             </div>
-            <datalist id="lista-categorias"></datalist>
+            <p class="dica">Separe por vírgula ou toque nas já usadas. A peça aparece em cada categoria na vitrine.</p>
+            <div class="cores-opcoes" id="lista-categorias" role="group" aria-label="Categorias já usadas"></div>
             <div class="campo-com-acao">
               <label class="campo">Descrição<textarea id="p-descricao" rows="5" maxlength="1000" placeholder="Conte o que é a peça, para que serve, detalhes de acabamento…"></textarea></label>
               <p class="dica contador" id="p-descricao-contador" aria-live="polite">0 de 1000 caracteres. Na vitrine aparecem as primeiras linhas, com "Ver mais".</p>

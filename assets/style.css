@@ -405,3 +405,4 @@ section[id] { scroll-margin-top: 76px; }
 .ci-aprovacao { margin: 0; font-size: .84rem; color: #ffd9a0; line-height: 1.4; }
 .resumo-aprovacao { margin: 0; font-size: .85rem; color: #8a5a00; background: #fff3d6; border-radius: var(--raio-p); padding: 8px 10px; }
 .resumo-medida { color: #8a5a00; font-weight: 600; }
+.peca-categorias { display: flex; flex-wrap: wrap; gap: 4px 12px; }

@@ -237,7 +237,7 @@
         return `<tr data-id="${esc(p.id)}">
           <td class="col-alca"><button type="button" class="alca" aria-label="Mudar a posição de ${esc(p.nome)} na vitrine (setas para cima e para baixo)" title="Arraste para mudar a ordem">⋮⋮</button></td>
           <td>${p.foto ? `<img class="mini" src="${esc(urlFoto(p.foto))}" alt="">` : `<span class="mini"></span>`}</td>
-          <td class="nome">${esc(p.nome)}<small>${esc(p.categoria || "Sem categoria")}</small></td>
+          <td class="nome">${esc(p.nome)}<small>${esc(listaCats(p.categoria).join(" · ") || "Sem categoria")}</small></td>
           <td class="num">${brl(r.custo.total)}</td>
           <td class="num ocultar-celular">${brl(r.canais.direta.sugerido)}</td>
           <td class="num">${brl(preco)}</td>
@@ -437,6 +437,29 @@
   const amostra = (hex) => (hex === "transparente"
     ? "background:repeating-conic-gradient(#d9d2ff 0 25%, #fff 0 50%) 0 0/8px 8px"
     : `background:${hex}`);
+  // Uma peça pode ter várias categorias: ficam no mesmo campo, separadas por vírgula
+  const listaCats = (t) => {
+    const vistas = new Set();
+    return String(t ?? "").split(",").map((c) => c.trim()).filter((c) => c && !vistas.has(c.toLowerCase()) && vistas.add(c.toLowerCase()));
+  };
+  function desenharCategorias() {
+    const marcadas = listaCats($("#p-categoria").value).map((c) => c.toLowerCase());
+    const todas = [...new Set(estado.pecas.flatMap((x) => listaCats(x.categoria)).concat(listaCats($("#p-categoria").value)))];
+    $("#lista-categorias").innerHTML = todas
+      .map((c) => `<button type="button" class="chip-cor" aria-pressed="${marcadas.includes(c.toLowerCase())}" data-cat="${esc(c)}">${esc(c)}</button>`)
+      .join("");
+  }
+  $("#lista-categorias").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-cat]");
+    if (!b) return;
+    const cats = listaCats($("#p-categoria").value);
+    const i = cats.findIndex((c) => c.toLowerCase() === b.dataset.cat.toLowerCase());
+    if (i >= 0) cats.splice(i, 1); else cats.push(b.dataset.cat);
+    $("#p-categoria").value = cats.join(", ");
+    desenharCategorias();
+  });
+  $("#p-categoria").addEventListener("input", desenharCategorias);
+
   function desenharCores() {
     const extras = coresSel.filter((c) => !CORES_PADRAO.some(([n]) => n.toLowerCase() === c.nome.toLowerCase()));
     const todas = [...CORES_PADRAO.map(([nome, hex]) => ({ nome, hex })), ...extras];
@@ -577,7 +600,7 @@
     preencherCaracteristicas(p?.caracteristicas || {});
     atualizarContador();
     $("#p-ativo").checked = p ? p.ativo !== false : true;
-    $("#lista-categorias").innerHTML = [...new Set(estado.pecas.map((x) => x.categoria).filter(Boolean))].map((c) => `<option value="${esc(c)}">`).join("");
+    desenharCategorias();
     $("#p-foto-url").value = "";
     $("#status-mw").className = "dica";
     $("#status-mw").textContent = STATUS_MW;
@@ -1074,7 +1097,7 @@
       const linha = {
         id,
         nome,
-        categoria: categoria || null,
+        categoria: listaCats(categoria).join(", ") || null,
         descricao: descricao || null,
         foto: foto || null,
         fotos,
