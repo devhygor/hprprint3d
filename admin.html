@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610272029">
-  <link rel="stylesheet" href="assets/admin.css?v=202610272029">
+  <link rel="stylesheet" href="assets/style.css?v=202610272120">
+  <link rel="stylesheet" href="assets/admin.css?v=202610272120">
 </head>
 <body>
   <header class="topo">
@@ -285,6 +285,16 @@
                   <input id="p-foto-url" type="url" placeholder="ou cole o link do post do Instagram" aria-label="Link do post do Instagram ou de uma imagem">
                   <button class="botao botao-contorno botao-pequeno" type="button" id="p-foto-url-add">Adicionar por link</button>
                 </div>
+              </div>
+              <div class="foto-ia">
+                <label class="campo">Foto de vitrine com IA
+                  <select id="cena-ia">
+                    <option value="madeira">Madeira clara, luzes desfocadas</option>
+                    <option value="bandeja">Bandeja branca, mesa clara</option>
+                    <option value="natal">Natal, árvore e pinhas</option>
+                  </select>
+                </label>
+                <p class="dica" id="status-foto-ia">Escolha o cenário e toque em ✨ numa foto da galeria: a peça é recortada e só o cenário é criado pela IA do nosso PC (a peça não muda). Funciona melhor com a peça sobre fundo liso, sem textos na imagem. Leva cerca de 30 segundos e precisa do PC ligado.</p>
               </div>
               <p class="dica">No Instagram, abra o post, toque nos três pontinhos e em "Copiar link", e cole aqui: a foto é copiada para o Supabase e não expira. A primeira foto é a capa da vitrine. Use as setas para mudar a ordem. Fotos da peça impressa por vocês vendem mais que a do MakerWorld.</p>
             </div>
@@ -691,17 +701,17 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610272029"></script>
+  <script src="assets/supabase-config.js?v=202610272120"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610272029"></script>
-  <script src="assets/precificador.js?v=202610272029"></script>
-  <script src="assets/admin.js?v=202610272029"></script>
-  <script src="assets/rastreio.js?v=202610272029"></script>
-  <script src="assets/frete.js?v=202610272029"></script>
-  <script src="assets/email.js?v=202610272029"></script>
-  <script src="assets/itens.js?v=202610272029"></script>
-  <script src="assets/pedidos.js?v=202610272029"></script>
-  <script src="assets/financeiro.js?v=202610272029"></script>
-  <script src="assets/frete-admin.js?v=202610272029"></script>
+  <script src="assets/modelo3mf.js?v=202610272120"></script>
+  <script src="assets/precificador.js?v=202610272120"></script>
+  <script src="assets/admin.js?v=202610272120"></script>
+  <script src="assets/rastreio.js?v=202610272120"></script>
+  <script src="assets/frete.js?v=202610272120"></script>
+  <script src="assets/email.js?v=202610272120"></script>
+  <script src="assets/itens.js?v=202610272120"></script>
+  <script src="assets/pedidos.js?v=202610272120"></script>
+  <script src="assets/financeiro.js?v=202610272120"></script>
+  <script src="assets/frete-admin.js?v=202610272120"></script>
 </body>
 </html>

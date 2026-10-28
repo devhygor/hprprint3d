@@ -607,6 +607,7 @@
             <button type="button" class="galeria-btn" data-mover="${i}" data-dir="-1" aria-label="Mover foto ${i + 1} para a esquerda" ${i === 0 ? "disabled" : ""}>‹</button>
             ${i === 0 ? "" : `<button type="button" class="galeria-btn galeria-capa" data-capa="${i}" title="Usar como capa" aria-label="Usar a foto ${i + 1} como capa">★</button>`}
             <button type="button" class="galeria-btn" data-mover="${i}" data-dir="1" aria-label="Mover foto ${i + 1} para a direita" ${i === lista.length - 1 ? "disabled" : ""}>›</button>
+            <button type="button" class="galeria-btn" data-ia="${i}" title="Gerar foto de vitrine com IA a partir desta foto" aria-label="Gerar foto de vitrine com IA a partir da foto ${i + 1}">✨</button>
             <button type="button" class="galeria-btn galeria-tirar" data-tirar="${i}" aria-label="Remover foto ${i + 1}">×</button>
           </div>
           ${f.dataUrl ? `<span class="galeria-nova">nova</span>` : ""}
@@ -618,6 +619,7 @@
     const b = e.target.closest("button");
     if (!b) return;
     const f = estado.fotos;
+    if (b.dataset.ia) { gerarFotoIA(Number(b.dataset.ia)); return; }
     if (b.dataset.tirar) f.splice(Number(b.dataset.tirar), 1);
     else if (b.dataset.capa) f.unshift(...f.splice(Number(b.dataset.capa), 1));
     else if (b.dataset.mover) {
@@ -627,6 +629,39 @@
     desenharGaleria();
   });
 
+
+  // Foto de vitrine com IA: o PC recorta a peça e cria só o cenário; a nova foto entra logo depois da original
+  let gerandoFoto = false;
+  async function gerarFotoIA(i) {
+    const st = $("#status-foto-ia");
+    const origem = estado.fotos[i];
+    if (!origem || gerandoFoto) return;
+    if (estado.fotos.length >= MAX_FOTOS) { avisar(`O limite é de ${MAX_FOTOS} fotos por peça.`, true); return; }
+    gerandoFoto = true;
+    $$("#galeria-edit [data-ia]").forEach((b) => (b.disabled = true));
+    st.className = "dica";
+    st.textContent = "Gerando a foto de vitrine no PC da loja… (cerca de 30 segundos, pode levar mais na primeira vez)";
+    try {
+      const corpo = { cena: $("#cena-ia").value };
+      if (origem.dataUrl) corpo.foto_base64 = origem.dataUrl; else corpo.foto_url = urlFoto(origem.url);
+      const { data, error } = await db.functions.invoke("ia-imagem", { body: corpo });
+      if (error) {
+        let msg = error.message;
+        try { msg = (await error.context.json()).erro || msg; } catch {}
+        throw new Error(msg);
+      }
+      if (!data?.imagem) throw new Error(data?.erro || "o PC não devolveu a imagem");
+      estado.fotos.splice(i + 1, 0, { dataUrl: data.imagem });
+      st.textContent = "Pronto: a foto nova entrou depois da original (marcada como \"nova\"). Veja se ficou boa; se não, gere de novo ou apague. Ela só é guardada quando você salvar a peça.";
+      avisar("Foto de vitrine gerada.");
+    } catch (e) {
+      st.className = "dica erro";
+      st.textContent = "Não consegui gerar a foto: " + e.message;
+    } finally {
+      gerandoFoto = false;
+      desenharGaleria();
+    }
+  }
 
   function calcular() {
     const p = lerFormulario();
