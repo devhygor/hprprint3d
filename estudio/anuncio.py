@@ -10,7 +10,7 @@ Todas as medidas chegam em centímetros; o texto vem do que foi cadastrado para 
 import math
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageStat
 
 FONTES = Path(__file__).parent / "fontes"
 MARROM = (75, 46, 31)
@@ -76,7 +76,7 @@ def _pilula(camada, centro, valor: str, legenda: str, cor):
     x, y = centro
     caixa = [x - w // 2, y - h // 2, x + w // 2, y + h // 2]
     d.rounded_rectangle(caixa, radius=20, fill=(255, 255, 255, 232), outline=cor + (255,), width=3)
-    d.text((x, caixa[1] + 12), valor, font=f1, fill=cor + (255,), anchor="mt")
+    d.text((x, caixa[1] + 12), valor, font=f1, fill=MARROM + (255,), anchor="mt")  # a caixinha é clara: texto sempre escuro
     d.text((x, caixa[1] + 12 + 40), legenda, font=f2, fill=(120, 80, 70, 255), anchor="mt")
 
 
@@ -84,6 +84,8 @@ def desenhar_medidas(img: Image.Image, bbox, medidas: dict, estilo: str = "claro
     """Setas de altura (esquerda), largura (embaixo) e profundidade (diagonal, à direita) com os valores em cm."""
     W, H = img.size
     x0, y0, x1, y1 = bbox
+    # Setas escuras em fundo claro, brancas em fundo escuro (vale pelo brilho real da imagem, não só pelo tipo do cenário)
+    estilo = "claro" if _luz(img, (max(0, x0 - 120), max(0, y0 - 40), min(W, x1 + 200), min(H, y1 + 120))) >= 120 else "neon"
     cor = MARROM if estilo == "claro" else (255, 255, 255)
     halo = (255, 255, 255, 235) if estilo == "claro" else (20, 20, 40, 235)
     e = max(4, W // 210)
@@ -134,6 +136,27 @@ def _faixa(texto: str, tam: int, cor_fundo, margem=(34, 18)) -> Image.Image:
     return im
 
 
+def _painel_se_escuro(base: Image.Image, caixa, limite=165):
+    """Se o fundo atrás de um bloco de texto for escuro, põe um painel creme translúcido para o texto marrom ler bem.
+    Em fundo claro não faz nada (o visual limpo dos anúncios da loja continua igual)."""
+    x0, y0, x1, y1 = (int(v) for v in caixa)
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(base.width, x1), min(base.height, y1)
+    if x1 - x0 < 10 or y1 - y0 < 10:
+        return False
+    if _luz(base, (x0, y0, x1, y1)) >= limite:
+        return False
+    painel = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(painel).rounded_rectangle([x0, y0, x1, y1], radius=30, fill=(255, 247, 238, 226))
+    base.alpha_composite(painel)
+    return True
+
+
+def _luz(img: Image.Image, caixa) -> float:
+    """Brilho médio (0-255) de uma região da imagem."""
+    x0, y0, x1, y1 = (int(v) for v in caixa)
+    return ImageStat.Stat(img.convert("RGB").crop((max(0, x0), max(0, y0), min(img.width, x1), min(img.height, y1))).convert("L")).mean[0]
+
+
 def _colar_girado(base: Image.Image, im: Image.Image, canto, graus: float):
     r = im.rotate(graus, expand=True, resample=Image.BICUBIC)
     base.alpha_composite(r, (int(canto[0]), int(canto[1])))
@@ -164,17 +187,25 @@ def desenhar_anuncio(img: Image.Image, bbox, dados: dict, textos: dict) -> Image
             break
         tam -= 4
     f = fonte("Pacifico-Regular.ttf", tam)
-    y = 44
+    # Primeiro mede tudo (a altura de cada linha vem da própria fonte), depois desenha: assim dá para saber o
+    # tamanho do bloco e pôr um painel claro atrás se o fundo do cenário for escuro
+    asc, desc = f.getmetrics()
+    y, desenhos = 44, []
     for l in linhas:
-        d.text((58, y), l, font=f, fill=MARROM + (255,))
-        y += int(tam * 1.18)
+        desenhos.append((58, y, l, f))
+        y += asc + desc - int(tam * 0.12)
     sub = str(textos.get("subtitulo") or "").strip()
     if sub:
         fs = fonte("Poppins-Regular.ttf", 34)
-        y += int(tam * 0.22)  # a letra de mão desce além da linha: dá espaço para não encostar no subtítulo
+        y += 14
         for l in quebrar(d, sub, fs, maxw, 2)[0]:
-            d.text((62, y + 6), l, font=fs, fill=MARROM + (255,))
+            desenhos.append((62, y, l, fs))
             y += 46
+    larg_bloco = max([_largura(d, l, f_) for (_, _, l, f_) in desenhos] or [0])
+    painel_topo = _painel_se_escuro(base, (30, 26, 58 + larg_bloco + 34, y + 12))
+    fim_topo = y + 12
+    for (x, yy, l, f_) in desenhos:
+        d.text((x, yy), l, font=f_, fill=MARROM + (255,))
 
     # Preço em faixa
     if float(dados.get("preco") or 0) > 0:
@@ -186,6 +217,10 @@ def desenhar_anuncio(img: Image.Image, bbox, dados: dict, textos: dict) -> Image
     fv = fonte("Poppins-SemiBold.ttf", 31)
     x_icone, x_texto = int(W * 0.60), int(W * 0.60) + 92
     y = int(H * 0.30)
+    if painel_topo:  # painel do título desceu até aqui: as vantagens começam abaixo dele para os painéis não se sobreporem
+        y = max(y, fim_topo + 76)
+    if vant:
+        _painel_se_escuro(base, (x_icone - 62, y - 62, W - 24, y + 150 * (len(vant) - 1) + 82))
     for v in vant:
         linhas, _ = quebrar(d, v, fv, W - x_texto - 44, 3)
         d.ellipse([x_icone - 38, y - 38 + 6, x_icone + 38, y + 38 + 6], fill=ROSA_CLARO + (240,))

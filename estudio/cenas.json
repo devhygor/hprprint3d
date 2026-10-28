@@ -32,8 +32,8 @@
     },
     "marmore": {
       "nome": "Mármore branco, minimalista", "grupo": "Para vender", "estilo": "claro",
-      "prompt": "a white marble surface with subtle grey veins, plain smooth soft off-white blurred wall behind, nothing else in the frame, minimal elegant, soft diffused light, high-key",
-      "negativo": "window, room, furniture, shelf, plants, flowers, fruit, objects, props, curtain, lamp, interior, doorway"
+      "prompt": "a bright white marble countertop with subtle light grey veins, a plain bright white blurred wall behind, brightly lit, light and airy, nothing else in the frame, minimal elegant, soft diffused light, overexposed high-key, white and pale grey tones only",
+      "negativo": "window, room, furniture, shelf, plants, flowers, fruit, objects, props, curtain, lamp, interior, doorway, black, charcoal, dark grey, dark background, shadows, vignette"
     },
     "creme": {
       "nome": "Fundo liso creme", "grupo": "Para vender", "estilo": "claro",
