@@ -19,18 +19,33 @@ PASTA = Path(os.environ.get("COMFY_PASTA", r"C:\Users\Hygor\ComfyUI\ComfyUI_wind
 MODELO = os.environ.get("COMFY_MODELO", "RealVisXL_V5.0_fp16.safetensors")
 LARG, ALT = 896, 1152  # retrato 4:5, tamanho nativo bom para SDXL
 
-# Cenários no estilo das fotos da loja: ambiente aconchegante, luz quente, fundo creme com luzes desfocadas
-CENAS = {
-    "madeira": "a light birch wood slice on a pale wooden table, bright airy cozy home interior, very soft cream and blush "
-               "pink blurred background with a few small soft warm bokeh lights, high-key, pastel",
-    "bandeja": "a white ribbed ceramic tray on a light wooden table, bright airy cozy home interior, soft cream blurred "
-               "background, a few small soft warm bokeh lights, high-key, pastel",
-    "natal": "a light wooden table, bright cozy Christmas atmosphere, softly blurred christmas tree and pine cones in the "
-             "background with golden bokeh lights, cream tones, high-key",
+# Cenários no estilo das fotos da loja (ambiente aconchegante, luz clara e quente). A lista fica em cenas.json
+CENAS = json.loads((Path(__file__).parent / "cenas.json").read_text(encoding="utf-8"))["cenas"]
+BASES = {
+    "claro": ", empty surface in front of the background, professional product photography, bright natural window light, soft warm tones, shallow depth of field, photorealistic, 85mm",
+    "neon": ", empty surface in front of the background, professional product photography, shallow depth of field, photorealistic, 85mm",
 }
-BASE = ", empty surface behind the product, professional product photography, bright natural window light, soft warm tones, shallow depth of field, photorealistic, 85mm"
-NEGATIVO = ("text, watermark, logo, letters, people, hands, extra objects, extra figures, plants, flowers, pompom, fluffy, hat, crown, "
-            "dark, moody, low key, black background, deformed, oversaturated, cartoon, illustration")
+NEGATIVOS = {
+    "claro": "text, watermark, logo, letters, people, hands, extra figures, pompom, fluffy, hat, crown, dark, moody, low key, black background, deformed, oversaturated, cartoon, illustration",
+    "neon": "text, watermark, logo, letters, people, hands, extra figures, pompom, fluffy, hat, crown, deformed, cartoon, illustration, daylight, overexposed",
+}
+
+
+def cena_prompt(cena: str):
+    """(texto do cenário, estilo, negativo extra). 'cena' é um id de cenas.json ou um texto livre em inglês."""
+    c = CENAS.get(cena)
+    return (c["prompt"], c.get("estilo", "claro"), c.get("negativo", "")) if c else (cena, "claro", "")
+
+
+# Onde a peça fica na tela e quanto espaço sobra ao redor, conforme o layout:
+#   limpa    só a foto;  medidas  deixa espaço para as setas;  anuncio  peça à esquerda, texto à direita
+POSICAO = {
+    "limpa": dict(escala=0.62, base=0.88, cx=0.5, larg_max=0.8),
+    "medidas": dict(escala=0.52, base=0.83, cx=0.5, larg_max=0.56),
+    "anuncio": dict(escala=0.50, base=0.86, cx=0.31, larg_max=0.40),
+}
+LAYOUTS = tuple(POSICAO)
+LARGURA_FINAL = 1080  # fotos com texto/medidas saem em 1080 de largura (texto nítido)
 
 
 def recortar(img: Image.Image) -> Image.Image:
@@ -74,14 +89,14 @@ def sombra_no_chao(final: Image.Image, camada: Image.Image) -> Image.Image:
     return Image.alpha_composite(final, escuro)
 
 
-def montar_tela(peca: Image.Image, escala=0.62, base=0.88):
+def montar_tela(peca: Image.Image, escala=0.62, base=0.88, cx=0.5, larg_max=0.8):
     """Põe a peça recortada numa tela retrato, no terço de baixo, e devolve (tela RGB cinza, alfa da peça na tela)."""
     peca = so_o_corpo(peca)
     caixa = peca.getchannel("A").point(lambda v: 255 if v > 24 else 0).getbbox()
     peca = peca.crop(caixa)
-    f = min(ALT * escala / peca.height, LARG * 0.8 / peca.width)
+    f = min(ALT * escala / peca.height, LARG * larg_max / peca.width)
     peca = peca.resize((max(1, int(peca.width * f)), max(1, int(peca.height * f))), Image.LANCZOS)
-    x = (LARG - peca.width) // 2
+    x = int(LARG * cx) - peca.width // 2
     y = int(ALT * base) - peca.height
     camada = Image.new("RGBA", (LARG, ALT), (0, 0, 0, 0))
     camada.paste(peca, (x, y), peca)
@@ -93,14 +108,15 @@ def montar_tela(peca: Image.Image, escala=0.62, base=0.88):
 
 def enviar_e_gerar(tela_rgba: Image.Image, cena: str, semente: int) -> Image.Image:
     nome = f"hpr_{uuid.uuid4().hex[:8]}.png"
+    texto_cena, estilo, neg_extra = cena_prompt(cena)
     entrada = PASTA / "input"
     entrada.mkdir(exist_ok=True)
     tela_rgba.save(entrada / nome)  # LoadImage entrega a máscara = área transparente (o que a IA preenche)
     fluxo = {
         "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": MODELO}},
         "2": {"class_type": "LoadImage", "inputs": {"image": nome}},
-        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": CENAS.get(cena, cena) + BASE, "clip": ["1", 1]}},
-        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": NEGATIVO, "clip": ["1", 1]}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"text": texto_cena + BASES[estilo], "clip": ["1", 1]}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"text": NEGATIVOS[estilo] + (", " + neg_extra if neg_extra else ""), "clip": ["1", 1]}},
         "5": {"class_type": "VAEEncode", "inputs": {"pixels": ["2", 0], "vae": ["1", 2]}},
         "6": {"class_type": "SetLatentNoiseMask", "inputs": {"samples": ["5", 0], "mask": ["2", 1]}},
         "7": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["3", 0], "negative": ["4", 0],
@@ -122,32 +138,55 @@ def enviar_e_gerar(tela_rgba: Image.Image, cena: str, semente: int) -> Image.Ima
     raise TimeoutError("o ComfyUI não terminou em 10 minutos")
 
 
-def gerar(foto: Image.Image, cena: str = "madeira", semente: int | None = None) -> Image.Image:
-    """Foto da peça (qualquer fundo) -> foto de vitrine 896x1152 no padrão da loja."""
+def gerar(foto: Image.Image, cena: str = "madeira", semente: int | None = None,
+          layout: str = "limpa", dados: dict | None = None, textos: dict | None = None) -> Image.Image:
+    """Foto da peça (qualquer fundo) -> foto de vitrine no padrão da loja.
+    layout: 'limpa' (896x1152), 'medidas' (com setas de altura/largura/profundidade) ou 'anuncio'
+    (título, preço, vantagens e medidas; 1080 de largura). dados/textos: ver anuncio.py."""
     semente = int(time.time()) % 100000 if semente is None else semente
+    layout = layout if layout in POSICAO else "limpa"
     foto.thumbnail((1600, 1600))
-    camada = montar_tela(recortar(foto))
-    fundo = enviar_e_gerar(camada, cena, semente)
+    camada = montar_tela(recortar(foto), **POSICAO[layout])
+    cor = (CENAS.get(cena) or {}).get("cor_fundo")
+    # cenário liso (ex.: fundo branco de marketplace): sem IA, só cor + sombra no chão
+    fundo = Image.new("RGB", (LARG, ALT), tuple(cor)) if cor else enviar_e_gerar(camada, cena, semente)
+    alfa = camada.getchannel("A").point(lambda v: 255 if v > 24 else 0)
+    bbox = alfa.getbbox()
     final = fundo.convert("RGBA")
     # Devolve a peça original por cima, com borda suave de 1 px
     camada.putalpha(camada.getchannel("A").filter(ImageFilter.GaussianBlur(0.8)))
     final = sombra_no_chao(final, camada)
     final.alpha_composite(camada)
-    return final.convert("RGB")
+    if layout == "limpa":
+        return final.convert("RGB")
+    import anuncio
+    k = LARGURA_FINAL / LARG
+    final = final.convert("RGB").resize((LARGURA_FINAL, round(ALT * k)), Image.LANCZOS)
+    caixa = tuple(round(v * k) for v in bbox)
+    dados = dados or {}
+    if layout == "medidas":
+        return anuncio.desenhar_medidas(final, caixa, dados, cena_prompt(cena)[1]).convert("RGB")
+    return anuncio.desenhar_anuncio(final, caixa, dados, textos or {}).convert("RGB")
 
 
 def main():
     a = argparse.ArgumentParser()
     a.add_argument("--entrada", required=True)
     a.add_argument("--saida", required=True)
-    a.add_argument("--cena", default="madeira", help="madeira, bandeja, natal ou um texto livre em inglês")
+    a.add_argument("--cena", default="madeira", help="um id de cenas.json ou um texto livre em inglês")
     a.add_argument("--semente", type=int, default=None)
     a.add_argument("--recorte", help="x0,y0,x1,y1 da peça na foto de entrada (opcional)")
+    a.add_argument("--layout", default="limpa", choices=LAYOUTS)
+    a.add_argument("--nome"); a.add_argument("--preco", type=float)
+    a.add_argument("--altura", type=float); a.add_argument("--largura", type=float); a.add_argument("--profundidade", type=float)
+    a.add_argument("--subtitulo", default=""); a.add_argument("--vantagens", default="", help="três frases separadas por |")
     r = a.parse_args()
     foto = Image.open(r.entrada).convert("RGB")
     if r.recorte:
         foto = foto.crop(tuple(int(v) for v in r.recorte.split(",")))
-    gerar(foto, r.cena, r.semente).save(r.saida, quality=94)
+    dados = {k: getattr(r, k) for k in ("nome", "preco", "altura", "largura", "profundidade")}
+    textos = {"subtitulo": r.subtitulo, "vantagens": [v for v in r.vantagens.split("|") if v.strip()]}
+    gerar(foto, r.cena, r.semente, r.layout, dados, textos).save(r.saida, quality=94)
     print("ok", r.saida)
 
 

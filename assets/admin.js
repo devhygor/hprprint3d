@@ -72,7 +72,8 @@
   async function enviarFoto(id, dataUrl) {
     const blob = await (await fetch(dataUrl)).blob();
     const caminho = `pecas/${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.jpg`;
-    const { error } = await db.storage.from("fotos").upload(caminho, blob, { contentType: "image/jpeg", upsert: true });
+    // Sem upsert: o nome é único (id + hora + sorteio) e o upsert exige permissão de leitura que o armazenamento não dá
+    const { error } = await db.storage.from("fotos").upload(caminho, blob, { contentType: "image/jpeg", upsert: false });
     if (error) throw error;
     return db.storage.from("fotos").getPublicUrl(caminho).data.publicUrl;
   }
@@ -632,6 +633,16 @@
 
   // Foto de vitrine com IA: o PC recorta a peça e cria só o cenário; a nova foto entra logo depois da original
   let gerandoFoto = false;
+  $("#layout-ia").addEventListener("change", () => {
+    const v = $("#layout-ia").value;
+    $("#dica-layout-ia").hidden = v === "limpa";
+    $("#vantagens-ia").hidden = v !== "anuncio";
+  });
+  $("#cena-ia").addEventListener("change", () => {
+    const livre = $("#cena-ia").value === "personalizado";
+    $("#cena-ia-texto").hidden = !livre;
+    if (livre) $("#cena-ia-texto").focus();
+  });
   async function gerarFotoIA(i) {
     const st = $("#status-foto-ia");
     const origem = estado.fotos[i];
@@ -642,7 +653,24 @@
     st.className = "dica";
     st.textContent = "Gerando a foto de vitrine no PC da loja… (cerca de 30 segundos, pode levar mais na primeira vez)";
     try {
-      const corpo = { cena: $("#cena-ia").value };
+      const corpo = { cena: $("#cena-ia").value, layout: $("#layout-ia").value };
+      if (corpo.layout !== "limpa") {
+        // O texto e as medidas saem desta peça, do que está preenchido no formulário agora
+        const n = (sel) => { const v = P.num($(sel).value, NaN); return Number.isFinite(v) && v > 0 ? v : undefined; };
+        Object.assign(corpo, {
+          nome: $("#p-nome").value.trim(), categoria: $("#p-categoria").value.trim(), material: $("#c-material").value.trim(),
+          descricao: $("#p-descricao").value.trim(), preco: n("#p-preco"),
+          altura: n("#c-altura"), largura: n("#c-largura"), profundidade: n("#c-profundidade"),
+          kit: lerKit().map((k) => (k.qtd > 1 ? `${k.qtd}× ` : "") + (k.nome || "peça")),
+          vantagens: $("#vantagens-ia").value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 3),
+        });
+        if (corpo.layout === "anuncio" && !corpo.nome) { $("#p-nome").focus(); throw new Error("escreva o nome da peça: ele vira o título do anúncio."); }
+        if (corpo.layout === "medidas" && !(corpo.altura || corpo.largura || corpo.profundidade)) throw new Error("preencha as medidas da peça em Características.");
+      }
+      if (corpo.cena === "personalizado") {
+        corpo.texto = $("#cena-ia-texto").value.trim();
+        if (corpo.texto.length < 4) { $("#cena-ia-texto").focus(); throw new Error("descreva o cenário no campo ao lado do seletor."); }
+      }
       if (origem.dataUrl) corpo.foto_base64 = origem.dataUrl; else corpo.foto_url = urlFoto(origem.url);
       const { data, error } = await db.functions.invoke("ia-imagem", { body: corpo });
       if (error) {

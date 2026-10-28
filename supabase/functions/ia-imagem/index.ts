@@ -30,12 +30,20 @@ Deno.serve(async (req) => {
 
   let c: any;
   try { c = await req.json(); } catch { return resposta(400, { erro: "corpo inválido" }); }
-  const cena = ["madeira", "bandeja", "natal"].includes(c.cena) ? c.cena : "madeira";
+  // A lista de cenários mora no PC (estudio/cenas.json): aqui só passa o id, e o gateway recusa o que não existir
+  const cena = typeof c.cena === "string" && /^[a-z0-9-]{1,30}$/.test(c.cena) ? c.cena : "madeira";
   const corpo: Record<string, unknown> = { cena };
+  if (cena === "personalizado") corpo.texto = String(c.texto || "").slice(0, 240);
   if (typeof c.foto_base64 === "string" && c.foto_base64.length < 12_000_000) corpo.foto_base64 = c.foto_base64;
   else if (typeof c.foto_url === "string") corpo.foto_url = c.foto_url;
   else return resposta(400, { erro: "Falta a foto." });
   if (Number.isInteger(c.semente)) corpo.semente = c.semente;
+  // Modelo da imagem (limpa, medidas ou anuncio) e os dados da PRÓPRIA peça, de onde sai o texto do anúncio
+  if (["limpa", "medidas", "anuncio"].includes(c.layout)) corpo.layout = c.layout;
+  for (const k of ["nome", "categoria", "material", "descricao"]) if (typeof c[k] === "string") corpo[k] = c[k].slice(0, 600);
+  for (const k of ["preco", "altura", "largura", "profundidade"]) if (Number.isFinite(Number(c[k]))) corpo[k] = Number(c[k]);
+  if (Array.isArray(c.kit)) corpo.kit = c.kit.filter((x: unknown) => typeof x === "string").slice(0, 12).map((x: string) => x.slice(0, 60));
+  if (Array.isArray(c.vantagens)) corpo.vantagens = c.vantagens.filter((x: unknown) => typeof x === "string").slice(0, 3).map((x: string) => x.slice(0, 60));
 
   try {
     const r = await fetch(`${urlPc}/imagem`, {

@@ -1,0 +1,72 @@
+{
+  "_ajuda": "id: nome curto sem espaços (vai no botão da oficina). grupo: só organiza o seletor. estilo: 'claro' (padrão da vitrine) ou 'neon' (escuro com luz colorida). prompt: o cenário, em inglês, SEM descrever a peça. Depois de mexer aqui, reinicie o gateway (iniciar-ia-loja.ps1) e acrescente a opção em admin.html.",
+  "cenas": {
+    "madeira": {
+      "nome": "Madeira clara, luzes desfocadas", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a light birch wood slice on a pale wooden table, bright airy cozy home interior, very soft cream and blush pink blurred background with a few small soft warm bokeh lights, high-key, pastel"
+    },
+    "bandeja": {
+      "nome": "Bandeja branca, mesa clara", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a white ribbed ceramic tray on a light wooden table, bright airy cozy home interior, soft cream blurred background, a few small soft warm bokeh lights, high-key, pastel"
+    },
+    "estante": {
+      "nome": "Estante com livros e plantas", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a light wooden bookshelf in a bright living room, softly blurred books, small green plants and ceramic vases in the background, warm natural daylight, cream and sage tones, high-key"
+    },
+    "mesa-trabalho": {
+      "nome": "Mesa de escritório", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a tidy light wooden office desk, softly blurred laptop, notebook, coffee mug and a small green plant in the background, bright window light, clean modern home office, high-key"
+    },
+    "cozinha": {
+      "nome": "Bancada de cozinha ou bar", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a light wooden kitchen counter, softly blurred kitchen shelves and glasses in the background, bright cozy home kitchen, warm daylight, cream and wood tones, high-key"
+    },
+    "varanda": {
+      "nome": "Varanda com plantas", "grupo": "Ambientes", "estilo": "claro",
+      "prompt": "a light wooden table on a sunny balcony, softly blurred green plants and garden in the background, bright natural daylight, fresh airy mood, high-key"
+    },
+    "fundo-branco": {
+      "nome": "Fundo branco de estúdio (marketplace)", "grupo": "Para vender", "estilo": "claro",
+      "cor_fundo": [255, 255, 255],
+      "prompt": "(sem IA: branco puro de verdade, exigido por muitos marketplaces; só a sombra no chão é desenhada)"
+    },
+    "marmore": {
+      "nome": "Mármore branco, minimalista", "grupo": "Para vender", "estilo": "claro",
+      "prompt": "a white marble surface with subtle grey veins, plain smooth soft off-white blurred wall behind, nothing else in the frame, minimal elegant, soft diffused light, high-key",
+      "negativo": "window, room, furniture, shelf, plants, flowers, fruit, objects, props, curtain, lamp, interior, doorway"
+    },
+    "creme": {
+      "nome": "Fundo liso creme", "grupo": "Para vender", "estilo": "claro",
+      "prompt": "a smooth seamless warm cream backdrop on a matching cream surface, completely empty, soft diffused studio light, gentle soft shadow, minimal, high-key, pastel",
+      "negativo": "window, room, furniture, shelf, plants, flowers, fruit, objects, props, curtain, lamp, interior, boxes"
+    },
+    "presente": {
+      "nome": "Presente (caixas e fita)", "grupo": "Para vender", "estilo": "claro",
+      "prompt": "a light table with softly blurred gift boxes wrapped in kraft paper and cream ribbons in the background, small dried flowers, warm gift-giving mood, soft daylight, high-key, pastel"
+    },
+    "natal": {
+      "nome": "Natal, árvore e pinhas", "grupo": "Datas", "estilo": "claro",
+      "prompt": "a light wooden table, bright cozy Christmas atmosphere, softly blurred christmas tree and pine cones in the background with golden bokeh lights, cream tones, high-key"
+    },
+    "namorados": {
+      "nome": "Namorados e Dia das Mães (rosas)", "grupo": "Datas", "estilo": "claro",
+      "prompt": "a light table with soft pink rose petals nearby, softly blurred pink and cream roses in the background, romantic gentle mood, soft warm daylight, high-key, pastel pink"
+    },
+    "pascoa": {
+      "nome": "Páscoa (flores e ovos pastel)", "grupo": "Datas", "estilo": "claro",
+      "prompt": "a light wooden table, softly blurred pastel easter eggs and spring flowers in the background, fresh spring mood, soft daylight, pastel mint, pink and yellow, high-key"
+    },
+    "religioso": {
+      "nome": "Prateleira branca com velas e flores", "grupo": "Temas", "estilo": "claro",
+      "prompt": "a white shelf with softly blurred candles and white flowers in the background, serene peaceful mood, soft warm candlelight glow, cream and white tones, high-key"
+    },
+    "infantil": {
+      "nome": "Quarto infantil pastel", "grupo": "Temas", "estilo": "claro",
+      "prompt": "a light wooden shelf in a pastel children's room, softly blurred soft toys and colorful wooden blocks in the background, playful gentle mood, bright soft daylight, pastel colors, high-key"
+    },
+    "geek": {
+      "nome": "Mesa gamer com luz neon", "grupo": "Temas", "estilo": "neon",
+      "prompt": "a dark desk in a gamer room, softly blurred purple and blue neon LED lights and a glowing monitor in the background, cinematic rim lighting, futuristic mood"
+    }
+  }
+}

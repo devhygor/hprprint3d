@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610272120">
-  <link rel="stylesheet" href="assets/admin.css?v=202610272120">
+  <link rel="stylesheet" href="assets/style.css?v=202610272143">
+  <link rel="stylesheet" href="assets/admin.css?v=202610272143">
 </head>
 <body>
   <header class="topo">
@@ -289,11 +289,45 @@
               <div class="foto-ia">
                 <label class="campo">Foto de vitrine com IA
                   <select id="cena-ia">
-                    <option value="madeira">Madeira clara, luzes desfocadas</option>
-                    <option value="bandeja">Bandeja branca, mesa clara</option>
-                    <option value="natal">Natal, árvore e pinhas</option>
+                    <optgroup label="Ambientes">
+                      <option value="madeira">Madeira clara, luzes desfocadas</option>
+                      <option value="bandeja">Bandeja branca, mesa clara</option>
+                      <option value="estante">Estante com livros e plantas</option>
+                      <option value="mesa-trabalho">Mesa de escritório</option>
+                      <option value="cozinha">Bancada de cozinha ou bar</option>
+                      <option value="varanda">Varanda com plantas</option>
+                    </optgroup>
+                    <optgroup label="Para vender">
+                      <option value="fundo-branco">Fundo branco de estúdio (marketplace)</option>
+                      <option value="marmore">Mármore branco, minimalista</option>
+                      <option value="creme">Fundo liso creme</option>
+                      <option value="presente">Presente (caixas e fita)</option>
+                    </optgroup>
+                    <optgroup label="Datas">
+                      <option value="natal">Natal, árvore e pinhas</option>
+                      <option value="namorados">Namorados e Dia das Mães (rosas)</option>
+                      <option value="pascoa">Páscoa (flores e ovos pastel)</option>
+                    </optgroup>
+                    <optgroup label="Temas">
+                      <option value="religioso">Prateleira branca com velas e flores</option>
+                      <option value="infantil">Quarto infantil pastel</option>
+                      <option value="geek">Mesa gamer com luz neon</option>
+                    </optgroup>
+                    <optgroup label="Livre">
+                      <option value="personalizado">Descrever o cenário…</option>
+                    </optgroup>
                   </select>
                 </label>
+                <input id="cena-ia-texto" type="text" maxlength="240" hidden placeholder="Ex.: mesa de madeira com velas e flores secas, luz de fim de tarde" aria-label="Descreva o cenário em português">
+                <label class="campo">Modelo da imagem
+                  <select id="layout-ia">
+                    <option value="limpa">Só a foto (sem texto)</option>
+                    <option value="medidas">Foto com as medidas (altura, largura e profundidade)</option>
+                    <option value="anuncio">Anúncio completo: título, preço, vantagens e medidas</option>
+                  </select>
+                </label>
+                <p class="dica" id="dica-layout-ia" hidden>As medidas vêm de Características (se for kit, é a caixa do kit inteiro). O título, o preço e o texto das vantagens saem do nome, da categoria, do material e da descrição desta peça: confira esses campos antes de gerar.</p>
+                <textarea id="vantagens-ia" rows="3" hidden maxlength="220" placeholder="Opcional: 3 vantagens, uma por linha. Se deixar vazio, a IA escreve com base nesta peça." aria-label="Vantagens do anúncio, uma por linha"></textarea>
                 <p class="dica" id="status-foto-ia">Escolha o cenário e toque em ✨ numa foto da galeria: a peça é recortada e só o cenário é criado pela IA do nosso PC (a peça não muda). Funciona melhor com a peça sobre fundo liso, sem textos na imagem. Leva cerca de 30 segundos e precisa do PC ligado.</p>
               </div>
               <p class="dica">No Instagram, abra o post, toque nos três pontinhos e em "Copiar link", e cole aqui: a foto é copiada para o Supabase e não expira. A primeira foto é a capa da vitrine. Use as setas para mudar a ordem. Fotos da peça impressa por vocês vendem mais que a do MakerWorld.</p>
@@ -701,17 +735,17 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610272120"></script>
+  <script src="assets/supabase-config.js?v=202610272143"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610272120"></script>
-  <script src="assets/precificador.js?v=202610272120"></script>
-  <script src="assets/admin.js?v=202610272120"></script>
-  <script src="assets/rastreio.js?v=202610272120"></script>
-  <script src="assets/frete.js?v=202610272120"></script>
-  <script src="assets/email.js?v=202610272120"></script>
-  <script src="assets/itens.js?v=202610272120"></script>
-  <script src="assets/pedidos.js?v=202610272120"></script>
-  <script src="assets/financeiro.js?v=202610272120"></script>
-  <script src="assets/frete-admin.js?v=202610272120"></script>
+  <script src="assets/modelo3mf.js?v=202610272143"></script>
+  <script src="assets/precificador.js?v=202610272143"></script>
+  <script src="assets/admin.js?v=202610272143"></script>
+  <script src="assets/rastreio.js?v=202610272143"></script>
+  <script src="assets/frete.js?v=202610272143"></script>
+  <script src="assets/email.js?v=202610272143"></script>
+  <script src="assets/itens.js?v=202610272143"></script>
+  <script src="assets/pedidos.js?v=202610272143"></script>
+  <script src="assets/financeiro.js?v=202610272143"></script>
+  <script src="assets/frete-admin.js?v=202610272143"></script>
 </body>
 </html>

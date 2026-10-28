@@ -66,7 +66,8 @@ hr { border: 0; border-top: 1px solid var(--linha); width: 100%; margin: 4px 0; 
 .galeria-btn:hover:not(:disabled) { background: var(--neon); border-color: var(--neon); }
 .galeria-btn:disabled { opacity: .3; cursor: default; }
 .foto-ia { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.foto-ia select { font: 400 1rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--linha); border-radius: var(--raio-p); padding: 10px 12px; }
+.foto-ia textarea { font: 400 1rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--linha); border-radius: var(--raio-p); padding: 10px 12px; resize: vertical; }
+.foto-ia select, .foto-ia input[type="text"] { font: 400 1rem var(--fonte-texto); color: var(--texto); background: var(--noite); border: 1.5px solid var(--linha); border-radius: var(--raio-p); padding: 10px 12px; }
 .galeria-btn:focus-visible { outline: 2px solid var(--neon-claro); outline-offset: 2px; }
 .galeria-tirar:hover:not(:disabled) { background: var(--erro); border-color: var(--erro); color: #2a0010; }
 .galeria-vazia { grid-column: 1 / -1; padding: 22px; text-align: center; border: 1.5px dashed var(--linha); border-radius: var(--raio-p); color: var(--texto-3); font-size: .9rem; }
