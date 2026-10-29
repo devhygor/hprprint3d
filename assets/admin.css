@@ -528,3 +528,53 @@ fieldset.painel > .rotulo { margin-top: 10px; padding-top: 18px; border-top: 1px
   .campo { font-size: .86rem; }
 }
 .dica { color: #a99cd8; }
+
+/* ---------- Financeiro em partes: Resumo | Vendas e gastos | A receber e a pagar ---------- */
+.fin-abas { display: flex; gap: 6px; margin: 0 0 18px; padding: 5px; background: var(--noite-2); border: 1px solid var(--linha); border-radius: 999px; width: fit-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.fin-abas button { font: 600 .95rem var(--fonte-texto); color: var(--texto-2); background: none; border: 0; border-radius: 999px; padding: 10px 18px; min-height: 44px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.fin-abas button:hover { color: var(--texto); }
+.fin-abas button[aria-current="page"] { background: var(--neon); color: #fff; box-shadow: var(--brilho); }
+.fin-selo { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; font-size: .78rem; font-weight: 700; background: var(--noite-3); color: var(--texto); }
+.fin-abas button[aria-current="page"] .fin-selo { background: rgba(255,255,255,.22); }
+.fin-selo.alerta { background: #ff6b81; color: #2a0010; }
+
+.fin-alerta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; padding: 14px 18px; border-radius: var(--raio-m); background: rgba(255, 107, 129, .1); border: 1px solid rgba(255, 107, 129, .45); color: #ffd3da; }
+.fin-alerta b { color: #fff; }
+
+.fin-pend-resumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.fin-tile.destaque { border-color: var(--neon); background: radial-gradient(120% 140% at 0% 0%, #2c1366 0%, var(--noite-2) 70%); }
+.fin-tile.atraso { border-color: rgba(255, 107, 129, .55); }
+.fin-tile.atraso strong { color: #ffb3c2; }
+.fin-pend-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.fin-pend-barra .dica { max-width: 60ch; }
+.fin-pend-colunas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fin-pend-grupo { border: 1px solid var(--linha); border-radius: var(--raio-m); overflow: hidden; background: var(--noite); }
+.fin-pend-grupo + .fin-pend-grupo { margin-top: 10px; }
+.fin-pend-grupo.antigo { border-color: rgba(255, 107, 129, .4); }
+.fin-pend-grupo header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; padding: 10px 14px; background: var(--noite-3); font-size: .9rem; color: var(--texto-2); }
+.fin-pend-grupo header h3 { margin: 0; font-family: var(--fonte-display); font-size: 1rem; color: var(--texto); }
+.fin-pend-grupo header b { color: var(--texto); font-variant-numeric: tabular-nums; }
+.fin-tag-atraso { font: 600 .7rem var(--fonte-texto); color: #ffb3c2; border: 1px solid rgba(255, 107, 129, .5); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+.fin-pend-grupo ul { list-style: none; margin: 0; padding: 0; }
+.fin-pend-linha { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid #2a1b52; cursor: pointer; }
+.fin-pend-linha:hover, .fin-pend-linha:focus-visible { background: rgba(139, 61, 255, .1); outline: none; }
+.fp-info { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.fp-info b { overflow-wrap: anywhere; }
+.fp-info span { font-size: .82rem; color: var(--texto-3); }
+.fp-idade { font-style: normal; }
+.fp-idade.antigo { color: #ffa3b5; font-weight: 600; }
+.fp-valor { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@media (max-width: 900px) { .fin-pend-colunas { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .fin-abas { width: 100%; border-radius: 16px; }
+  .fin-abas button { padding: 10px 14px; font-size: .9rem; }
+  .fin-pend-resumo { grid-template-columns: 1fr; }
+  .fin-pend-linha { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .fin-pend-linha .botao { grid-column: 1 / -1; width: 100%; }
+}
+@media (max-width: 640px) {
+  .fin-abas { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 4px; overflow: visible; }
+  .fin-abas button { white-space: normal; text-align: center; justify-content: center; line-height: 1.15; padding: 8px 6px; font-size: .85rem; flex-wrap: wrap; gap: 4px; }
+  .fin-pend-resumo .fin-tile strong { font-size: 1.3rem; }
+}

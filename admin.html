@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610291510">
-  <link rel="stylesheet" href="assets/admin.css?v=202610291510">
+  <link rel="stylesheet" href="assets/style.css?v=202610291610">
+  <link rel="stylesheet" href="assets/admin.css?v=202610291610">
 </head>
 <body>
   <header class="topo">
@@ -459,12 +459,12 @@
       <div class="fin-cabeca">
         <div class="fin-periodo">
           <h1>Financeiro</h1>
-          <div class="fin-nav" role="group" aria-label="Período">
+          <div class="fin-nav" data-fin-vista-nao="pendentes" role="group" aria-label="Período">
             <button class="fin-seta" type="button" id="fin-anterior" aria-label="Período anterior">‹</button>
             <strong id="fin-rotulo">—</strong>
             <button class="fin-seta" type="button" id="fin-proximo" aria-label="Próximo período">›</button>
           </div>
-          <div class="alternar fin-modo" role="group" aria-label="Ver por">
+          <div class="alternar fin-modo" data-fin-vista-nao="pendentes" role="group" aria-label="Ver por">
             <button type="button" data-fin-modo="mes" aria-pressed="true">Mês</button>
             <button type="button" data-fin-modo="ano" aria-pressed="false">Ano</button>
           </div>
@@ -477,12 +477,21 @@
         </div>
       </div>
 
-      <div id="fin-conteudo">
-        <section class="fin-caixa" id="fin-caixa" aria-label="Caixa da loja, desde o início"></section>
-        <h2 class="fin-subtitulo" id="fin-subtitulo">Neste mês</h2>
-        <div class="fin-resumo" id="fin-resumo"></div>
+      <nav class="fin-abas" id="fin-abas" aria-label="Partes do financeiro">
+        <button type="button" data-fin-vista-ir="resumo" aria-current="page">Resumo</button>
+        <button type="button" data-fin-vista-ir="lancamentos">Vendas e gastos</button>
+        <button type="button" data-fin-vista-ir="pendentes">A receber e a pagar <span class="fin-selo" id="fin-selo" hidden></span></button>
+      </nav>
 
-        <div class="painel fin-grafico-painel">
+      <div id="fin-conteudo">
+        <div class="fin-alerta" id="fin-alerta" hidden></div>
+        <section class="fin-caixa" id="fin-caixa" data-fin-vista="resumo" aria-label="Caixa da loja, desde o início"></section>
+        <h2 class="fin-subtitulo" id="fin-subtitulo" data-fin-vista="resumo">Neste mês</h2>
+        <div class="fin-resumo" id="fin-resumo" data-fin-vista="resumo"></div>
+
+        <section id="fin-pendentes" data-fin-vista="pendentes" hidden></section>
+
+        <div class="painel fin-grafico-painel" data-fin-vista="resumo">
           <div class="fin-grafico-cabeca">
             <h2 class="titulo-painel">Entradas e saídas por mês</h2>
             <div class="fin-legenda" aria-hidden="true">
@@ -494,7 +503,7 @@
           <details class="fin-tabela-numeros"><summary>Ver números em tabela</summary><div id="fin-grafico-tabela"></div></details>
         </div>
 
-        <div class="fin-colunas">
+        <div class="fin-colunas" data-fin-vista="lancamentos">
           <div class="painel">
             <div class="fin-lista-cabeca">
               <h2 class="titulo-painel">Vendas <span class="fin-conta" id="fin-n-entradas"></span></h2>
@@ -508,7 +517,7 @@
           </div>
         </div>
 
-        <div class="fin-colunas tres-col">
+        <div class="fin-colunas tres-col" data-fin-vista="resumo">
           <div class="painel"><h2 class="titulo-painel">Para onde foi o dinheiro</h2><div id="fin-categorias"></div></div>
           <div class="painel"><h2 class="titulo-painel">Peças que mais venderam</h2><div id="fin-top-pecas"></div></div>
           <div class="painel"><h2 class="titulo-painel">Melhores clientes</h2><div id="fin-top-clientes"></div></div>
@@ -761,18 +770,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610291510"></script>
+  <script src="assets/supabase-config.js?v=202610291610"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610291510"></script>
-  <script src="assets/precificador.js?v=202610291510"></script>
-  <script src="assets/admin.js?v=202610291510"></script>
-  <script src="assets/rastreio.js?v=202610291510"></script>
-  <script src="assets/frete.js?v=202610291510"></script>
-  <script src="assets/email.js?v=202610291510"></script>
-  <script src="assets/itens.js?v=202610291510"></script>
-  <script src="assets/pedidos.js?v=202610291510"></script>
-  <script src="assets/financeiro.js?v=202610291510"></script>
-  <script src="assets/frete-admin.js?v=202610291510"></script>
-  <script src="assets/cadastro-etapas.js?v=202610291510"></script>
+  <script src="assets/modelo3mf.js?v=202610291610"></script>
+  <script src="assets/precificador.js?v=202610291610"></script>
+  <script src="assets/admin.js?v=202610291610"></script>
+  <script src="assets/rastreio.js?v=202610291610"></script>
+  <script src="assets/frete.js?v=202610291610"></script>
+  <script src="assets/email.js?v=202610291610"></script>
+  <script src="assets/itens.js?v=202610291610"></script>
+  <script src="assets/pedidos.js?v=202610291610"></script>
+  <script src="assets/financeiro.js?v=202610291610"></script>
+  <script src="assets/frete-admin.js?v=202610291610"></script>
+  <script src="assets/cadastro-etapas.js?v=202610291610"></script>
 </body>
 </html>

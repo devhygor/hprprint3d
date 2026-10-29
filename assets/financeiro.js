@@ -16,6 +16,8 @@
   let mes = hoje.getMonth(); // 0-11
   let busca = "";
   let editando = null; // lançamento em edição
+  let vista = "resumo"; // "resumo" | "lancamentos" | "pendentes"
+  let agrupar = "mes"; // pendências: "mes" | "cliente"
 
   const n = (v) => { const x = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(x) ? x : 0; };
   const chaveMes = (y, m) => `${y}-${String(m + 1).padStart(2, "0")}`;
@@ -64,6 +66,101 @@
     return (l) => mesDe(l.data) === chaveMes(d.getFullYear(), d.getMonth());
   }
 
+  // ---------- Pendências: tudo que falta receber ou pagar, de qualquer mês ----------
+  const dataLonga = (d) => (d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
+  const nomeMes = (chave) => { const [y, m] = chave.split("-"); const t = MESES[Number(m) - 1]; return `${t[0].toUpperCase() + t.slice(1)} de ${y}`; };
+  const inicioMesAtual = () => chaveMes(hoje.getFullYear(), hoje.getMonth()) + "-01";
+  function idade(data) {
+    const d = Math.floor((Date.now() - new Date(data + "T12:00").getTime()) / 864e5);
+    if (d < 1) return { texto: "hoje", antigo: false };
+    if (d < 30) return { texto: `há ${d} dia${d > 1 ? "s" : ""}`, antigo: false };
+    if (d < 365) { const m = Math.floor(d / 30); return { texto: `há ${m} ${m > 1 ? "meses" : "mês"}`, antigo: true }; }
+    const a = Math.floor(d / 365);
+    return { texto: `há ${a} ano${a > 1 ? "s" : ""}`, antigo: true };
+  }
+  const somar = (arr) => arr.reduce((s, l) => s + l.valor, 0);
+  const plural = (q, um, varios) => `${q} ${q === 1 ? um : varios}`;
+
+  function linhaPendente(l, receber) {
+    const i = idade(l.data);
+    const titulo = receber ? (l.cliente || l.descricao) : l.descricao;
+    const sub = receber && l.cliente ? `${esc(l.descricao)} · ` : (!receber && l.categoria ? `${esc(l.categoria)} · ` : "");
+    return `<li class="fin-pend-linha" data-lanc="${l.id}" tabindex="0">
+      <div class="fp-info"><b>${esc(titulo)}</b><span>${sub}${dataLonga(l.data)} · <em class="fp-idade ${i.antigo ? "antigo" : ""}">${i.texto}</em></span></div>
+      <b class="fp-valor">${brl(l.valor)}</b>
+      <button type="button" class="botao botao-pequeno ${receber ? "botao-principal" : "botao-contorno"}" data-alternar-pago="${l.id}">${receber ? "Recebi" : "Paguei"}</button>
+    </li>`;
+  }
+
+  function grupos(lista, receber) {
+    const mapa = new Map();
+    for (const l of lista) {
+      const chave = agrupar === "cliente" ? (receber ? (l.cliente || "Sem nome") : (l.categoria || "Outros")) : mesDe(l.data);
+      if (!mapa.has(chave)) mapa.set(chave, []);
+      mapa.get(chave).push(l);
+    }
+    let itens = [...mapa.entries()].map(([chave, ls]) => ({ chave, ls: ls.sort((a, b) => String(a.data).localeCompare(String(b.data))), total: somar(ls) }));
+    itens = agrupar === "cliente" ? itens.sort((a, b) => b.total - a.total) : itens.sort((a, b) => a.chave.localeCompare(b.chave));
+    return itens.map((g) => {
+      const antigo = agrupar === "mes" && g.chave + "-01" < inicioMesAtual();
+      const titulo = agrupar === "mes" ? nomeMes(g.chave) : g.chave;
+      return `<section class="fin-pend-grupo ${antigo ? "antigo" : ""}">
+        <header><h3>${esc(titulo)}${antigo ? ` <span class="fin-tag-atraso">mês anterior</span>` : ""}</h3><span>${plural(g.ls.length, "item", "itens")} · <b>${brl(g.total)}</b></span></header>
+        <ul>${g.ls.map((l) => linhaPendente(l, receber)).join("")}</ul>
+      </section>`;
+    }).join("");
+  }
+
+  function desenharPendentes() {
+    const receber = lancs.filter((l) => l.tipo === "entrada" && !l.pago);
+    const pagar = lancs.filter((l) => l.tipo === "saida" && !l.pago);
+    const velhosR = receber.filter((l) => l.data < inicioMesAtual());
+    const velhosP = pagar.filter((l) => l.data < inicioMesAtual());
+    // Selo na aba e aviso no Resumo
+    const selo = $("#fin-selo");
+    selo.hidden = !receber.length && !pagar.length;
+    selo.textContent = receber.length + pagar.length;
+    selo.classList.toggle("alerta", velhosR.length + velhosP.length > 0);
+    const alerta = $("#fin-alerta");
+    alerta.innerHTML = "";
+    if (velhosR.length || velhosP.length) {
+      const partes = [];
+      if (velhosR.length) partes.push(`<b>${brl(somar(velhosR))}</b> a receber (${plural(velhosR.length, "venda", "vendas")})`);
+      if (velhosP.length) partes.push(`<b>${brl(somar(velhosP))}</b> a pagar (${plural(velhosP.length, "gasto", "gastos")})`);
+      alerta.innerHTML = `<span><b>Ficou para trás:</b> ${partes.join(" e ")} de meses anteriores.</span><button type="button" class="botao botao-pequeno botao-contorno" data-fin-vista-ir="pendentes">Ver pendências</button>`;
+    }
+    const alvo = $("#fin-pendentes");
+    if (!receber.length && !pagar.length) {
+      alvo.innerHTML = `<div class="vazio"><strong>Tudo em dia</strong>Não há venda a receber nem gasto a pagar.</div>`;
+      return;
+    }
+    alvo.innerHTML = `
+      <div class="fin-pend-resumo">
+        <div class="fin-tile destaque"><span class="fin-rotulo"><i style="background:var(--fin-entrada)"></i>Falta receber</span><strong>${brl(somar(receber))}</strong><span class="fin-delta">${plural(receber.length, "venda", "vendas")}</span></div>
+        <div class="fin-tile ${velhosR.length ? "atraso" : ""}"><span class="fin-rotulo">Ficou para trás</span><strong>${brl(somar(velhosR))}</strong><span class="fin-delta">${velhosR.length ? `${plural(velhosR.length, "venda", "vendas")} de meses anteriores` : "nada de meses anteriores"}</span></div>
+        <div class="fin-tile"><span class="fin-rotulo"><i style="background:var(--fin-saida)"></i>Falta pagar</span><strong>${brl(somar(pagar))}</strong><span class="fin-delta">${plural(pagar.length, "gasto", "gastos")}${velhosP.length ? ` · ${velhosP.length} atrasado${velhosP.length > 1 ? "s" : ""}` : ""}</span></div>
+      </div>
+      <div class="fin-pend-barra">
+        <p class="dica">Aparecem todos os meses, do mais antigo para o mais novo. Toque em <b>Recebi</b> quando o dinheiro cair; toque na linha para editar.</p>
+        <div class="alternar" role="group" aria-label="Agrupar por">
+          <button type="button" data-fin-agrupar="mes" aria-pressed="${agrupar === "mes"}">Por mês</button>
+          <button type="button" data-fin-agrupar="cliente" aria-pressed="${agrupar === "cliente"}">Por cliente</button>
+        </div>
+      </div>
+      <div class="fin-colunas fin-pend-colunas">
+        <div class="painel"><h2 class="titulo-painel">A receber <span class="fin-conta">${receber.length ? `(${receber.length})` : ""}</span></h2>${receber.length ? grupos(receber, true) : linhaVazia("Nenhuma venda pendente.")}</div>
+        <div class="painel"><h2 class="titulo-painel">A pagar <span class="fin-conta">${pagar.length ? `(${pagar.length})` : ""}</span></h2>${pagar.length ? grupos(pagar, false) : linhaVazia("Nenhum gasto pendente.")}</div>
+      </div>`;
+  }
+
+  function definirVista(v) {
+    vista = v;
+    $$("[data-fin-vista]").forEach((el) => (el.hidden = el.dataset.finVista !== v));
+    $$("[data-fin-vista-nao]").forEach((el) => (el.hidden = el.dataset.finVistaNao === v));
+    $$("#fin-abas [data-fin-vista-ir]").forEach((b) => (b.dataset.finVistaIr === v ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+    $("#fin-alerta").hidden = !($("#fin-alerta").innerHTML && v === "resumo");
+  }
+
   // ---------- Desenho ----------
   function desenhar() {
     $("#fin-rotulo").textContent = modo === "ano" ? String(ano) : `${MESES[mes][0].toUpperCase() + MESES[mes].slice(1)} de ${ano}`;
@@ -81,6 +178,8 @@
     desenharCategorias(doPeriodo.filter((l) => l.tipo === "saida"));
     desenharRanking("#fin-top-pecas", doPeriodo.filter((l) => l.tipo === "entrada"), (l) => l.descricao, true);
     desenharRanking("#fin-top-clientes", doPeriodo.filter((l) => l.tipo === "entrada"), (l) => l.cliente, false);
+    desenharPendentes();
+    definirVista(vista);
   }
 
   function variacao(atual, antes, maiorEhBom = true, emReais = false) {
@@ -308,6 +407,13 @@
   $$("[data-fin-modo]").forEach((b) => b.addEventListener("click", () => { modo = b.dataset.finModo; desenhar(); }));
   $("#fin-busca").addEventListener("input", (e) => { busca = e.target.value; desenhar(); });
 
+  $("#tela-financeiro").addEventListener("click", (e) => {
+    const ir = e.target.closest("[data-fin-vista-ir]");
+    if (ir) { definirVista(ir.dataset.finVistaIr); window.scrollTo({ top: 0 }); }
+    const ag = e.target.closest("[data-fin-agrupar]");
+    if (ag) { agrupar = ag.dataset.finAgrupar; desenharPendentes(); definirVista(vista); }
+  });
+
   // Pago / a receber com um toque
   $("#tela-financeiro").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-alternar-pago]");
@@ -317,6 +423,7 @@
       if (!l) return;
       l.pago = !l.pago;
       desenhar();
+      avisar(l.pago ? (l.tipo === "entrada" ? "Marcado como recebido." : "Marcado como pago.") : (l.tipo === "entrada" ? "Voltou para a receber." : "Voltou para a pagar."));
       const { error } = await db.from("lancamentos").update({ pago: l.pago, atualizado_em: new Date().toISOString() }).eq("id", l.id);
       if (error) { l.pago = !l.pago; desenhar(); avisar("Não consegui salvar: " + erroLegivel(error), true, 7000); }
       else if (l.pedido_id && l.tipo === "entrada") {
