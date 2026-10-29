@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610272157">
-  <link rel="stylesheet" href="assets/conta.css?v=202610272157">
+  <link rel="stylesheet" href="assets/style.css?v=202610291200">
+  <link rel="stylesheet" href="assets/conta.css?v=202610291200">
 </head>
 <body>
   <header class="topo">
@@ -35,6 +35,9 @@
 
   <main class="envoltorio conta">
     <div id="aviso" class="aviso" role="status" hidden></div>
+
+    <!-- Espera enquanto confere se já tem login (evita piscar a tela de entrar) -->
+    <section id="tela-carregando" class="carregando" role="status"><span class="giro"></span><p>Abrindo sua conta…</p></section>
 
     <!-- Entrar / criar conta -->
     <section id="tela-entrar" class="cartao-conta" hidden>
@@ -95,9 +98,9 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610272157"></script>
-  <script src="assets/rastreio.js?v=202610272157"></script>
-  <script src="assets/itens.js?v=202610272157"></script>
-  <script src="assets/conta.js?v=202610272157"></script>
+  <script src="assets/supabase-config.js?v=202610291200"></script>
+  <script src="assets/rastreio.js?v=202610291200"></script>
+  <script src="assets/itens.js?v=202610291200"></script>
+  <script src="assets/conta.js?v=202610291200"></script>
 </body>
 </html>

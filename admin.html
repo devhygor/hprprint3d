@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610272157">
-  <link rel="stylesheet" href="assets/admin.css?v=202610272157">
+  <link rel="stylesheet" href="assets/style.css?v=202610291200">
+  <link rel="stylesheet" href="assets/admin.css?v=202610291200">
 </head>
 <body>
   <header class="topo">
@@ -47,6 +47,9 @@
         <button class="botao botao-contorno botao-pequeno" type="button" id="aviso-zap-fechar">Agora não</button>
       </div>
     </div>
+
+    <!-- Espera enquanto confere o login (nunca mostra a tela de entrar por engano) -->
+    <section id="tela-carregando" class="carregando" role="status"><span class="giro"></span><p>Abrindo a oficina…</p></section>
 
     <!-- Conectar -->
     <section id="tela-conectar" class="painel estreito" hidden>
@@ -196,6 +199,11 @@
             <p class="dica" id="o-rastreio-dica">Ao colocar o código, o pedido passa para <b>Enviado</b> e o cliente recebe o código com o link para acompanhar, no e-mail e no WhatsApp.</p>
             <p class="rastreio-previa" id="o-rastreio-previa" hidden></p>
           </fieldset>
+
+          <div class="etapas-nav" id="etapas-nav">
+            <button class="botao botao-contorno" type="button" id="etapa-anterior">← Voltar</button>
+            <button class="botao botao-principal" type="button" id="etapa-proxima">Continuar →</button>
+          </div>
         </form>
 
         <aside class="coluna-resultado">
@@ -239,9 +247,18 @@
       <div class="secao-cabeca">
         <h1 id="titulo-editor">Nova peça</h1>
       </div>
+      <nav class="etapas-cad" id="etapas-cad" aria-label="Etapas do cadastro da peça">
+        <ol>
+          <li><button type="button" data-etapa-ir="1"><span class="num">1</span><span class="tx"><b>Importar</b><small>opcional</small></span></button></li>
+          <li><button type="button" data-etapa-ir="2"><span class="num">2</span><span class="tx"><b>A peça</b><small>nome, fotos, descrição</small></span></button></li>
+          <li><button type="button" data-etapa-ir="3"><span class="num">3</span><span class="tx"><b>Detalhes</b><small>cores e medidas</small></span></button></li>
+          <li><button type="button" data-etapa-ir="4"><span class="num">4</span><span class="tx"><b>Custo e preço</b><small>impressão e valores</small></span></button></li>
+        </ol>
+      </nav>
+      <p class="etapa-dica" id="etapa-dica" aria-live="polite"></p>
       <div class="editor">
         <form id="form-peca" class="coluna-form" novalidate>
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="1">
             <legend>MakerWorld</legend>
             <div class="linha-busca">
               <label class="campo">Link do modelo
@@ -260,7 +277,7 @@
             </div>
           </fieldset>
 
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="2">
             <legend>Peça</legend>
             <label class="campo">Nome<input id="p-nome" required></label>
             <div class="duas">
@@ -335,7 +352,7 @@
             </div>
           </fieldset>
 
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="3">
             <legend>Cores disponíveis</legend>
             <p class="dica">Toque nas cores que vocês fazem dessa peça. Elas aparecem na vitrine e no pedido do cliente.</p>
             <div class="cores-opcoes" id="cores-opcoes" role="group" aria-label="Cores disponíveis"></div>
@@ -347,7 +364,7 @@
             <label class="marcar"><input id="p-cor-personalizada" type="checkbox" checked> Aceita outras cores sob encomenda</label>
           </fieldset>
 
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="3">
             <legend>Características</legend>
             <p class="dica">Medidas e peso da peça pronta. Aparecem para o cliente na vitrine (sempre em cm).</p>
             <label class="campo">Unidade das medidas
@@ -382,7 +399,7 @@
             <button class="botao-texto discreto-texto" type="button" id="c-extra-adicionar">+ Adicionar característica (ex.: Articulado, Encaixe para celular)</button>
           </fieldset>
 
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="4">
             <legend>Impressão (do Bambu Studio)</legend>
             <div class="tres">
               <label class="campo">Filamento usado (g)<input id="p-gramas" type="number" inputmode="decimal" step="0.1" min="0"></label>
@@ -393,7 +410,7 @@
             <p class="dica">Use o peso total do fatiador, com suportes e purga do AMS.</p>
           </fieldset>
 
-          <fieldset class="painel">
+          <fieldset class="painel" data-etapa="4">
             <legend>Valores usados na conta</legend>
             <p class="dica">Vêm preenchidos com a aba Custos. Mude só para esta peça, ou coloque 0 para tirar da conta.</p>
             <div class="duas">
@@ -744,17 +761,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610272157"></script>
+  <script src="assets/supabase-config.js?v=202610291200"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610272157"></script>
-  <script src="assets/precificador.js?v=202610272157"></script>
-  <script src="assets/admin.js?v=202610272157"></script>
-  <script src="assets/rastreio.js?v=202610272157"></script>
-  <script src="assets/frete.js?v=202610272157"></script>
-  <script src="assets/email.js?v=202610272157"></script>
-  <script src="assets/itens.js?v=202610272157"></script>
-  <script src="assets/pedidos.js?v=202610272157"></script>
-  <script src="assets/financeiro.js?v=202610272157"></script>
-  <script src="assets/frete-admin.js?v=202610272157"></script>
+  <script src="assets/modelo3mf.js?v=202610291200"></script>
+  <script src="assets/precificador.js?v=202610291200"></script>
+  <script src="assets/admin.js?v=202610291200"></script>
+  <script src="assets/rastreio.js?v=202610291200"></script>
+  <script src="assets/frete.js?v=202610291200"></script>
+  <script src="assets/email.js?v=202610291200"></script>
+  <script src="assets/itens.js?v=202610291200"></script>
+  <script src="assets/pedidos.js?v=202610291200"></script>
+  <script src="assets/financeiro.js?v=202610291200"></script>
+  <script src="assets/frete-admin.js?v=202610291200"></script>
+  <script src="assets/cadastro-etapas.js?v=202610291200"></script>
 </body>
 </html>

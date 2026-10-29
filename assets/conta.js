@@ -27,7 +27,7 @@
     timer = setTimeout(() => (el.hidden = true), ms);
   }
   function mostrar(tela) {
-    ["entrar", "senha", "pedidos"].forEach((t) => ($("#tela-" + t).hidden = t !== tela));
+    ["carregando", "entrar", "senha", "pedidos"].forEach((t) => ($("#tela-" + t).hidden = t !== tela));
   }
   function traduzirErro(e) {
     const m = String(e?.message || e || "");
@@ -83,6 +83,7 @@
         if (error) throw error;
       }
       $("#c-senha").value = "";
+      mostrar("carregando");
       carregar();
     } catch (err) {
       avisar(traduzirErro(err), true, 7000);
@@ -186,24 +187,35 @@
   const comLimite = (promessa, ms) =>
     Promise.race([promessa, new Promise((_, falha) => setTimeout(() => falha(new Error("tempo esgotado")), ms))]);
 
+  let rodando = false, recuperando = false;
   async function carregar() {
-    let noAr = false;
-    try { noAr = (await comLimite(fetch(`${cfg.url}/auth/v1/health`, { headers: { apikey: cfg.chave } }), 8000)).status < 500; } catch {}
-    if (!noAr) {
-      mostrar("entrar");
-      avisar("Estamos com uma instabilidade e não dá para entrar agora. Tente de novo em alguns minutos ou fale com a gente no WhatsApp.", true, 15000);
-      return;
-    }
+    if (rodando) return;
+    rodando = true;
+    try { await montar(); } finally { rodando = false; }
+  }
+  async function montar() {
     let data = { session: null };
     try { ({ data } = await comLimite(db.auth.getSession(), 10000)); } catch {}
+    if (recuperando) return;
     const sessao = data.session;
-    if (!sessao) { mostrar("entrar"); return; }
+    if (!sessao) {
+      let noAr = false;
+      try { noAr = (await comLimite(fetch(`${cfg.url}/auth/v1/health`, { headers: { apikey: cfg.chave } }), 8000)).status < 500; } catch {}
+      mostrar("entrar");
+      if (!noAr) avisar("Estamos com uma instabilidade e não dá para entrar agora. Tente de novo em alguns minutos ou fale com a gente no WhatsApp.", true, 15000);
+      return;
+    }
+    // Quem é da equipe vai direto para a oficina (?cliente=1 deixa ver os próprios pedidos)
+    let equipe = false;
+    try { ({ data: equipe } = await comLimite(db.rpc("eh_equipe"), 8000)); } catch {}
+    if (equipe && !new URLSearchParams(location.search).has("cliente")) { location.replace("admin.html"); return; }
+    if (recuperando) return;
+    $("#ir-oficina").hidden = !equipe;
     mostrar("pedidos");
     const u = sessao.user;
     const nome = u.user_metadata?.full_name || u.user_metadata?.name || "";
     $("#ola").textContent = nome ? `Olá, ${nome.split(" ")[0]}!` : "Seus pedidos";
     $("#conta-email").textContent = `Conectado como ${u.email}`;
-    db.rpc("eh_equipe").then(({ data: equipe }) => ($("#ir-oficina").hidden = !equipe)).catch(() => {});
     $("#lista").innerHTML = `<p class="apoio">Carregando seus pedidos…</p>`;
     // meus_pedidos_v2 traz rastreio e frete; a versão antiga fica de reserva
     let { data: pedidos, error } = await db.rpc("meus_pedidos_v4");
@@ -227,7 +239,7 @@
     return;
   }
   db.auth.onAuthStateChange((evento) => {
-    if (evento === "PASSWORD_RECOVERY") mostrar("senha");
+    if (evento === "PASSWORD_RECOVERY") { recuperando = true; mostrar("senha"); }
     else if (evento === "SIGNED_IN") setTimeout(carregar, 0);
   });
   const erroUrl = new URLSearchParams(location.hash.slice(1)).get("error_description") || new URLSearchParams(location.search).get("error_description");

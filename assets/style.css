@@ -71,6 +71,14 @@ a { color: inherit; }
 .botao[disabled] { opacity: .5; cursor: not-allowed; }
 .botao svg { width: 18px; height: 18px; }
 
+/* Tela de espera: aparece no lugar de qualquer tela de login enquanto a sessão é conferida */
+.carregando { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 52vh; color: var(--texto-2); text-align: center; }
+.carregando p { margin: 0; }
+.giro { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--linha); border-top-color: var(--neon-claro); animation: gira .8s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .giro { animation-duration: 2.4s; } }
+.botao-entrar { white-space: nowrap; }
+
 /* ---------- Herói ---------- */
 .heroi { padding: clamp(48px, 9vw, 112px) 0 clamp(40px, 6vw, 72px); position: relative; overflow: hidden; }
 .heroi-grade { display: grid; grid-template-columns: 1.25fr .75fr; gap: 48px; align-items: end; }
@@ -166,6 +174,16 @@ a.peca-foto { display: block; }
   .topo nav a.discreto { display: none; }
 }
 
+@media (max-width: 700px) {
+  .topo .envoltorio { gap: 10px; min-height: 60px; }
+  .marca { font-size: 1.05rem; gap: 8px; }
+  .topo nav { gap: 6px; }
+  .botao-pedido-topo { display: none; }
+}
+@media (max-width: 400px) {
+  .botao-entrar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .botao-entrar { padding: 10px; }
+}
 @media (max-width: 560px) {
   .grade-pecas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .peca { border-radius: var(--raio-m); }

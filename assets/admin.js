@@ -94,7 +94,7 @@
 
   // ---------- Navegação ----------
   function mostrar(aba) {
-    ["conectar", "pedidos", "pedido", "pecas", "editor", "financeiro", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
+    ["carregando", "conectar", "pedidos", "pedido", "pecas", "editor", "financeiro", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
     const abaMenu = aba === "pedido" ? "pedidos" : aba;
     $$(".aba").forEach((b) => (b.dataset.aba === abaMenu ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
     window.Oficina?.ganchos?.[aba]?.();
@@ -171,32 +171,29 @@
       avisar("Não consegui carregar o Supabase. Confira a internet e recarregue a página.", true, 10000);
       return;
     }
-    // Mostra a tela de entrada na hora, com um aviso de que está verificando
-    mostrar("conectar");
+    // A tela de entrada só aparece se algo der errado: o normal é espera -> oficina, ou espera -> login único (conta.html)
+    mostrar("carregando");
     $("#abas").hidden = true;
-    $("#entrada-campos").hidden = true;
-    $("#estado-banco").hidden = false;
-    $("#estado-banco").className = "estado-banco";
-    $("#estado-banco").textContent = "Conectando ao banco de dados…";
-    if (!(await bancoNoAr())) { mostrarBancoFora(); return; }
+    $("#estado-banco").hidden = true;
+    $("#entrada-campos").hidden = false;
     let data;
     try {
       ({ data } = await comLimite(db.auth.getSession(), 10000, "o login demorou para responder"));
     } catch {
       data = { session: null };
     }
-    $("#estado-banco").hidden = true;
-    $("#entrada-campos").hidden = false;
-    if (!data.session) { $("#abas").hidden = true; mostrar("conectar"); return; }
+    if (!data.session) {
+      if (!(await bancoNoAr())) { mostrarBancoFora(); return; }
+      location.replace("conta.html");
+      return;
+    }
     try {
       avisar("Carregando dados da loja…", false, 20000);
       const { data: daEquipe, error: erroEquipe } = await comLimite(db.rpc("eh_equipe"), 15000, "o banco demorou para responder");
       if (erroEquipe) throw erroEquipe;
       if (!daEquipe) {
-        await db.auth.signOut();
-        $("#abas").hidden = true;
-        mostrar("conectar");
-        avisar(`O e-mail ${data.session.user.email} não está na lista da equipe. Adicione na tabela "equipe" do Supabase.`, true, 10000);
+        // Cliente comum: não é daqui, manda para os pedidos dele
+        location.replace("conta.html");
         return;
       }
       const [config, site, ia, pecas] = await comLimite(Promise.all([
@@ -216,6 +213,7 @@
       mostrar("pedidos");
     } catch (e) {
       $("#abas").hidden = true;
+      if (!(await bancoNoAr())) { mostrarBancoFora(); return; }
       mostrar("conectar");
       avisar("Não consegui carregar: " + erroLegivel(e), true, 10000);
     }
@@ -1336,7 +1334,8 @@
     await db.auth.signOut();
     estado.pecas = []; estado.pedidos = [];
     $("#abas").hidden = true;
-    mostrar("conectar");
+    mostrar("carregando");
+    location.replace("./");
   });
 
   // ---------- API para outros módulos (pedidos.js) ----------

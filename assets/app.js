@@ -474,7 +474,8 @@
     const form = document.getElementById("form-pedido");
     if (!form.email.value) form.email.value = cliente.email || "";
     if (!form.nome.value) form.nome.value = cliente.nome || "";
-    document.getElementById("link-conta").textContent = "Minha conta";
+    document.getElementById("link-conta-texto").textContent = "Minha conta";
+    document.getElementById("link-conta").title = "Ver seus pedidos";
   }
 
   // ---------- Imagens de referência ----------
