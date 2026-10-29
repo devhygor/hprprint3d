@@ -578,3 +578,8 @@ fieldset.painel > .rotulo { margin-top: 10px; padding-top: 18px; border-top: 1px
   .fin-abas button { white-space: normal; text-align: center; justify-content: center; line-height: 1.15; padding: 8px 6px; font-size: .85rem; flex-wrap: wrap; gap: 4px; }
   .fin-pend-resumo .fin-tile strong { font-size: 1.3rem; }
 }
+
+/* Barra Voltar / Continuar sempre à vista enquanto rola o formulário */
+.etapas-nav { position: sticky; bottom: 0; z-index: 6; margin: 4px -12px 0; padding: 12px; border-radius: 16px 16px 0 0; background: color-mix(in srgb, var(--noite) 88%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--linha); }
+#etapa-proxima, #etapa-salvar { margin-left: auto; min-width: 160px; }
+@media (max-width: 640px) { .etapas-nav { margin-inline: -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-radius: 0; background: color-mix(in srgb, var(--noite) 92%, transparent); } #etapa-proxima, #etapa-salvar { min-width: 0; } }

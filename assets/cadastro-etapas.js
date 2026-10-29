@@ -23,6 +23,7 @@
     $("#etapa-dica").textContent = DICAS[atual];
     $("#etapa-anterior").hidden = atual === 1;
     $("#etapa-proxima").hidden = atual === TOTAL;
+    $("#etapa-salvar").hidden = atual !== TOTAL;
     document.querySelectorAll("#etapas-cad button").forEach((b) => {
       const i = Number(b.dataset.etapaIr);
       if (i === atual) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
@@ -42,6 +43,7 @@
   }
 
   $("#etapa-proxima").addEventListener("click", avancar);
+  $("#etapa-salvar").addEventListener("click", () => $("#salvar-peca").click());
   $("#etapa-anterior").addEventListener("click", () => ir(atual - 1));
   $("#etapas-cad").addEventListener("click", (e) => {
     const b = e.target.closest("[data-etapa-ir]");
