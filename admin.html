@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610291200">
-  <link rel="stylesheet" href="assets/admin.css?v=202610291200">
+  <link rel="stylesheet" href="assets/style.css?v=202610291510">
+  <link rel="stylesheet" href="assets/admin.css?v=202610291510">
 </head>
 <body>
   <header class="topo">
@@ -181,7 +181,7 @@
             </div>
             <div class="duas">
               <label class="campo">UF<input id="o-uf" maxlength="2" autocomplete="off" placeholder="DF"></label>
-              <label class="campo">CPF do cliente <small>(algumas transportadoras pedem)</small><input id="o-documento" inputmode="numeric" autocomplete="off" placeholder="só números"></label>
+              <label class="campo"><span>CPF do cliente <small>(algumas transportadoras pedem)</small></span><input id="o-documento" inputmode="numeric" autocomplete="off" placeholder="só números"></label>
             </div>
             <div class="etiqueta-bloco" id="o-etiqueta-bloco">
               <button class="botao botao-principal botao-pequeno" type="button" id="o-gerar-etiqueta">Gerar etiqueta no Melhor Envio</button>
@@ -371,9 +371,9 @@
               <select id="c-unidade"><option value="mm">Milímetros (mm)</option><option value="cm">Centímetros (cm)</option></select>
             </label>
             <div class="tres">
-              <label class="campo">Largura (<span class="un-rot">mm</span>)<input id="c-largura" type="number" inputmode="decimal" step="1" min="0"></label>
-              <label class="campo">Altura (<span class="un-rot">mm</span>)<input id="c-altura" type="number" inputmode="decimal" step="1" min="0"></label>
-              <label class="campo">Profundidade (<span class="un-rot">mm</span>)<input id="c-profundidade" type="number" inputmode="decimal" step="1" min="0"></label>
+              <label class="campo"><span>Largura (<span class="un-rot">mm</span>)</span><input id="c-largura" type="number" inputmode="decimal" step="1" min="0"></label>
+              <label class="campo"><span>Altura (<span class="un-rot">mm</span>)</span><input id="c-altura" type="number" inputmode="decimal" step="1" min="0"></label>
+              <label class="campo"><span>Profundidade (<span class="un-rot">mm</span>)</span><input id="c-profundidade" type="number" inputmode="decimal" step="1" min="0"></label>
             </div>
             <div class="duas">
               <label class="campo">Peso da peça (g)<input id="c-peso" type="number" inputmode="decimal" step="1" min="0" placeholder="sem suportes"></label>
@@ -761,18 +761,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610291200"></script>
+  <script src="assets/supabase-config.js?v=202610291510"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610291200"></script>
-  <script src="assets/precificador.js?v=202610291200"></script>
-  <script src="assets/admin.js?v=202610291200"></script>
-  <script src="assets/rastreio.js?v=202610291200"></script>
-  <script src="assets/frete.js?v=202610291200"></script>
-  <script src="assets/email.js?v=202610291200"></script>
-  <script src="assets/itens.js?v=202610291200"></script>
-  <script src="assets/pedidos.js?v=202610291200"></script>
-  <script src="assets/financeiro.js?v=202610291200"></script>
-  <script src="assets/frete-admin.js?v=202610291200"></script>
-  <script src="assets/cadastro-etapas.js?v=202610291200"></script>
+  <script src="assets/modelo3mf.js?v=202610291510"></script>
+  <script src="assets/precificador.js?v=202610291510"></script>
+  <script src="assets/admin.js?v=202610291510"></script>
+  <script src="assets/rastreio.js?v=202610291510"></script>
+  <script src="assets/frete.js?v=202610291510"></script>
+  <script src="assets/email.js?v=202610291510"></script>
+  <script src="assets/itens.js?v=202610291510"></script>
+  <script src="assets/pedidos.js?v=202610291510"></script>
+  <script src="assets/financeiro.js?v=202610291510"></script>
+  <script src="assets/frete-admin.js?v=202610291510"></script>
+  <script src="assets/cadastro-etapas.js?v=202610291510"></script>
 </body>
 </html>
