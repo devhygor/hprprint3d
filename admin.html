@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610291700">
-  <link rel="stylesheet" href="assets/admin.css?v=202610291700">
+  <link rel="stylesheet" href="assets/style.css?v=202610291800">
+  <link rel="stylesheet" href="assets/admin.css?v=202610291800">
 </head>
 <body>
   <header class="topo">
@@ -526,6 +526,31 @@
       </div>
     </section>
 
+    <dialog class="fin-dialogo largo df" id="dlg-foto" aria-labelledby="df-titulo">
+      <div class="df-topo">
+        <h2 id="df-titulo" class="titulo-painel">Foto</h2>
+        <button class="botao botao-contorno botao-pequeno" type="button" id="df-fechar">Fechar</button>
+      </div>
+      <div class="df-corpo">
+        <div class="df-palco">
+          <button type="button" class="galeria-btn grande" id="df-ant" aria-label="Foto anterior">‹</button>
+          <img id="df-img" alt="Foto da peça em tamanho grande">
+          <button type="button" class="galeria-btn grande" id="df-prox" aria-label="Próxima foto">›</button>
+        </div>
+        <aside class="df-lado">
+          <p class="rotulo">Como aparece no cartão da vitrine</p>
+          <div class="df-cartao"><img id="df-card" alt=""></div>
+          <p class="dica">O cartão é quadrado e corta as bordas da foto. Ao abrir a peça, o cliente vê a foto inteira (a imagem grande ao lado).</p>
+          <p class="dica" id="df-tamanho"></p>
+          <div class="acoes">
+            <button class="botao botao-principal botao-pequeno" type="button" id="df-capa">★ Usar como capa</button>
+            <button class="botao botao-contorno botao-pequeno" type="button" id="df-ia">✨ Foto com IA</button>
+            <button class="botao botao-contorno botao-pequeno" type="button" id="df-tirar">Remover</button>
+          </div>
+        </aside>
+      </div>
+    </dialog>
+
     <dialog class="fin-dialogo" id="dlg-etiqueta" aria-labelledby="et-titulo">
       <div class="campos">
         <h2 id="et-titulo" class="titulo-painel">Gerar etiqueta</h2>
@@ -771,18 +796,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610291700"></script>
+  <script src="assets/supabase-config.js?v=202610291800"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610291700"></script>
-  <script src="assets/precificador.js?v=202610291700"></script>
-  <script src="assets/admin.js?v=202610291700"></script>
-  <script src="assets/rastreio.js?v=202610291700"></script>
-  <script src="assets/frete.js?v=202610291700"></script>
-  <script src="assets/email.js?v=202610291700"></script>
-  <script src="assets/itens.js?v=202610291700"></script>
-  <script src="assets/pedidos.js?v=202610291700"></script>
-  <script src="assets/financeiro.js?v=202610291700"></script>
-  <script src="assets/frete-admin.js?v=202610291700"></script>
-  <script src="assets/cadastro-etapas.js?v=202610291700"></script>
+  <script src="assets/modelo3mf.js?v=202610291800"></script>
+  <script src="assets/precificador.js?v=202610291800"></script>
+  <script src="assets/admin.js?v=202610291800"></script>
+  <script src="assets/rastreio.js?v=202610291800"></script>
+  <script src="assets/frete.js?v=202610291800"></script>
+  <script src="assets/email.js?v=202610291800"></script>
+  <script src="assets/itens.js?v=202610291800"></script>
+  <script src="assets/pedidos.js?v=202610291800"></script>
+  <script src="assets/financeiro.js?v=202610291800"></script>
+  <script src="assets/frete-admin.js?v=202610291800"></script>
+  <script src="assets/cadastro-etapas.js?v=202610291800"></script>
 </body>
 </html>

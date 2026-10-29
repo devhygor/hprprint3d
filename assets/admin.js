@@ -693,33 +693,73 @@
     $("#galeria-contador").textContent = `${lista.length} de ${MAX_FOTOS}`;
     $("#galeria-edit").innerHTML = lista.length
       ? lista.map((f, i) => `<li class="galeria-item${i === 0 ? " capa" : ""}">
-          <img src="${esc(srcFoto(f))}" alt="Foto ${i + 1} da peça">
-          ${i === 0 ? `<span class="galeria-selo">Capa</span>` : ""}
-          <div class="galeria-mover">
-            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="-1" aria-label="Mover foto ${i + 1} para a esquerda" ${i === 0 ? "disabled" : ""}>‹</button>
+          <button type="button" class="galeria-foto" data-ver="${i}" aria-label="Ampliar a foto ${i + 1} e ver como fica na vitrine" title="Toque para ampliar">
+            <img src="${esc(srcFoto(f))}" alt="Foto ${i + 1} da peça">
+            ${i === 0 ? `<span class="galeria-selo">Capa</span>` : ""}
+            ${f.dataUrl ? `<span class="galeria-nova">nova</span>` : ""}
+            <span class="galeria-lupa" aria-hidden="true">Ampliar</span>
+          </button>
+          <div class="galeria-barra">
+            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="-1" title="Mover para a esquerda" aria-label="Mover foto ${i + 1} para a esquerda" ${i === 0 ? "disabled" : ""}>‹</button>
+            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="1" title="Mover para a direita" aria-label="Mover foto ${i + 1} para a direita" ${i === lista.length - 1 ? "disabled" : ""}>›</button>
             ${i === 0 ? "" : `<button type="button" class="galeria-btn galeria-capa" data-capa="${i}" title="Usar como capa" aria-label="Usar a foto ${i + 1} como capa">★</button>`}
-            <button type="button" class="galeria-btn" data-mover="${i}" data-dir="1" aria-label="Mover foto ${i + 1} para a direita" ${i === lista.length - 1 ? "disabled" : ""}>›</button>
             <button type="button" class="galeria-btn" data-ia="${i}" title="Gerar foto de vitrine com IA a partir desta foto" aria-label="Gerar foto de vitrine com IA a partir da foto ${i + 1}">✨</button>
-            <button type="button" class="galeria-btn galeria-tirar" data-tirar="${i}" aria-label="Remover foto ${i + 1}">×</button>
+            <button type="button" class="galeria-btn galeria-tirar" data-tirar="${i}" title="Remover foto" aria-label="Remover foto ${i + 1}">×</button>
           </div>
-          ${f.dataUrl ? `<span class="galeria-nova">nova</span>` : ""}
         </li>`).join("")
       : `<li class="galeria-vazia">Nenhuma foto ainda</li>`;
     $("#p-fotos-arquivos").closest("label").classList.toggle("desativado", lista.length >= MAX_FOTOS);
+    if ($("#dlg-foto").open) desenharPrevia();
   }
-  $("#galeria-edit").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
+
+  // Muda a lista de fotos (mover, capa, remover). Devolve true se mexeu.
+  function acaoFoto(b) {
     const f = estado.fotos;
-    if (b.dataset.ia) { gerarFotoIA(Number(b.dataset.ia)); return; }
     if (b.dataset.tirar) f.splice(Number(b.dataset.tirar), 1);
     else if (b.dataset.capa) f.unshift(...f.splice(Number(b.dataset.capa), 1));
     else if (b.dataset.mover) {
       const i = Number(b.dataset.mover), j = i + Number(b.dataset.dir);
       if (j >= 0 && j < f.length) [f[i], f[j]] = [f[j], f[i]];
-    }
-    desenharGaleria();
+    } else return false;
+    return true;
+  }
+  $("#galeria-edit").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.ver) { abrirPrevia(Number(b.dataset.ver)); return; }
+    if (b.dataset.ia) { gerarFotoIA(Number(b.dataset.ia)); return; }
+    if (acaoFoto(b)) desenharGaleria();
   });
+
+  // ---------- Janela para ver a foto grande e como ela aparece na vitrine ----------
+  const dlgFoto = $("#dlg-foto");
+  let verIdx = 0;
+  function desenharPrevia() {
+    const f = estado.fotos;
+    if (!f.length) { dlgFoto.close(); return; }
+    verIdx = Math.min(Math.max(verIdx, 0), f.length - 1);
+    const src = srcFoto(f[verIdx]);
+    $("#df-titulo").textContent = `Foto ${verIdx + 1} de ${f.length}${verIdx === 0 ? " · capa da vitrine" : ""}`;
+    $("#df-img").src = src;
+    $("#df-card").src = src;
+    $("#df-ant").disabled = verIdx === 0;
+    $("#df-prox").disabled = verIdx === f.length - 1;
+    $("#df-capa").hidden = verIdx === 0;
+    const tam = $("#df-img");
+    tam.onload = () => { $("#df-tamanho").textContent = `${tam.naturalWidth} × ${tam.naturalHeight} px${tam.naturalWidth < 800 || tam.naturalHeight < 800 ? " · baixa para tela grande, prefira uma foto maior" : ""}`; };
+  }
+  function abrirPrevia(i) { verIdx = i; desenharPrevia(); if (!dlgFoto.open) dlgFoto.showModal(); }
+  $("#df-fechar").addEventListener("click", () => dlgFoto.close());
+  dlgFoto.addEventListener("click", (e) => { if (e.target === dlgFoto) dlgFoto.close(); });
+  $("#df-ant").addEventListener("click", () => { verIdx--; desenharPrevia(); });
+  $("#df-prox").addEventListener("click", () => { verIdx++; desenharPrevia(); });
+  dlgFoto.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" && verIdx > 0) { verIdx--; desenharPrevia(); }
+    if (e.key === "ArrowRight" && verIdx < estado.fotos.length - 1) { verIdx++; desenharPrevia(); }
+  });
+  $("#df-capa").addEventListener("click", () => { acaoFoto({ dataset: { capa: String(verIdx) } }); verIdx = 0; desenharGaleria(); desenharPrevia(); });
+  $("#df-ia").addEventListener("click", () => { dlgFoto.close(); gerarFotoIA(verIdx); });
+  $("#df-tirar").addEventListener("click", () => { acaoFoto({ dataset: { tirar: String(verIdx) } }); desenharGaleria(); if (estado.fotos.length) desenharPrevia(); });
 
 
   // Foto de vitrine com IA: o PC recorta a peça e cria só o cenário; a nova foto entra logo depois da original
