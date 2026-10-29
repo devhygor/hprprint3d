@@ -23,11 +23,14 @@
     const l = v("#c-largura"), a = v("#c-altura"), p = v("#c-profundidade"), peso = v("#c-peso");
     const caixa = $("#medidas-resumo");
     if (!caixa) return;
+    // Só interessa quando o modelo da imagem usa as medidas
+    const usa = $("#layout-ia").value !== "limpa";
+    caixa.hidden = !usa;
+    if (!usa) return;
     const faltam = [!l && "largura", !a && "altura", !p && "profundidade"].filter(Boolean);
-    caixa.className = "medidas-resumo" + (faltam.length ? " falta" : "");
-    caixa.innerHTML = faltam.length === 3
-      ? `<span><b>Sem medidas ainda.</b> As imagens com medidas e o anúncio usam largura, altura e profundidade da etapa Detalhes.</span><button type="button" class="botao botao-contorno botao-pequeno" data-etapa-ir="3">Preencher medidas</button>`
-      : `<span><b>Medidas usadas nas imagens:</b> ${l || "?"} × ${a || "?"} × ${p || "?"} ${un}${peso ? ` · ${peso} g` : ""}${faltam.length ? ` <em>(falta ${faltam.join(", ")})</em>` : ""}</span><button type="button" class="botao botao-contorno botao-pequeno" data-etapa-ir="3">Editar</button>`;
+    caixa.innerHTML = faltam.length
+      ? `Esse modelo usa as medidas da peça, mas faltam: ${faltam.join(", ")}. <button type="button" class="botao-link-inline" data-etapa-ir="3">Preencher em Detalhes</button>`
+      : `Medidas que vão na imagem: <b>${l} × ${a} × ${p} ${un}</b>${peso ? ` · ${peso} g` : ""}. <button type="button" class="botao-link-inline" data-etapa-ir="3">Editar</button>`;
   }
 
   function ir(n, rolar = true) {
@@ -75,5 +78,7 @@
   O.ganchos = O.ganchos || {};
   const anterior = O.ganchos.editor;
   O.ganchos.editor = () => { anterior?.(); aoAbrir(); };
+  $("#layout-ia").addEventListener("change", resumoMedidas);
+  ["#c-largura", "#c-altura", "#c-profundidade", "#c-peso", "#c-unidade"].forEach((s) => $(s).addEventListener("input", resumoMedidas));
   ir(1, false);
 })();

@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610291900">
-  <link rel="stylesheet" href="assets/admin.css?v=202610291900">
+  <link rel="stylesheet" href="assets/style.css?v=202610292000">
+  <link rel="stylesheet" href="assets/admin.css?v=202610292000">
 </head>
 <body>
   <header class="topo">
@@ -292,7 +292,6 @@
 
           <fieldset class="painel" data-etapa="4">
             <legend>Fotos</legend>
-            <div class="medidas-resumo" id="medidas-resumo" aria-live="polite"></div>
             <div class="galeria-campo">
               <p class="rotulo">Fotos <span class="galeria-contador" id="galeria-contador">0 de 10</span></p>
               <ul class="galeria-edit" id="galeria-edit" aria-label="Fotos da peça"></ul>
@@ -345,6 +344,7 @@
                     <option value="anuncio">Anúncio completo: título, preço, vantagens e medidas</option>
                   </select>
                 </label>
+                <p class="dica" id="medidas-resumo" aria-live="polite" hidden></p>
                 <p class="dica" id="dica-layout-ia" hidden>As medidas vêm de Características (se for kit, é a caixa do kit inteiro). O título, o preço e o texto das vantagens saem do nome, da categoria, do material e da descrição desta peça: confira esses campos antes de gerar.</p>
                 <textarea id="vantagens-ia" rows="3" hidden maxlength="220" placeholder="Opcional: 3 vantagens, uma por linha. Se deixar vazio, a IA escreve com base nesta peça." aria-label="Vantagens do anúncio, uma por linha"></textarea>
                 <p class="dica" id="status-foto-ia">Escolha o cenário e toque em ✨ numa foto da galeria: a peça é recortada e só o cenário é criado pela IA do nosso PC (a peça não muda). Funciona melhor com a peça sobre fundo liso, sem textos na imagem. Leva cerca de 30 segundos e precisa do PC ligado.</p>
@@ -802,18 +802,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610291900"></script>
+  <script src="assets/supabase-config.js?v=202610292000"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610291900"></script>
-  <script src="assets/precificador.js?v=202610291900"></script>
-  <script src="assets/admin.js?v=202610291900"></script>
-  <script src="assets/rastreio.js?v=202610291900"></script>
-  <script src="assets/frete.js?v=202610291900"></script>
-  <script src="assets/email.js?v=202610291900"></script>
-  <script src="assets/itens.js?v=202610291900"></script>
-  <script src="assets/pedidos.js?v=202610291900"></script>
-  <script src="assets/financeiro.js?v=202610291900"></script>
-  <script src="assets/frete-admin.js?v=202610291900"></script>
-  <script src="assets/cadastro-etapas.js?v=202610291900"></script>
+  <script src="assets/modelo3mf.js?v=202610292000"></script>
+  <script src="assets/precificador.js?v=202610292000"></script>
+  <script src="assets/admin.js?v=202610292000"></script>
+  <script src="assets/rastreio.js?v=202610292000"></script>
+  <script src="assets/frete.js?v=202610292000"></script>
+  <script src="assets/email.js?v=202610292000"></script>
+  <script src="assets/itens.js?v=202610292000"></script>
+  <script src="assets/pedidos.js?v=202610292000"></script>
+  <script src="assets/financeiro.js?v=202610292000"></script>
+  <script src="assets/frete-admin.js?v=202610292000"></script>
+  <script src="assets/cadastro-etapas.js?v=202610292000"></script>
 </body>
 </html>
