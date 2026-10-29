@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610291800">
-  <link rel="stylesheet" href="assets/admin.css?v=202610291800">
+  <link rel="stylesheet" href="assets/style.css?v=202610291900">
+  <link rel="stylesheet" href="assets/admin.css?v=202610291900">
 </head>
 <body>
   <header class="topo">
@@ -247,7 +247,8 @@
           <li><button type="button" data-etapa-ir="1"><span class="num">1</span><span class="tx"><b>Importar</b><small>opcional</small></span></button></li>
           <li><button type="button" data-etapa-ir="2"><span class="num">2</span><span class="tx"><b>A peça</b><small>nome, fotos, descrição</small></span></button></li>
           <li><button type="button" data-etapa-ir="3"><span class="num">3</span><span class="tx"><b>Detalhes</b><small>cores e medidas</small></span></button></li>
-          <li><button type="button" data-etapa-ir="4"><span class="num">4</span><span class="tx"><b>Custo e preço</b><small>impressão e valores</small></span></button></li>
+          <li><button type="button" data-etapa-ir="4"><span class="num">4</span><span class="tx"><b>Fotos</b><small>galeria e fotos com IA</small></span></button></li>
+          <li><button type="button" data-etapa-ir="5"><span class="num">5</span><span class="tx"><b>Custo e preço</b><small>impressão e valores</small></span></button></li>
         </ol>
       </nav>
       <p class="etapa-dica" id="etapa-dica" aria-live="polite"></p>
@@ -287,6 +288,11 @@
               <button class="botao botao-contorno botao-pequeno" type="button" id="gerar-descricao">Gerar com IA</button>
               <p class="dica" id="status-ia" hidden></p>
             </div>
+            </fieldset>
+
+          <fieldset class="painel" data-etapa="4">
+            <legend>Fotos</legend>
+            <div class="medidas-resumo" id="medidas-resumo" aria-live="polite"></div>
             <div class="galeria-campo">
               <p class="rotulo">Fotos <span class="galeria-contador" id="galeria-contador">0 de 10</span></p>
               <ul class="galeria-edit" id="galeria-edit" aria-label="Fotos da peça"></ul>
@@ -394,7 +400,7 @@
             <button class="botao-texto discreto-texto" type="button" id="c-extra-adicionar">+ Adicionar característica (ex.: Articulado, Encaixe para celular)</button>
           </fieldset>
 
-          <fieldset class="painel" data-etapa="4">
+          <fieldset class="painel" data-etapa="5">
             <legend>Impressão (do Bambu Studio)</legend>
             <div class="tres">
               <label class="campo">Filamento usado (g)<input id="p-gramas" type="number" inputmode="decimal" step="0.1" min="0"></label>
@@ -405,7 +411,7 @@
             <p class="dica">Use o peso total do fatiador, com suportes e purga do AMS.</p>
           </fieldset>
 
-          <fieldset class="painel" data-etapa="4">
+          <fieldset class="painel" data-etapa="5">
             <legend>Valores usados na conta</legend>
             <p class="dica">Vêm preenchidos com a aba Custos. Mude só para esta peça, ou coloque 0 para tirar da conta.</p>
             <div class="duas">
@@ -796,18 +802,18 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610291800"></script>
+  <script src="assets/supabase-config.js?v=202610291900"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610291800"></script>
-  <script src="assets/precificador.js?v=202610291800"></script>
-  <script src="assets/admin.js?v=202610291800"></script>
-  <script src="assets/rastreio.js?v=202610291800"></script>
-  <script src="assets/frete.js?v=202610291800"></script>
-  <script src="assets/email.js?v=202610291800"></script>
-  <script src="assets/itens.js?v=202610291800"></script>
-  <script src="assets/pedidos.js?v=202610291800"></script>
-  <script src="assets/financeiro.js?v=202610291800"></script>
-  <script src="assets/frete-admin.js?v=202610291800"></script>
-  <script src="assets/cadastro-etapas.js?v=202610291800"></script>
+  <script src="assets/modelo3mf.js?v=202610291900"></script>
+  <script src="assets/precificador.js?v=202610291900"></script>
+  <script src="assets/admin.js?v=202610291900"></script>
+  <script src="assets/rastreio.js?v=202610291900"></script>
+  <script src="assets/frete.js?v=202610291900"></script>
+  <script src="assets/email.js?v=202610291900"></script>
+  <script src="assets/itens.js?v=202610291900"></script>
+  <script src="assets/pedidos.js?v=202610291900"></script>
+  <script src="assets/financeiro.js?v=202610291900"></script>
+  <script src="assets/frete-admin.js?v=202610291900"></script>
+  <script src="assets/cadastro-etapas.js?v=202610291900"></script>
 </body>
 </html>

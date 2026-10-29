@@ -5,15 +5,30 @@
   const form = $("#form-peca");
   if (!secao || !form) return;
 
-  const TOTAL = 4;
+  const TOTAL = 5;
   const DICAS = {
     1: "Se a peça vem do MakerWorld, cole o link (ou o arquivo 3MF) e o resto se preenche sozinho. Se for peça própria, é só continuar.",
-    2: "Como a peça aparece na vitrine: nome, categorias, descrição e fotos. A primeira foto é a capa.",
-    3: "Cores que vocês fazem, medidas e peso. O cliente vê isso na vitrine.",
-    4: "Dados de impressão e valores para calcular o custo. O preço da vitrine e o botão Salvar peça ficam no quadro do custo.",
+    2: "Como a peça aparece na vitrine: nome, categorias e descrição. As fotos ficam na etapa 4, depois das medidas.",
+    3: "Cores que vocês fazem, medidas e peso. O cliente vê isso na vitrine e a IA usa para montar as imagens.",
+    4: "Fotos da peça: adicione, ordene, amplie e gere fotos de vitrine com IA. A primeira é a capa.",
+    5: "Dados de impressão e valores para calcular o custo. O preço da vitrine e o botão Salvar peça ficam no quadro do custo.",
   };
   let atual = 1;
   let visitadas = new Set([1]);
+
+  // Medidas que a IA usa nas imagens (vêm da etapa Detalhes)
+  function resumoMedidas() {
+    const v = (id) => $(id).value.trim();
+    const un = $("#c-unidade").value || "mm";
+    const l = v("#c-largura"), a = v("#c-altura"), p = v("#c-profundidade"), peso = v("#c-peso");
+    const caixa = $("#medidas-resumo");
+    if (!caixa) return;
+    const faltam = [!l && "largura", !a && "altura", !p && "profundidade"].filter(Boolean);
+    caixa.className = "medidas-resumo" + (faltam.length ? " falta" : "");
+    caixa.innerHTML = faltam.length === 3
+      ? `<span><b>Sem medidas ainda.</b> As imagens com medidas e o anúncio usam largura, altura e profundidade da etapa Detalhes.</span><button type="button" class="botao botao-contorno botao-pequeno" data-etapa-ir="3">Preencher medidas</button>`
+      : `<span><b>Medidas usadas nas imagens:</b> ${l || "?"} × ${a || "?"} × ${p || "?"} ${un}${peso ? ` · ${peso} g` : ""}${faltam.length ? ` <em>(falta ${faltam.join(", ")})</em>` : ""}</span><button type="button" class="botao botao-contorno botao-pequeno" data-etapa-ir="3">Editar</button>`;
+  }
 
   function ir(n, rolar = true) {
     atual = Math.min(TOTAL, Math.max(1, n));
@@ -21,6 +36,7 @@
     form.querySelectorAll("[data-etapa]").forEach((f) => (f.hidden = Number(f.dataset.etapa) !== atual));
     secao.dataset.etapa = atual;
     $("#etapa-dica").textContent = DICAS[atual];
+    if (atual === 4) resumoMedidas();
     $("#etapa-anterior").hidden = atual === 1;
     $("#etapa-proxima").hidden = atual === TOTAL;
     $("#etapa-salvar").hidden = atual !== TOTAL;
@@ -45,7 +61,7 @@
   $("#etapa-proxima").addEventListener("click", avancar);
   $("#etapa-salvar").addEventListener("click", () => $("#salvar-peca").click());
   $("#etapa-anterior").addEventListener("click", () => ir(atual - 1));
-  $("#etapas-cad").addEventListener("click", (e) => {
+  form.closest("section").addEventListener("click", (e) => {
     const b = e.target.closest("[data-etapa-ir]");
     if (b) ir(Number(b.dataset.etapaIr));
   });
