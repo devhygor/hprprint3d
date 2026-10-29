@@ -344,16 +344,19 @@
               <input id="cor-nova-nome" placeholder="Outra cor (ex.: Azul bebê, Seda dourada)" aria-label="Nome da outra cor">
               <button class="botao botao-contorno botao-pequeno" type="button" id="cor-adicionar">Adicionar</button>
             </div>
-            <label class="marcar"><input id="p-cor-personalizada" type="checkbox"> Aceita outras cores sob encomenda</label>
+            <label class="marcar"><input id="p-cor-personalizada" type="checkbox" checked> Aceita outras cores sob encomenda</label>
           </fieldset>
 
           <fieldset class="painel">
             <legend>Características</legend>
-            <p class="dica">Medidas e peso da peça pronta. Aparecem para o cliente na vitrine.</p>
+            <p class="dica">Medidas e peso da peça pronta. Aparecem para o cliente na vitrine (sempre em cm).</p>
+            <label class="campo">Unidade das medidas
+              <select id="c-unidade"><option value="mm">Milímetros (mm)</option><option value="cm">Centímetros (cm)</option></select>
+            </label>
             <div class="tres">
-              <label class="campo">Largura (cm)<input id="c-largura" type="number" inputmode="decimal" step="0.1" min="0"></label>
-              <label class="campo">Altura (cm)<input id="c-altura" type="number" inputmode="decimal" step="0.1" min="0"></label>
-              <label class="campo">Profundidade (cm)<input id="c-profundidade" type="number" inputmode="decimal" step="0.1" min="0"></label>
+              <label class="campo">Largura (<span class="un-rot">mm</span>)<input id="c-largura" type="number" inputmode="decimal" step="1" min="0"></label>
+              <label class="campo">Altura (<span class="un-rot">mm</span>)<input id="c-altura" type="number" inputmode="decimal" step="1" min="0"></label>
+              <label class="campo">Profundidade (<span class="un-rot">mm</span>)<input id="c-profundidade" type="number" inputmode="decimal" step="1" min="0"></label>
             </div>
             <div class="duas">
               <label class="campo">Peso da peça (g)<input id="c-peso" type="number" inputmode="decimal" step="1" min="0" placeholder="sem suportes"></label>
@@ -365,7 +368,12 @@
               <option value="PLA"><option value="PLA Silk"><option value="PLA Matte"><option value="PETG"><option value="ABS"><option value="ASA"><option value="TPU (flexível)"><option value="Resina">
             </datalist>
             <p class="rotulo">Kit (várias peças na mesma caixa)</p>
-            <p class="dica">Se esta peça é um kit, cadastre cada peça dele aqui (medidas em cm, peso em g). A caixa do frete e o peso total são calculados somando todas, e preenchem os campos acima sozinhos.</p>
+            <p class="dica">Se esta peça é um kit, cadastre cada peça dele aqui (medidas na unidade escolhida acima, peso em g). A caixa do frete e o peso total são calculados somando todas, e preenchem os campos acima sozinhos.</p>
+            <label class="campo">Adicionar peça do site ao kit
+              <input id="c-kit-buscar" list="c-kit-sugestoes" autocomplete="off" placeholder="Busque pelo nome ou cole o link da peça no site">
+            </label>
+            <datalist id="c-kit-sugestoes"></datalist>
+            <p class="dica" id="c-kit-busca-status" hidden></p>
             <div id="c-kit" class="c-kit"></div>
             <button class="botao-texto discreto-texto" type="button" id="c-kit-adicionar">+ Adicionar peça ao kit</button>
             <p class="dica" id="c-kit-resumo" hidden></p>

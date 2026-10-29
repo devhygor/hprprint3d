@@ -498,26 +498,52 @@
   $("#c-extra-adicionar").addEventListener("click", () => linhaExtra().querySelector("input").focus());
   $("#c-extras").addEventListener("click", (e) => { const b = e.target.closest(".c-extra-tirar"); if (b) b.parentElement.remove(); });
 
+  // ---------- Unidade das medidas: digita-se em mm (padrão) ou cm; o banco guarda sempre cm ----------
+  let unidade = "mm";
+  try { if (localStorage.getItem("hpr-unidade-medidas") === "cm") unidade = "cm"; } catch {}
+  const emUn = (cm) => (cm ?? "") === "" ? "" : (unidade === "mm" ? Math.round(cm * 100) / 10 : Math.round(cm * 1000) / 1000);
+  const paraCm = (v) => (unidade === "mm" ? v / 10 : v);
+  const lerMedida = (input) => { const v = P.num(input.value, NaN); return Number.isFinite(v) && v > 0 ? Math.round(paraCm(v) * 1000) / 1000 : null; };
+  const CAMPOS_MEDIDA = ["#c-largura", "#c-altura", "#c-profundidade"];
+  function aplicarUnidade() {
+    $("#c-unidade").value = unidade;
+    $$(".un-rot").forEach((s) => { s.textContent = unidade; });
+    $$("#c-largura, #c-altura, #c-profundidade, .c-kit-l, .c-kit-p, .c-kit-a").forEach((i) => { i.step = unidade === "mm" ? "1" : "0.1"; });
+    $$(".c-kit-l, .c-kit-p, .c-kit-a").forEach((i) => { i.setAttribute("aria-label", i.getAttribute("aria-label").replace(/ em (mm|cm)$/, " em " + unidade)); });
+  }
+  $("#c-unidade").addEventListener("change", (e) => {
+    const campos = [...CAMPOS_MEDIDA.map((s) => $(s)), ...$$(".c-kit-l, .c-kit-p, .c-kit-a")];
+    const cms = campos.map(lerMedida);
+    unidade = e.target.value === "cm" ? "cm" : "mm";
+    try { localStorage.setItem("hpr-unidade-medidas", unidade); } catch {}
+    campos.forEach((c, i) => { c.value = emUn(cms[i]); });
+    aplicarUnidade();
+    recalcularKit();
+  });
+  aplicarUnidade();
+
   // ---------- Kit: várias peças na mesma caixa ----------
   function linhaKit(k = {}) {
     const el = document.createElement("div");
     el.className = "c-kit-linha";
     const num = (v) => (v ?? "") === "" ? "" : v;
     el.innerHTML = `<input class="c-kit-nome" placeholder="Peça (ex.: Maria)" value="${esc(k.nome || "")}" aria-label="Nome da peça do kit">
-      <input class="c-kit-l" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Larg." value="${num(k.largura)}" aria-label="Largura em cm">
-      <input class="c-kit-p" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Prof." value="${num(k.profundidade)}" aria-label="Profundidade em cm">
-      <input class="c-kit-a" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Alt." value="${num(k.altura)}" aria-label="Altura em cm">
+      <input class="c-kit-l" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Larg." value="${emUn(k.largura)}" aria-label="Largura em cm">
+      <input class="c-kit-p" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Prof." value="${emUn(k.profundidade)}" aria-label="Profundidade em cm">
+      <input class="c-kit-a" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Alt." value="${emUn(k.altura)}" aria-label="Altura em cm">
       <input class="c-kit-g" type="number" inputmode="decimal" step="1" min="0" placeholder="Peso g" value="${num(k.peso)}" aria-label="Peso em gramas">
       <input class="c-kit-q" type="number" inputmode="numeric" step="1" min="1" max="20" placeholder="Qtd" value="${num(k.qtd || 1)}" aria-label="Quantidade desta peça no kit">
       <button type="button" class="c-kit-tirar" aria-label="Remover peça do kit">×</button>`;
     $("#c-kit").appendChild(el);
+    aplicarUnidade();
     return el;
   }
   function lerKit() {
     const n = (el, s) => { const v = P.num(el.querySelector(s).value, NaN); return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null; };
+    const m = (el, s) => lerMedida(el.querySelector(s));
     return $$("#c-kit .c-kit-linha").map((el) => ({
       nome: el.querySelector(".c-kit-nome").value.trim().slice(0, 60),
-      largura: n(el, ".c-kit-l"), profundidade: n(el, ".c-kit-p"), altura: n(el, ".c-kit-a"), peso: n(el, ".c-kit-g"),
+      largura: m(el, ".c-kit-l"), profundidade: m(el, ".c-kit-p"), altura: m(el, ".c-kit-a"), peso: n(el, ".c-kit-g"),
       qtd: Math.max(1, Math.min(20, Math.round(P.num(el.querySelector(".c-kit-q").value, 1)) || 1)),
     })).filter((k) => k.nome || k.largura || k.profundidade || k.altura || k.peso);
   }
@@ -530,12 +556,12 @@
     if (!completas.length) { resumo.hidden = true; return; }
     const todas = completas.flatMap((k) => Array.from({ length: k.qtd }, () => k));
     const cx = HPR_3MF.caixaConjunto(todas);
-    const r1 = (x) => Math.round(x * 10) / 10;
+    const r1 = emUn;
     $("#c-largura").value = r1(cx.largura);
     $("#c-profundidade").value = r1(cx.profundidade);
     $("#c-altura").value = r1(cx.altura);
     const comPeso = kit.every((k) => k.peso) && kit.length;
-    let txt = `Caixa do kit (${todas.length} ${todas.length === 1 ? "peça" : "peças"} juntas): ${r1(cx.largura)} × ${r1(cx.profundidade)} × ${r1(cx.altura)} cm`;
+    let txt = `Caixa do kit (${todas.length} ${todas.length === 1 ? "peça" : "peças"} juntas): ${r1(cx.largura)} × ${r1(cx.profundidade)} × ${r1(cx.altura)} ${unidade}`;
     if (comPeso) {
       const total = kit.reduce((s, k) => s + k.peso * k.qtd, 0);
       $("#c-peso").value = Math.round(total);
@@ -545,6 +571,49 @@
     resumo.textContent = txt + ". Conta aproximada (fila ou pilha), confira se cabe na caixa real.";
     resumo.hidden = false;
   }
+  // Adiciona ao kit uma peça já cadastrada no site (por nome ou link): traz medidas e peso e cita na descrição
+  const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  function acharPecaSite(txt) {
+    const t = txt.trim();
+    if (!t) return null;
+    const m = t.match(/#peca-([^&\s]+)/);
+    if (m) { const id = decodeURIComponent(m[1]); return estado.pecas.find((x) => x.id === id) || null; }
+    const q = semAcento(t);
+    return estado.pecas.find((x) => semAcento(x.nome) === q) || estado.pecas.find((x) => semAcento(x.nome).includes(q)) || null;
+  }
+  function atualizarSugestoesKit() {
+    $("#c-kit-sugestoes").innerHTML = estado.pecas.filter((x) => x.id !== estado.editando).map((x) => `<option value="${esc(x.nome)}">`).join("");
+  }
+  function adicionarPecaSiteAoKit() {
+    const campo = $("#c-kit-buscar"), st = $("#c-kit-busca-status");
+    const txt = campo.value;
+    if (!txt.trim()) return;
+    const p = acharPecaSite(txt);
+    st.hidden = false;
+    if (!p) { st.className = "dica erro"; st.textContent = "Não achei essa peça no site. Confira o nome ou o link."; return; }
+    if (p.id === estado.editando) { st.className = "dica erro"; st.textContent = "Essa é a própria peça que você está editando."; return; }
+    const c = p.caracteristicas || {};
+    const peso = c.peso || null;
+    linhaKit({ nome: p.nome, largura: c.largura, profundidade: c.profundidade, altura: c.altura, peso, qtd: 1 });
+    recalcularKit();
+    // Linha na descrição com o que a peça traz
+    const med = [c.largura, c.profundidade, c.altura].every(Boolean) ? `${emUn(c.largura)} × ${emUn(c.profundidade)} × ${emUn(c.altura)} ${unidade}` : "";
+    const detalhe = [med, peso ? `${peso} g` : "", c.material || ""].filter(Boolean).join(", ");
+    const linha = `• ${p.nome}${detalhe ? ` (${detalhe})` : ""}`;
+    const d = $("#p-descricao");
+    if (!d.value.includes(`• ${p.nome}`)) {
+      const novo = (d.value.trim() ? d.value.trim() + "\n" : "") + (d.value.includes("Neste kit:") ? "" : "Neste kit:\n") + linha;
+      d.value = novo.slice(0, 1000);
+      d.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    const faltam = !(c.largura && c.profundidade && c.altura) ? " Ela não tem as três medidas cadastradas: complete na linha do kit." : "";
+    st.className = "dica";
+    st.textContent = `“${p.nome}” entrou no kit e na descrição.${faltam}`;
+    campo.value = "";
+  }
+  $("#c-kit-buscar").addEventListener("change", adicionarPecaSiteAoKit);
+  $("#c-kit-buscar").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adicionarPecaSiteAoKit(); } });
+  $("#c-kit-buscar").addEventListener("focus", atualizarSugestoesKit);
   $("#c-kit-adicionar").addEventListener("click", () => linhaKit().querySelector("input").focus());
   $("#c-kit").addEventListener("input", recalcularKit);
   $("#c-kit").addEventListener("click", (e) => { const b = e.target.closest(".c-kit-tirar"); if (b) { b.parentElement.remove(); recalcularKit(); } });
@@ -553,9 +622,9 @@
     $("#c-kit").innerHTML = "";
     $("#c-kit-resumo").hidden = true;
     (c.kit || []).forEach((k) => linhaKit(k));
-    $("#c-largura").value = c.largura ?? "";
-    $("#c-altura").value = c.altura ?? "";
-    $("#c-profundidade").value = c.profundidade ?? "";
+    $("#c-largura").value = emUn(c.largura);
+    $("#c-altura").value = emUn(c.altura);
+    $("#c-profundidade").value = emUn(c.profundidade);
     $("#c-peso").value = c.peso ?? "";
     $("#c-material").value = c.material ?? "";
     $("#c-extras").innerHTML = "";
@@ -564,7 +633,7 @@
   function lerCaracteristicas() {
     const n = (sel) => { const v = P.num($(sel).value, NaN); return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null; };
     const c = {
-      largura: n("#c-largura"), altura: n("#c-altura"), profundidade: n("#c-profundidade"), peso: n("#c-peso"),
+      largura: lerMedida($("#c-largura")), altura: lerMedida($("#c-altura")), profundidade: lerMedida($("#c-profundidade")), peso: n("#c-peso"),
       material: $("#c-material").value.trim().slice(0, 40) || null,
       kit: lerKit().slice(0, 30),
       extras: $$("#c-extras .c-extra")
@@ -596,7 +665,8 @@
     preencherPadroes(p, false);
     coresSel = (p?.cores || []).map((c) => ({ nome: String(c.nome || ""), hex: String(c.hex || "#cccccc") })).filter((c) => c.nome);
     desenharCores();
-    $("#p-cor-personalizada").checked = !!p?.caracteristicas?.outrasCores;
+    // Peça nova já vem aceitando outras cores; peça existente mantém o que foi salvo
+    $("#p-cor-personalizada").checked = p ? !!p.caracteristicas?.outrasCores : true;
     preencherCaracteristicas(p?.caracteristicas || {});
     atualizarContador();
     $("#p-ativo").checked = p ? p.ativo !== false : true;
@@ -683,7 +753,7 @@
         Object.assign(corpo, {
           nome: $("#p-nome").value.trim(), categoria: $("#p-categoria").value.trim(), material: $("#c-material").value.trim(),
           descricao: $("#p-descricao").value.trim(), preco: n("#p-preco"),
-          altura: n("#c-altura"), largura: n("#c-largura"), profundidade: n("#c-profundidade"),
+          altura: lerMedida($("#c-altura")) || undefined, largura: lerMedida($("#c-largura")) || undefined, profundidade: lerMedida($("#c-profundidade")) || undefined,
           kit: lerKit().map((k) => (k.qtd > 1 ? `${k.qtd}× ` : "") + (k.nome || "peça")),
           vantagens: $("#vantagens-ia").value.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 3),
         });
@@ -913,10 +983,10 @@
       const m = r.conjunto;
       $("#c-kit").innerHTML = "";
       if (!r.iguais) r.pecas.forEach((p) => linhaKit(p));
-      $("#c-largura").value = m.largura;
-      $("#c-profundidade").value = m.profundidade;
-      if (m.altura > 0) $("#c-altura").value = m.altura;
-      const partes = [`${r.iguais ? "Medidas" : `Medidas do kit (${r.objetos} peças, todas juntas)`} ${m.largura} × ${m.profundidade}${m.altura > 0 ? " × " + m.altura : ""} cm`];
+      $("#c-largura").value = emUn(m.largura);
+      $("#c-profundidade").value = emUn(m.profundidade);
+      if (m.altura > 0) $("#c-altura").value = emUn(m.altura);
+      const partes = [`${r.iguais ? "Medidas" : `Medidas do kit (${r.objetos} peças, todas juntas)`} ${emUn(m.largura)} × ${emUn(m.profundidade)}${m.altura > 0 ? " × " + emUn(m.altura) : ""} ${unidade}`];
       if (r.fatiado) {
         $("#p-gramas").value = r.gramas;
         const min = Math.round(r.segundos / 60);
