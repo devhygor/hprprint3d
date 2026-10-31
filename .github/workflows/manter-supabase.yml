@@ -1,7 +1,7 @@
 name: Manter banco de pedidos ativo
 
 # O Supabase gratuito pausa o projeto depois de 7 dias sem uso.
-# Este "toque" a cada 3 dias mantém o banco acordado. Não lê nem grava nenhum pedido.
+# Este "toque" a cada 2 dias (dias ímpares do mês) mantém o banco acordado. Não lê nem grava nenhum pedido.
 on:
   schedule:
     - cron: "17 12 */2 * *"
@@ -27,12 +27,19 @@ jobs:
           echo "Endereço: $URL"
           if getent hosts "$(echo "$URL" | sed 's#https://##')" >/dev/null; then DNS=ok; else DNS=sem-dns; fi
           echo "DNS: $DNS"
-          codigo=$(curl -s -o /tmp/resp.txt -w "%{http_code}" --max-time 30 "$URL/rest/v1/ajustes?select=chave&limit=1" -H "apikey: $CHAVE" || true)
-          echo "Supabase respondeu $codigo"
+          # Até 3 tentativas (rede do GitHub oscila); a consulta passa pelo PostgREST até o Postgres, o que conta como atividade
+          codigo=000
+          for t in 1 2 3; do
+            codigo=$(curl -s -o /tmp/resp.txt -w "%{http_code}" --max-time 30 "$URL/rest/v1/ajustes?select=chave&limit=1" -H "apikey: $CHAVE" || true)
+            echo "Tentativa $t: Supabase respondeu $codigo"
+            case "$codigo" in 2*) break ;; esac
+            [ "$t" -lt 3 ] && sleep 20
+          done
           head -c 300 /tmp/resp.txt 2>/dev/null || true; echo
-          # 000 = não conectou (pausado/sem DNS); 5xx = fora do ar. Os dois devem falhar para avisar por e-mail.
-          if [ "$codigo" = "000" ] || [ "$codigo" -ge 500 ]; then
-            echo "::error::O Supabase não respondeu (código $codigo, DNS $DNS). Abra supabase.com/dashboard e restaure o projeto."
-            exit 1
-          fi
+          # 000 = não conectou (pausado/sem DNS); 5xx = fora do ar; 401/403/404 = chave/tabela errada (o toque não chegou ao banco).
+          case "$codigo" in
+            2*) ;;
+            000|5*) echo "::error::O Supabase não respondeu (código $codigo, DNS $DNS). Abra supabase.com/dashboard e restaure o projeto."; exit 1 ;;
+            *) echo "::error::O Supabase respondeu $codigo: confira a chave em assets/supabase-config.js e se a tabela ajustes existe e é legível (docs/supabase.sql)."; exit 1 ;;
+          esac
           echo "::notice::Supabase ativo (código $codigo)."

@@ -94,7 +94,7 @@
 
   // ---------- Navegação ----------
   function mostrar(aba) {
-    ["carregando", "conectar", "pedidos", "pedido", "pecas", "editor", "financeiro", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
+    ["carregando", "conectar", "pedidos", "pedido", "pecas", "editor", "financeiro", "acessos", "custos", "loja"].forEach((t) => ($("#tela-" + t).hidden = t !== aba));
     const abaMenu = aba === "pedido" ? "pedidos" : aba;
     $$(".aba").forEach((b) => (b.dataset.aba === abaMenu ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
     window.Oficina?.ganchos?.[aba]?.();
@@ -207,6 +207,7 @@
       estado.ia = ia || {};
       estado.pecas = (pecas || []).map(deLinhaPeca);
       estado.usuario = data.session.user.email;
+      try { localStorage.setItem("hpr_equipe", "1"); } catch {} // o contador de visitas (metricas.js) ignora a equipe neste navegador
       $("#quem").textContent = estado.usuario;
       $("#abas").hidden = false;
       $("#aviso").hidden = true;

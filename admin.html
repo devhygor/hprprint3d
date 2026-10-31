@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610292000">
-  <link rel="stylesheet" href="assets/admin.css?v=202610292000">
+  <link rel="stylesheet" href="assets/style.css?v=202610311959">
+  <link rel="stylesheet" href="assets/admin.css?v=202610311959">
 </head>
 <body>
   <header class="topo">
@@ -31,6 +31,7 @@
         <button class="aba" type="button" data-aba="pecas">Peças</button>
         <button class="aba" type="button" data-aba="editor">Nova peça</button>
         <button class="aba" type="button" data-aba="financeiro">Financeiro</button>
+        <button class="aba" type="button" data-aba="acessos">Acessos</button>
         <button class="aba" type="button" data-aba="custos">Custos</button>
         <button class="aba" type="button" data-aba="loja">Loja</button>
       </nav>
@@ -638,6 +639,18 @@
       </div>
     </dialog>
 
+    <!-- Acessos -->
+    <section id="tela-acessos" class="tela" hidden>
+      <div class="secao-cabeca">
+        <div>
+          <h1>Acessos ao site</h1>
+          <p class="apoio">Visitas e visitantes únicos da vitrine e da área do cliente. Sem cookies e sem dados pessoais; a equipe não é contada.</p>
+        </div>
+        <div class="acoes"><button class="botao botao-contorno botao-pequeno" type="button" id="ac-atualizar">Atualizar</button></div>
+      </div>
+      <div id="ac-conteudo"><p class="dica">Carregando os acessos…</p></div>
+    </section>
+
     <!-- Custos -->
     <section id="tela-custos" class="tela" hidden>
       <div class="secao-cabeca">
@@ -802,18 +815,19 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610292000"></script>
+  <script src="assets/supabase-config.js?v=202610311959"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610292000"></script>
-  <script src="assets/precificador.js?v=202610292000"></script>
-  <script src="assets/admin.js?v=202610292000"></script>
-  <script src="assets/rastreio.js?v=202610292000"></script>
-  <script src="assets/frete.js?v=202610292000"></script>
-  <script src="assets/email.js?v=202610292000"></script>
-  <script src="assets/itens.js?v=202610292000"></script>
-  <script src="assets/pedidos.js?v=202610292000"></script>
-  <script src="assets/financeiro.js?v=202610292000"></script>
-  <script src="assets/frete-admin.js?v=202610292000"></script>
-  <script src="assets/cadastro-etapas.js?v=202610292000"></script>
+  <script src="assets/modelo3mf.js?v=202610311959"></script>
+  <script src="assets/precificador.js?v=202610311959"></script>
+  <script src="assets/admin.js?v=202610311959"></script>
+  <script src="assets/rastreio.js?v=202610311959"></script>
+  <script src="assets/frete.js?v=202610311959"></script>
+  <script src="assets/email.js?v=202610311959"></script>
+  <script src="assets/itens.js?v=202610311959"></script>
+  <script src="assets/pedidos.js?v=202610311959"></script>
+  <script src="assets/financeiro.js?v=202610311959"></script>
+  <script src="assets/acessos.js?v=202610311959"></script>
+  <script src="assets/frete-admin.js?v=202610311959"></script>
+  <script src="assets/cadastro-etapas.js?v=202610311959"></script>
 </body>
 </html>
