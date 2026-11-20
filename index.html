@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610311959">
+  <link rel="stylesheet" href="assets/style.css?v=202611200158">
 </head>
 <body>
   <header class="topo">
@@ -42,6 +42,17 @@
   </header>
 
   <main>
+    <aside class="faixa-natal" id="faixa-natal" aria-label="Encomendas de Natal" hidden>
+      <div class="envoltorio faixa-natal-grade">
+        <span class="faixa-natal-icone" aria-hidden="true">🎄</span>
+        <div class="faixa-natal-texto">
+          <strong id="natal-titulo">Encomendas de Natal abertas</strong>
+          <span id="natal-sub">Cada peça é impressa por encomenda: peça com antecedência.</span>
+        </div>
+        <div class="faixa-natal-conta" id="natal-conta" role="timer" aria-live="off"></div>
+        <a class="botao botao-pequeno faixa-natal-botao" href="#pecas" id="natal-ver">Ver peças de Natal</a>
+      </div>
+    </aside>
     <section class="heroi">
       <div class="envoltorio heroi-grade">
         <div class="heroi-titulo">
@@ -206,11 +217,11 @@
     </div>
   </footer>
 
-  <script src="assets/supabase-config.js?v=202610311959"></script>
-  <script src="assets/metricas.js?v=202610311959" defer></script>
-  <script src="assets/email.js?v=202610311959"></script>
-  <script src="assets/frete.js?v=202610311959"></script>
-  <script src="assets/itens.js?v=202610311959"></script>
-  <script src="assets/app.js?v=202610311959"></script>
+  <script src="assets/supabase-config.js?v=202611200158"></script>
+  <script src="assets/metricas.js?v=202611200158" defer></script>
+  <script src="assets/email.js?v=202611200158"></script>
+  <script src="assets/frete.js?v=202611200158"></script>
+  <script src="assets/itens.js?v=202611200158"></script>
+  <script src="assets/app.js?v=202611200158"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@
   const grade = document.getElementById("grade");
   const filtros = document.getElementById("filtros");
   let site = {};
+  let natalAtivo = false; // faixa de Natal no ar (ver mostrarNatal)
   let pecas = [];
   let filtroAtual = "Todas";
 
@@ -23,17 +24,23 @@
     const lista = String(p.categoria || "").split(",").map((c) => c.trim()).filter((c) => c && !vistas.has(c.toLowerCase()) && vistas.add(c.toLowerCase()));
     return lista.length ? lista : ["Outros"];
   };
-  const todasCats = () => [...new Set(pecas.flatMap(catsDe))];
+  // Filtros em ordem de quantidade de peças; na época de Natal, "Natal" vem primeiro
+  const ehNatal = (c) => /^natal$/i.test(c);
+  const todasCats = () => {
+    const conta = new Map();
+    pecas.flatMap(catsDe).forEach((c) => conta.set(c, (conta.get(c) || 0) + 1));
+    return [...conta.keys()].sort((a, b) => (natalAtivo && ehNatal(b)) - (natalAtivo && ehNatal(a)) || conta.get(b) - conta.get(a));
+  };
   function corDaCategoria(cat) {
     return CORES[Math.max(0, todasCats().indexOf(cat)) % CORES.length];
   }
-  const categoriasHtml = (p) => `<span class="peca-categorias">${catsDe(p).map((c) => `<span class="peca-categoria" style="--cor:${corDaCategoria(c)}">${esc(c)}</span>`).join("")}</span>`;
+  const categoriasHtml = (p) => { const ordem = todasCats(); return `<span class="peca-categorias">${catsDe(p).sort((a, b) => ordem.indexOf(a) - ordem.indexOf(b)).map((c) => `<span class="peca-categoria" style="--cor:${corDaCategoria(c)}">${esc(c)}</span>`).join("")}</span>`; };
 
   function desenharFiltros() {
     const cats = ["Todas", ...todasCats()];
     if (cats.length <= 2) { filtros.innerHTML = ""; return; }
     filtros.innerHTML = cats
-      .map((c) => `<button class="filtro" type="button" aria-pressed="${c === filtroAtual}" data-cat="${esc(c)}">${esc(c)}</button>`)
+      .map((c) => `<button class="filtro${natalAtivo && ehNatal(c) ? " filtro-natal" : ""}" type="button" aria-pressed="${c === filtroAtual}" data-cat="${esc(c)}">${natalAtivo && ehNatal(c) ? "🎄 " : ""}${esc(c)}</button>`)
       .join("");
   }
 
@@ -59,7 +66,7 @@
     grade.innerHTML = lista
       .map((p) => {
         const foto = p.foto
-          ? `<img src="${esc(p.foto)}" alt="${esc(p.nome)}" loading="lazy">`
+          ? `<img src="${esc(H.miniatura(p.foto))}" alt="${esc(p.nome)}" loading="lazy" decoding="async">`
           : `<span class="sem-foto">Foto em breve</span>`;
         const preco = p.preco ? `<span class="preco"><small>a partir de</small>${brl(Number(p.preco))}</span>` : `<span class="preco"><small>valor</small>Sob consulta</span>`;
         return `<article class="peca" data-peca="${esc(p.id)}">
@@ -169,7 +176,7 @@
       ${varias ? `<button type="button" class="galeria-seta anterior" data-ir="-1" aria-label="Foto anterior">‹</button>
         <button type="button" class="galeria-seta proxima" data-ir="1" aria-label="Próxima foto">›</button>
         <span class="galeria-conta" aria-live="polite">1 / ${fotos.length}</span>
-        <div class="galeria-minis">${fotos.map((u, i) => `<button type="button" class="galeria-mini" data-foto="${i}" aria-label="Ver foto ${i + 1}" ${i ? "" : `aria-current="true"`}><img src="${esc(u)}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}
+        <div class="galeria-minis">${fotos.map((u, i) => `<button type="button" class="galeria-mini" data-foto="${i}" aria-label="Ver foto ${i + 1}" ${i ? "" : `aria-current="true"`}><img src="${esc(H.miniatura(u))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}
       <span class="detalhe-zoom" aria-hidden="true">Toque para ampliar</span>
     </div>`;
   }
@@ -241,6 +248,59 @@
     const b = e.target.closest("[data-cat]");
     if (!b) return;
     filtroAtual = b.dataset.cat;
+    desenharFiltros();
+    desenharGrade();
+  });
+
+  // ---------- Faixa de Natal ----------
+  // site.natal = { modo: "auto" | "ligado" | "desligado", prazo: "AAAA-MM-DD" } (aba Loja da oficina).
+  // "auto" (padrão): aparece de 1º/11 até 24/12. Com prazo, conta até o fim do prazo; sem prazo, conta até o Natal.
+  let relogioNatal = null;
+  function mostrarNatal() {
+    const cfg = site.natal || {};
+    const modo = cfg.modo || "auto";
+    const agora = new Date();
+    const ano = agora.getMonth() === 11 || agora.getMonth() === 10 ? agora.getFullYear() : null;
+    const natal = ano && new Date(ano, 11, 25);
+    const inicio = ano && new Date(ano, 10, 1);
+    natalAtivo = !!ano && modo !== "desligado" && agora < natal && (modo === "ligado" || agora >= inicio);
+    const faixa = document.getElementById("faixa-natal");
+    faixa.hidden = !natalAtivo;
+    clearInterval(relogioNatal);
+    if (!natalAtivo) return;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cfg.prazo || "");
+    const prazo = m && new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59);
+    const dataCurta = (d) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    const $t = (id) => document.getElementById(id);
+    const botao = $t("natal-ver");
+    let alvo = natal, rotulo = "para o Natal";
+    if (prazo && agora <= prazo) {
+      $t("natal-titulo").textContent = `Encomende até ${dataCurta(prazo)} e receba antes do Natal`;
+      $t("natal-sub").textContent = "Cada peça é impressa por encomenda, por ordem de chegada.";
+      alvo = prazo; rotulo = "para encerrar";
+    } else if (prazo) {
+      $t("natal-titulo").textContent = "Ainda dá tempo?";
+      $t("natal-sub").textContent = "O prazo das encomendas de Natal passou, mas chama a gente no WhatsApp que a gente vê o que dá pra fazer.";
+      botao.textContent = "Chamar no WhatsApp";
+      botao.href = linkPedido("uma peça de Natal");
+      botao.target = "_blank"; botao.rel = "noopener";
+      alvo = null;
+    }
+    const conta = $t("natal-conta");
+    conta.hidden = !alvo;
+    const tic = () => {
+      const s = Math.max(0, Math.floor((alvo - new Date()) / 1000));
+      const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), mi = Math.floor((s % 3600) / 60);
+      const bloco = (n, nome) => `<span class="bloco"><b>${String(n).padStart(2, "0")}</b><small>${nome}</small></span>`;
+      conta.innerHTML = bloco(d, d === 1 ? "dia" : "dias") + bloco(h, "horas") + bloco(mi, "min");
+      conta.setAttribute("aria-label", `Faltam ${d} dias e ${h} horas ${rotulo}`);
+    };
+    if (alvo) { tic(); relogioNatal = setInterval(tic, 30000); }
+  }
+  document.getElementById("natal-ver").addEventListener("click", (e) => {
+    const cat = todasCats().find(ehNatal);
+    if (!cat || e.currentTarget.target === "_blank") return;
+    filtroAtual = cat;
     desenharFiltros();
     desenharGrade();
   });
@@ -345,7 +405,7 @@
         const padrao = tamanhoPadrao(p);
         const preco = temMedida(i) ? "Valor sob orçamento" : Number(p?.preco) > 0 ? brl(Number(p.preco) * i.qtd) : "Sob consulta";
         return `<div class="carrinho-item" data-k="${k}">
-          <div class="ci-foto">${p?.foto ? `<img src="${esc(p.foto)}" alt="" loading="lazy">` : ""}</div>
+          <div class="ci-foto">${p?.foto ? `<img src="${esc(H.miniatura(p.foto))}" alt="" loading="lazy">` : ""}</div>
           <div class="ci-corpo">
             <strong>${esc(i.nome)}</strong>
             <span class="ci-preco">${preco}</span>
@@ -853,6 +913,7 @@
     });
     document.querySelectorAll('[data-link="whatsapp"]').forEach((a) => (a.href = linkPedido()));
     document.querySelectorAll('[data-link="instagram"]').forEach((a) => (a.href = site.instagram || a.href));
+    mostrarNatal();
     desenharFiltros();
     desenharGrade();
     if (pecas.length) acertarCarrinho();

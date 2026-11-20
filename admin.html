@@ -16,8 +16,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,600;0,700;0,800;1,800;1,900&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=202610311959">
-  <link rel="stylesheet" href="assets/admin.css?v=202610311959">
+  <link rel="stylesheet" href="assets/style.css?v=202611200158">
+  <link rel="stylesheet" href="assets/admin.css?v=202611200158">
 </head>
 <body>
   <header class="topo">
@@ -722,6 +722,17 @@
           <textarea id="l-destaques" rows="5" placeholder="https://www.instagram.com/p/...&#10;https://www.instagram.com/reel/..."></textarea>
         </label>
         <p class="dica">Um link por linha, até 9. No Instagram, abra o post, toque nos três pontinhos e em "Copiar link". Eles aparecem na vitrine na ordem desta lista.</p>
+        <div class="duas">
+          <label class="campo">Faixa de Natal na vitrine
+            <select id="l-natal-modo">
+              <option value="auto">Automática (de 1º/11 até 24/12)</option>
+              <option value="ligado">Ligada agora (até 24/12)</option>
+              <option value="desligado">Desligada</option>
+            </select>
+          </label>
+          <label class="campo">Último dia para encomendas de Natal<input id="l-natal-prazo" type="date"></label>
+        </div>
+        <p class="dica">Sem data, a faixa conta os dias até o Natal. Com data, mostra "Encomende até dd/mm" e conta até o fim desse dia; depois do prazo, convida para chamar no WhatsApp. O filtro Natal fica em destaque enquanto a faixa estiver no ar.</p>
         <button class="botao botao-principal" type="button" id="salvar-loja">Salvar dados da loja</button>
         <hr>
         <h2 class="titulo-painel" id="frete-config">Frete</h2>
@@ -815,19 +826,19 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202610311959"></script>
+  <script src="assets/supabase-config.js?v=202611200158"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="assets/modelo3mf.js?v=202610311959"></script>
-  <script src="assets/precificador.js?v=202610311959"></script>
-  <script src="assets/admin.js?v=202610311959"></script>
-  <script src="assets/rastreio.js?v=202610311959"></script>
-  <script src="assets/frete.js?v=202610311959"></script>
-  <script src="assets/email.js?v=202610311959"></script>
-  <script src="assets/itens.js?v=202610311959"></script>
-  <script src="assets/pedidos.js?v=202610311959"></script>
-  <script src="assets/financeiro.js?v=202610311959"></script>
-  <script src="assets/acessos.js?v=202611041200"></script>
-  <script src="assets/frete-admin.js?v=202610311959"></script>
-  <script src="assets/cadastro-etapas.js?v=202610311959"></script>
+  <script src="assets/modelo3mf.js?v=202611200158"></script>
+  <script src="assets/precificador.js?v=202611200158"></script>
+  <script src="assets/admin.js?v=202611200158"></script>
+  <script src="assets/rastreio.js?v=202611200158"></script>
+  <script src="assets/frete.js?v=202611200158"></script>
+  <script src="assets/email.js?v=202611200158"></script>
+  <script src="assets/itens.js?v=202611200158"></script>
+  <script src="assets/pedidos.js?v=202611200158"></script>
+  <script src="assets/financeiro.js?v=202611200158"></script>
+  <script src="assets/acessos.js?v=202611200158"></script>
+  <script src="assets/frete-admin.js?v=202611200158"></script>
+  <script src="assets/cadastro-etapas.js?v=202611200158"></script>
 </body>
 </html>

@@ -69,13 +69,44 @@
     cores: Array.isArray(r.cores) ? r.cores : [],
     caracteristicas: r.caracteristicas && typeof r.caracteristicas === "object" ? r.caracteristicas : {},
   });
-  async function enviarFoto(id, dataUrl) {
-    const blob = await (await fetch(dataUrl)).blob();
-    const caminho = `pecas/${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.jpg`;
-    // Sem upsert: o nome é único (id + hora + sorteio) e o upsert exige permissão de leitura que o armazenamento não dá
-    const { error } = await db.storage.from("fotos").upload(caminho, blob, { contentType: "image/jpeg", upsert: false });
-    if (error) throw error;
-    return db.storage.from("fotos").getPublicUrl(caminho).data.publicUrl;
+  // ---------- Fotos leves ----------
+  // Toda foto salva vai para pecas/leve/ em JPEG de no máximo 1600 px, com uma miniatura de 640 px ("-p.jpg")
+  // que a vitrine usa nos cards. Assim foto importada (MakerWorld, Instagram) ou gerada pela IA não pesa na página.
+  const FOTO_MAX = 1600, MINI_MAX = 640;
+  const abrirImagem = (fonte) => new Promise((ok, falha) => {
+    const ehBlob = fonte instanceof Blob;
+    const i = new Image();
+    i.crossOrigin = "anonymous";
+    i.onload = () => { if (ehBlob) URL.revokeObjectURL(i.src); ok(i); };
+    i.onerror = () => falha(new Error("não consegui abrir a imagem"));
+    i.src = ehBlob ? URL.createObjectURL(fonte) : fonte;
+  });
+  function jpegDe(img, max, qualidade) {
+    const fator = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * fator);
+    c.height = Math.round(img.naturalHeight * fator);
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; // PNG transparente não vira fundo preto no JPEG
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return new Promise((ok, falha) => c.toBlob((b) => (b ? ok(b) : falha(new Error("não consegui converter a imagem"))), "image/jpeg", qualidade));
+  }
+  const ehFotoLeve = (u) => window.HPR_ITENS.ehFotoLeve(u);
+  // fonte: dataUrl, Blob ou link público (precisa permitir CORS, como o nosso Supabase)
+  async function enviarFoto(id, fonte) {
+    const img = await abrirImagem(fonte);
+    const [grande, mini] = await Promise.all([jpegDe(img, FOTO_MAX, 0.82), jpegDe(img, MINI_MAX, 0.78)]);
+    const base = `pecas/leve/${id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    // Sem upsert: o nome é único (id + hora + sorteio) e o upsert exige permissão de leitura que o armazenamento não dá.
+    // A miniatura vai primeiro: a vitrine só pede a miniatura de fotos que já estão em pecas/leve/.
+    const opcoes = { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" };
+    const r1 = await db.storage.from("fotos").upload(base + "-p.jpg", mini, opcoes);
+    if (r1.error) throw r1.error;
+    const r2 = await db.storage.from("fotos").upload(base + ".jpg", grande, opcoes);
+    if (r2.error) throw r2.error;
+    return db.storage.from("fotos").getPublicUrl(base + ".jpg").data.publicUrl;
   }
   const urlFoto = (c) => c || "";
   // Foto guardada no nosso Supabase (não expira) x link de fora (Instagram, MakerWorld…), que pode sumir
@@ -235,7 +266,7 @@
         const lucro = Number.isFinite(preco) ? P.analisar(preco, r.custo.total, estado.config.canais.direta, P.num(estado.config.impostoPct)).lucro : NaN;
         return `<tr data-id="${esc(p.id)}">
           <td class="col-alca"><button type="button" class="alca" aria-label="Mudar a posição de ${esc(p.nome)} na vitrine (setas para cima e para baixo)" title="Arraste para mudar a ordem">⋮⋮</button></td>
-          <td>${p.foto ? `<img class="mini" src="${esc(urlFoto(p.foto))}" alt="">` : `<span class="mini"></span>`}</td>
+          <td>${p.foto ? `<img class="mini" src="${esc(window.HPR_ITENS.miniatura(urlFoto(p.foto)))}" loading="lazy" alt="">` : `<span class="mini"></span>`}</td>
           <td class="nome">${esc(p.nome)}<small>${esc(listaCats(p.categoria).join(" · ") || "Sem categoria")}</small></td>
           <td class="num">${brl(r.custo.total)}</td>
           <td class="num ocultar-celular">${brl(r.canais.direta.sugerido)}</td>
@@ -441,6 +472,34 @@
     const vistas = new Set();
     return String(t ?? "").split(",").map((c) => c.trim()).filter((c) => c && !vistas.has(c.toLowerCase()) && vistas.add(c.toLowerCase()));
   };
+  // ---------- Padronizar nome e categorias ao salvar ----------
+  const MINUSCULAS = new Set(["a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "com", "para", "em", "no", "na", "por"]);
+  function arrumarNome(nome) {
+    let n = String(nome || "").replace(/\s+/g, " ").replace(/\s+[-–—]\s+/g, " – ").trim().replace(/[.,;]+$/, "");
+    // Tudo em maiúsculas ("KIT NATALINO 2") vira "Kit Natalino 2"
+    const letras = n.replace(/[^A-Za-zÀ-ÿ]/g, "");
+    if (letras.length > 3 && letras === letras.toUpperCase()) {
+      n = n.toLowerCase().split(" ").map((p, i) => (i && MINUSCULAS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1))).join(" ");
+    }
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  }
+  // Categoria digitada com outra caixa/acento vira a que já existe ("decoracao" -> "Decoração").
+  // Categoria nova que é começo de uma existente ("Decor") pergunta antes de criar outra quase igual.
+  function arrumarCategorias(texto) {
+    const existentes = [...new Set(estado.pecas.flatMap((x) => listaCats(x.categoria)))];
+    const saida = [];
+    for (const c of listaCats(texto)) {
+      const nova = c.charAt(0).toUpperCase() + c.slice(1);
+      const igual = existentes.find((e) => semAcento(e) === semAcento(nova));
+      let final = igual || nova;
+      if (!igual) {
+        const parecida = existentes.find((e) => semAcento(nova).length >= 4 && semAcento(e).startsWith(semAcento(nova)));
+        if (parecida && confirm(`A categoria "${nova}" parece com "${parecida}", que já existe. Usar "${parecida}"?`)) final = parecida;
+      }
+      if (!saida.some((s) => semAcento(s) === semAcento(final))) saida.push(final);
+    }
+    return saida;
+  }
   function desenharCategorias() {
     const marcadas = listaCats($("#p-categoria").value).map((c) => c.toLowerCase());
     const todas = [...new Set(estado.pecas.flatMap((x) => listaCats(x.categoria)).concat(listaCats($("#p-categoria").value)))];
@@ -851,21 +910,10 @@
   $("#form-peca").addEventListener("input", () => { marcarPersonalizados(); calcular(); });
   $("#p-preco").addEventListener("input", () => { precoEditadoManual = $("#p-preco").value !== ""; calcular(); });
 
-  // Fotos enviadas: cada uma é reduzida para no máximo 1600 px antes de salvar
+  // Fotos enviadas: cada uma é reduzida para no máximo 1600 px já na galeria (a prévia fica leve)
   async function reduzirFoto(arq) {
-    const img = await new Promise((ok, falha) => {
-      const i = new Image();
-      i.onload = () => ok(i);
-      i.onerror = falha;
-      i.src = URL.createObjectURL(arq);
-    });
-    const fator = Math.min(1, 1600 / Math.max(img.width, img.height));
-    const c = document.createElement("canvas");
-    c.width = Math.round(img.width * fator);
-    c.height = Math.round(img.height * fator);
-    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(img.src);
-    return c.toDataURL("image/jpeg", 0.85);
+    const blob = await jpegDe(await abrirImagem(arq), FOTO_MAX, 0.85);
+    return await new Promise((ok) => { const l = new FileReader(); l.onload = () => ok(l.result); l.readAsDataURL(blob); });
   }
   $("#p-fotos-arquivos").addEventListener("change", async (e) => {
     const arquivos = [...e.target.files];
@@ -1175,6 +1223,10 @@
 
   // ---------- Salvar peça ----------
   $("#salvar-peca").addEventListener("click", async () => {
+    // Padroniza nome ("KIT NATALINO  2" -> "Kit Natalino 2") e categorias antes de ler o formulário
+    $("#p-nome").value = arrumarNome($("#p-nome").value);
+    $("#p-categoria").value = arrumarCategorias($("#p-categoria").value).join(", ");
+    desenharCategorias();
     const f = lerFormulario();
     if (!f.nome) { avisar("Dê um nome para a peça.", true); $("#p-nome").focus(); return; }
     const botao = $("#salvar-peca");
@@ -1195,6 +1247,13 @@
       for (const f of estado.fotos) {
         if (!f.url || ehFotoNossa(f.url)) continue;
         try { f.url = await importarFoto(f.url); } catch { /* fica o link antigo; a lista avisa */ }
+      }
+      // Fotos nossas ainda no tamanho original (importadas, antigas): troca pela versão leve com miniatura
+      const pesadas = estado.fotos.filter((f) => f.url && ehFotoNossa(f.url) && !ehFotoLeve(f.url));
+      let leves = 0;
+      for (const f of pesadas) {
+        avisar(`Deixando as fotos leves (${++leves} de ${pesadas.length})…`, false, 30000);
+        try { f.url = await enviarFoto(id, f.url); } catch { /* fica a foto original, que continua funcionando */ }
       }
       const fotos = estado.fotos.map((f) => f.url).filter(Boolean);
       const foto = fotos[0] || "";
@@ -1300,6 +1359,8 @@
     $("#l-whatsapp").value = estado.site.whatsapp || "";
     $("#l-instagram").value = estado.site.instagram || "https://www.instagram.com/hprprint3d/";
     $("#l-destaques").value = (estado.site.destaquesInstagram || []).join("\n");
+    $("#l-natal-modo").value = estado.site.natal?.modo || "auto";
+    $("#l-natal-prazo").value = estado.site.natal?.prazo || "";
   }
   // Mensagens de erro do EmailJS em português
   function traduzirEmailJS(m) {
@@ -1361,6 +1422,7 @@
         .map((u) => u.trim().split("?")[0])
         .filter((u) => /^https:\/\/(www\.)?instagram\.com\/(p|reel|tv)\//.test(u))
         .slice(0, 9),
+      natal: { modo: $("#l-natal-modo").value || "auto", prazo: $("#l-natal-prazo").value || "" },
     };
     try {
       await gravarAjuste("site", estado.site);

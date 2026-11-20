@@ -101,5 +101,11 @@
       "</td></tr></table>";
   }
 
-  raiz.HPR_ITENS = { normalizar, medidaDe, textoMedida, pecaComMedida, comMedida, lista, unidades, resumo, progresso, linhasTexto, progressoHtml };
+  // Fotos "leves" (pasta pecas/leve/ do Supabase) têm uma miniatura ao lado, com "-p" no nome.
+  // Use nos cards e listas; a foto inteira fica para a janela da peça.
+  const PASTA_LEVE = "/storage/v1/object/public/fotos/pecas/leve/";
+  const ehFotoLeve = (u) => typeof u === "string" && u.includes(PASTA_LEVE) && /\.jpg$/i.test(u) && !/-p\.jpg$/i.test(u);
+  const miniatura = (u) => (ehFotoLeve(u) ? u.replace(/\.jpg$/i, "-p.jpg") : u || "");
+
+  raiz.HPR_ITENS = { normalizar, medidaDe, textoMedida, pecaComMedida, comMedida, lista, unidades, resumo, progresso, linhasTexto, progressoHtml, ehFotoLeve, miniatura };
 })(window);
