@@ -7,44 +7,9 @@
 /* Hallmark · dismissed kept · o 37min era a contagem regressiva do Natal, que muda a cada minuto */
 /* Hallmark · dropped logo.webp na abertura, descrição no cartão · a logo segue no topo e a foto de uma peça real ocupa a abertura; a descrição continua inteira no detalhe da peça */
 
-/* Vitrine pública (index.html). A oficina e a conta seguem em style.css. */
+/* Vitrine pública (index.html). Topo, botões e rodapé ficam em comum.css, junto com a conta. */
 
-/* ---------- Pular para o conteúdo ---------- */
-.pular { position: absolute; left: var(--space-md); top: calc(-1 * var(--space-3xl)); z-index: var(--z-toast); padding: var(--space-xs) var(--space-md); background: var(--color-ink); color: var(--color-paper); border-radius: var(--radius-input); }
-.pular:focus-visible { top: var(--space-md); }
-
-/* ---------- Botões ---------- */
-.botao {
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs);
-  min-height: 52px; padding: 0 var(--space-lg);
-  border: 1px solid transparent; border-radius: var(--radius-pill);
-  font: 600 var(--text-md)/1 var(--font-body); white-space: nowrap; text-decoration: none; cursor: pointer;
-  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
-}
-.botao:active { transform: translateY(1px); }
-.botao:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.botao:disabled, .botao[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
-.botao[aria-busy="true"] { cursor: progress; }
-.botao svg { width: 18px; height: 18px; flex-shrink: 0; }
-.botao-principal { background: var(--color-accent); color: var(--color-accent-ink); }
-.botao-principal:hover { background: var(--color-accent-hover); }
-.botao-contorno { background: transparent; color: var(--color-ink); border-color: var(--color-muted); }
-.botao-contorno:hover { border-color: var(--color-ink); background: var(--color-paper-2); }
-.botao-pequeno { min-height: 44px; padding: 0 var(--space-md); font-size: var(--text-sm); }
-
-/* ---------- Topo ---------- */
-.topo { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule); }
-.topo-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 72px; }
-.marca { display: flex; align-items: center; gap: var(--space-sm); text-decoration: none; font: var(--display-weight) var(--text-lg)/1 var(--font-display); letter-spacing: -0.01em; }
-.marca:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
-.marca-carretel { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; }
-.marca-foto { border-radius: 50%; object-fit: cover; }
-.topo nav { display: flex; align-items: center; gap: var(--space-xs); }
-.topo nav a.discreto { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-sm); color: var(--color-ink-2); text-decoration: none; transition: color var(--dur-short) var(--ease-out); }
-.topo nav a.discreto:hover { color: var(--color-ink); text-decoration: underline; }
-.topo nav a.discreto:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .botao-carrinho { gap: var(--space-xs); }
-.botao-entrar { white-space: nowrap; }
 .carrinho-qtd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 var(--space-2xs); border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-accent-ink); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
 
 /* ---------- Faixa de Natal (aparece sozinha de 1º/11 a 24/12; configurável na aba Loja) ---------- */
@@ -121,8 +86,6 @@ a.peca-foto:focus-visible { outline: 2px solid var(--color-focus); outline-offse
 .peca-rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin-top: auto; padding-top: var(--space-sm); border-top: var(--rule-hair) solid var(--color-rule); }
 .preco { font: var(--display-weight) var(--text-xl)/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
 .preco small { display: block; font: 400 var(--text-sm)/1.4 var(--font-body); color: var(--color-muted); }
-.vazio { grid-column: 1 / -1; padding: var(--space-2xl) var(--space-xl); border: var(--rule-hair) dashed var(--color-muted); border-radius: var(--radius-card); color: var(--color-ink-2); }
-.vazio strong { display: block; margin-bottom: var(--space-xs); color: var(--color-ink); font: var(--display-weight) var(--text-xl)/1.2 var(--font-display); }
 
 /* ---------- Instagram: trilho que corre de lado ---------- */
 .grade-insta-auto { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(15rem, 23%); gap: var(--gap-columns); overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: var(--space-sm); scrollbar-color: var(--color-muted) var(--color-paper); }
@@ -322,20 +285,12 @@ a.peca-foto:focus-visible { outline: 2px solid var(--color-focus); outline-offse
 .toast-carrinho button { min-height: 44px; padding: 0 var(--space-sm); border: 0; background: none; color: var(--color-link); font: 600 var(--text-md) var(--font-body); text-decoration: underline; white-space: nowrap; cursor: pointer; }
 .toast-carrinho button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
-/* ---------- Rodapé: a marca grande sobre os links ---------- */
-.rodape { padding-block: var(--space-3xl) var(--space-2xl); border-top: var(--rule-hair) solid var(--color-rule); color: var(--color-ink-2); }
-.rodape-grade { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-md) var(--space-xl); }
-.rodape-marca { flex-basis: 100%; max-width: none; color: var(--color-ink); font: var(--display-weight) clamp(3rem, 9vw, 8rem)/0.95 var(--font-display); letter-spacing: -0.02em; overflow-wrap: break-word; min-width: 0; }
-.rodape a { color: var(--color-ink-2); }
-.rodape a:hover { color: var(--color-ink); }
-.rodape a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 /* ---------- Telas menores ---------- */
 @media (max-width: 75rem) {
   .grade-pecas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 60rem) {
-  .topo nav a.discreto { display: none; }
   .heroi { padding-block: var(--space-xl) var(--space-2xl); }
   .heroi-grade { grid-template-columns: minmax(0, 1fr); gap: var(--space-xl); }
   .heroi-foto { justify-self: start; width: min(100%, 32rem); }
@@ -358,10 +313,6 @@ a.peca-foto:focus-visible { outline: 2px solid var(--color-focus); outline-offse
   .galeria-mini { width: 48px; height: 48px; }
 }
 @media (max-width: 40rem) {
-  .topo-linha { gap: var(--space-xs); min-height: 64px; }
-  .marca { font-size: var(--text-md); gap: var(--space-xs); }
-  .topo nav { gap: var(--space-2xs); }
-  .botao-pedido-topo { display: none; }
   .heroi-acoes .botao { flex: 1 1 auto; }
   .grade-pecas { gap: var(--space-xl) var(--space-sm); }
   .peca { gap: var(--space-sm); }
@@ -379,8 +330,4 @@ a.peca-foto:focus-visible { outline: 2px solid var(--color-focus); outline-offse
   .ci-remover { grid-column: 3; grid-row: 1; justify-self: end; }
   .ci-qtd { grid-column: 3; grid-row: 2; }
   .carrinho-acoes .botao { flex: 1; }
-}
-@media (max-width: 25rem) {
-  .botao-entrar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .botao-entrar { padding: 0 var(--space-sm); }
 }

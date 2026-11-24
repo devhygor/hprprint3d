@@ -119,7 +119,7 @@
     if (!r) return "";
     return `<div class="pc-rastreio">
       <div class="pc-rastreio-cod">
-        <span class="pc-rastreio-rotulo">Código de rastreio${r.nome ? ` · ${esc(r.nome)}` : ""}</span>
+        <span class="pc-rastreio-rotulo">Código de rastreio${r.nome ? ` (${esc(r.nome)})` : ""}</span>
         <span class="pc-rastreio-num">${esc(r.codigo)}</span>
       </div>
       <div class="pc-rastreio-acoes">
@@ -227,7 +227,7 @@
       return;
     }
     if (!pedidos?.length) {
-      $("#lista").innerHTML = `<div class="vazio"><strong>Nenhum pedido por aqui ainda</strong>Faça um pedido pelo site usando o e-mail ${esc(u.email)} e ele aparece nesta página.<br><br><a class="botao botao-principal" href="./#pedido">Fazer um pedido</a></div>`;
+      $("#lista").innerHTML = `<div class="vazio"><strong>Nenhum pedido por aqui ainda</strong>Faça um pedido pelo site usando o e-mail ${esc(u.email)} e ele aparece nesta página.<a class="botao botao-principal" href="./#pedido">Fazer um pedido</a></div>`;
       return;
     }
     $("#lista").innerHTML = pedidos.map(cartao).join("");

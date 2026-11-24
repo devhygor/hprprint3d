@@ -1,0 +1,78 @@
+/* Hallmark · shape: chrome compartilhado (vitrine e conta) · genre: editorial · theme: brand · redesign: full
+ * paper: oklch(16.6% 0.067 293) · accent: oklch(55% 0.25 293) · display: Exo 2 · body: Figtree · nav: edge-aligned bar · footer: mast · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: P, peças pequenas e repetidas por natureza (topo, botões, rodapé) */
+
+/* Topo, botões, rodapé, avisos e telas de espera: tudo que a vitrine e a conta dividem. */
+
+/* ---------- Pular para o conteúdo ---------- */
+.pular { position: absolute; left: var(--space-md); top: calc(-1 * var(--space-3xl)); z-index: var(--z-toast); padding: var(--space-xs) var(--space-md); background: var(--color-ink); color: var(--color-paper); border-radius: var(--radius-input); }
+.pular:focus-visible { top: var(--space-md); }
+
+/* ---------- Botões ---------- */
+.botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs);
+  min-height: 52px; padding: 0 var(--space-lg);
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  font: 600 var(--text-md)/1 var(--font-body); white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.botao:active { transform: translateY(1px); }
+.botao:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.botao:disabled, .botao[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
+.botao[aria-busy="true"] { cursor: progress; }
+.botao svg { width: 18px; height: 18px; flex-shrink: 0; }
+.botao-principal { background: var(--color-accent); color: var(--color-accent-ink); }
+.botao-principal:hover { background: var(--color-accent-hover); }
+.botao-contorno { background: transparent; color: var(--color-ink); border-color: var(--color-muted); }
+.botao-contorno:hover { border-color: var(--color-ink); background: var(--color-paper-2); }
+.botao-pequeno { min-height: 44px; padding: 0 var(--space-md); font-size: var(--text-sm); }
+.botao-entrar { white-space: nowrap; }
+
+/* ---------- Topo ---------- */
+.topo { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.topo-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 72px; }
+.marca { display: flex; align-items: center; gap: var(--space-sm); text-decoration: none; font: var(--display-weight) var(--text-lg)/1 var(--font-display); letter-spacing: -0.01em; }
+.marca:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
+.marca-carretel { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; }
+.marca-foto { border-radius: 50%; object-fit: cover; }
+.topo nav { display: flex; align-items: center; gap: var(--space-xs); }
+.topo nav a.discreto { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-sm); color: var(--color-ink-2); text-decoration: none; transition: color var(--dur-short) var(--ease-out); }
+.topo nav a.discreto:hover { color: var(--color-ink); text-decoration: underline; }
+.topo nav a.discreto:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* ---------- Espera, vazio e aviso ---------- */
+.carregando { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-md); min-height: 52vh; color: var(--color-ink-2); text-align: center; }
+.giro { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--color-rule); border-top-color: var(--color-focus); }
+@media (prefers-reduced-motion: no-preference) { .giro { animation: gira 0.8s linear infinite; } }
+@keyframes gira { to { transform: rotate(360deg); } }
+.vazio { grid-column: 1 / -1; padding: var(--space-2xl) var(--space-xl); border: var(--rule-hair) dashed var(--color-muted); border-radius: var(--radius-card); color: var(--color-ink-2); }
+.vazio strong { display: block; margin-bottom: var(--space-xs); color: var(--color-ink); font: var(--display-weight) var(--text-xl)/1.2 var(--font-display); }
+.vazio .botao { display: flex; width: fit-content; margin-top: var(--space-lg); }
+.aviso { position: fixed; left: var(--space-sm); right: var(--space-sm); bottom: var(--space-lg); z-index: var(--z-toast); width: fit-content; max-width: 40rem; margin-inline: auto; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-card); background: var(--color-paper-3); color: var(--color-ink); box-shadow: var(--shadow-float); font-weight: 600; }
+.aviso.erro { background: var(--color-error-field); color: var(--color-error); }
+
+/* ---------- Rodapé: a marca grande sobre os links ---------- */
+.rodape { padding-block: var(--space-3xl) var(--space-2xl); border-top: var(--rule-hair) solid var(--color-rule); color: var(--color-ink-2); }
+.rodape-grade { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-md) var(--space-xl); }
+.rodape-marca { flex-basis: 100%; max-width: none; color: var(--color-ink); font: var(--display-weight) clamp(3rem, 9vw, 8rem)/0.95 var(--font-display); letter-spacing: -0.02em; overflow-wrap: break-word; min-width: 0; }
+.rodape a { color: var(--color-ink-2); }
+.rodape a:hover { color: var(--color-ink); }
+.rodape a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+/* Nas telas de trabalho (conta) o rodapé é só uma linha */
+.rodape-curto { padding-block: var(--space-xl); }
+.rodape-curto .rodape-marca { flex-basis: auto; font-size: var(--text-lg); line-height: 1.2; letter-spacing: -0.01em; }
+
+/* ---------- Telas menores ---------- */
+@media (max-width: 60rem) {
+  .topo nav a.discreto { display: none; }
+}
+@media (max-width: 40rem) {
+  .topo-linha { gap: var(--space-xs); min-height: 64px; }
+  .marca { font-size: var(--text-md); gap: var(--space-xs); }
+  .topo nav { gap: var(--space-2xs); }
+  .botao-pedido-topo { display: none; }
+}
+@media (max-width: 25rem) {
+  .botao-entrar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .botao-entrar { padding: 0 var(--space-sm); }
+}

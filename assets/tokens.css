@@ -18,7 +18,9 @@
   --color-warn: oklch(83% 0.12 75); --color-warn-field: oklch(30% 0.06 70);
   --color-ok: oklch(85% 0.12 175); --color-ok-field: oklch(28% 0.06 175);
   --color-natal: oklch(32% 0.11 15);
-  --color-error: oklch(74% 0.16 16);
+  --color-error: oklch(74% 0.16 16); --color-error-field: oklch(28% 0.08 16);
+  /* Botão do Google: fundo branco, como pede a marca deles */
+  --color-google: oklch(98.5% 0.006 300); --color-google-hover: oklch(95% 0.02 300); --color-google-ink: oklch(25% 0.012 300);
   --shadow-float: 0 12px 32px oklch(8% 0.04 293 / 0.55);
   --font-display: "Exo 2", ui-sans-serif, system-ui, sans-serif; --font-body: "Figtree", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-body);
   --display-weight: 800;

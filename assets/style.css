@@ -1,26 +1,22 @@
 /* HPR Print 3D — estilos compartilhados (vitrine + área interna) */
 :root {
-  /* Cores tiradas da logo: fundo roxo-noite, roxo neon e branco cromado */
-  --noite: #110628;
-  --noite-2: #1b0d3d;
-  --noite-3: #261552;
-  --linha: #3b2575;
-  --texto: #f6f2ff;
-  --texto-2: #c4b8e8;
-  --texto-3: #9284c2;
-  --neon: #8b3dff;
-  --neon-claro: #b98aff;
-  --brilho: 0 0 24px rgba(139, 61, 255, .55);
-  --coral: #ff7a8f;
-  --menta: #5ee0c8;
-  --sol: #b98aff;
-  --lilas: #a463ff;
-  --erro: #ff6b81;
-  --raio-g: 22px;
-  --raio-m: 14px;
-  --raio-p: 8px;
-  --fonte-display: "Exo 2", system-ui, sans-serif;
-  --fonte-texto: "Figtree", system-ui, sans-serif;
+  /* Nomes antigos apontando para os tokens novos (tokens.css), para a oficina seguir a mesma paleta da vitrine */
+  --noite: var(--color-paper);
+  --noite-2: var(--color-paper-2);
+  --noite-3: var(--color-paper-3);
+  --linha: var(--color-rule);
+  --texto: var(--color-ink);
+  --texto-2: var(--color-ink-2);
+  --texto-3: var(--color-muted);
+  --neon: var(--color-accent);
+  --neon-claro: var(--color-link);
+  --brilho: none;
+  --erro: var(--color-error);
+  --raio-g: var(--radius-card);
+  --raio-m: 12px;
+  --raio-p: var(--radius-input);
+  --fonte-display: var(--font-display);
+  --fonte-texto: var(--font-body);
   color-scheme: dark;
 }
 
