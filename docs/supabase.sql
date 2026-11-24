@@ -121,6 +121,8 @@ create policy "site registra pedido" on public.pedidos
     and char_length(coalesce(bairro, ''))      <= 120
     and char_length(coalesce(uf, ''))          <= 2
     and documento is null and etiqueta is null
+    -- Envio (transportadora, rastreio, link de rastreio) só a equipe preenche
+    and transportadora is null and rastreio is null and link_rastreio is null
     and jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) <= 30
     and pago = false
     and cliente_id is null
@@ -155,6 +157,8 @@ create policy "cliente registra pedido" on public.pedidos
     and char_length(coalesce(bairro, ''))      <= 120
     and char_length(coalesce(uf, ''))          <= 2
     and documento is null and etiqueta is null
+    -- Envio (transportadora, rastreio, link de rastreio) só a equipe preenche
+    and transportadora is null and rastreio is null and link_rastreio is null
     and jsonb_typeof(itens) = 'array' and jsonb_array_length(itens) <= 30
     and pago = false
     and cliente_id = auth.uid()
@@ -265,7 +269,10 @@ as $$
          p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio
   from public.pedidos p
   where auth.uid() is not null
-    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+    and (p.cliente_id = auth.uid()
+         -- Pedido ligado só pelo e-mail digitado aparece depois que a equipe revisa (sai de 'novo'):
+         -- assim ninguém planta pedido falso na conta de outra pessoa
+         or (p.status <> 'novo' and p.email is not null and lower(p.email) = public.meu_email_confirmado()))
   order by p.criado_em desc
   limit 100;
 $$;
@@ -287,7 +294,10 @@ as $$
          p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio, p.pago
   from public.pedidos p
   where auth.uid() is not null
-    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+    and (p.cliente_id = auth.uid()
+         -- Pedido ligado só pelo e-mail digitado aparece depois que a equipe revisa (sai de 'novo'):
+         -- assim ninguém planta pedido falso na conta de outra pessoa
+         or (p.status <> 'novo' and p.email is not null and lower(p.email) = public.meu_email_confirmado()))
   order by p.criado_em desc
   limit 100;
 $$;
@@ -309,7 +319,10 @@ as $$
          p.transportadora, p.rastreio, p.link_rastreio, p.frete, p.envio, p.pago, p.itens
   from public.pedidos p
   where auth.uid() is not null
-    and (p.cliente_id = auth.uid() or (p.email is not null and lower(p.email) = public.meu_email_confirmado()))
+    and (p.cliente_id = auth.uid()
+         -- Pedido ligado só pelo e-mail digitado aparece depois que a equipe revisa (sai de 'novo'):
+         -- assim ninguém planta pedido falso na conta de outra pessoa
+         or (p.status <> 'novo' and p.email is not null and lower(p.email) = public.meu_email_confirmado()))
   order by p.criado_em desc
   limit 100;
 $$;

@@ -22,8 +22,9 @@
   function dePedido(p) {
     const codigo = limpar(p?.rastreio);
     if (!codigo) return null;
-    const linkProprio = /^https:\/\/\S+$/i.test(String(p?.link_rastreio || "").trim()) ? String(p.link_rastreio).trim() : "";
     const t = buscar(p?.transportadora) || buscar(detectar(codigo)) || buscar("outra");
+    // Link próprio só vale para transportadora "outra" (é o único caso em que a Oficina mostra o campo)
+    const linkProprio = t.id === "outra" && /^https:\/\/\S+$/i.test(String(p?.link_rastreio || "").trim()) ? String(p.link_rastreio).trim() : "";
     const link = linkProprio || t.link(codigo);
     const alternativo = `https://melhorrastreio.com.br/rastreio/${enc(codigo)}`;
     return {

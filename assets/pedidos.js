@@ -451,6 +451,8 @@
   function lerForm() {
     const d = {};
     for (const [k, sel] of Object.entries(CAMPOS)) d[k] = $(sel).value.trim();
+    // O link próprio só existe com transportadora "outra"; escondido, não é regravado
+    if (d.transportadora !== "outra") d.link_rastreio = "";
     d.pago = $("#o-pago").checked;
     const peca = estado.pecas.find((p) => p.nome.toLowerCase() === d.peca.toLowerCase());
     d.pecaId = peca ? peca.id : atual.pecaId && d.peca === atual.peca ? atual.pecaId : "";
