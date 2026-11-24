@@ -40,7 +40,7 @@
     const cats = ["Todas", ...todasCats()];
     if (cats.length <= 2) { filtros.innerHTML = ""; return; }
     filtros.innerHTML = cats
-      .map((c) => `<button class="filtro${natalAtivo && ehNatal(c) ? " filtro-natal" : ""}" type="button" aria-pressed="${c === filtroAtual}" data-cat="${esc(c)}">${natalAtivo && ehNatal(c) ? "🎄 " : ""}${esc(c)}</button>`)
+      .map((c) => `<button class="filtro${natalAtivo && ehNatal(c) ? " filtro-natal" : ""}" type="button" aria-pressed="${c === filtroAtual}" data-cat="${esc(c)}">${esc(c)}</button>`)
       .join("");
   }
 
@@ -684,7 +684,7 @@
     if (fp.dataset.cepAnterior && fp.dataset.cepAnterior !== r.endereco.cep) { fp.endereco.value = ""; fp.bairro.value = ""; fp.numero.value = ""; fp.complemento.value = ""; }
     fp.dataset.cepAnterior = r.endereco.cep;
     mostrarEndereco();
-    const enderecoHtml = `<p class="frete-endereco">📍 ${esc(local)}</p>`;
+    const enderecoHtml = `<p class="frete-endereco">${esc(local)}</p>`;
     if (!r.opcoes.length) {
       caixaFrete.innerHTML = enderecoHtml + `<p class="frete-aviso">Para esse endereço a gente calcula o frete junto com o orçamento, pelo WhatsApp.</p>`;
       return;
