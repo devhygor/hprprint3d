@@ -6,7 +6,12 @@
 
 /* Área do cliente (conta.html): entrar e acompanhar os pedidos. */
 
-.conta { min-height: 70vh; padding-block: var(--space-2xl) var(--space-3xl); }
+.conta { position: relative; isolation: isolate; min-height: 70vh; padding-block: var(--space-2xl) var(--space-3xl); }
+/* Mesma luz e as mesmas linhas de camada da abertura da vitrine, só atrás da tela de entrar */
+.entrar-grade { position: relative; }
+.entrar-grade::before { content: ""; position: absolute; inset: calc(-1 * var(--space-2xl)) calc(-1 * var(--gutter)); z-index: -1; pointer-events: none;
+  background: radial-gradient(40% 55% at 78% 50%, var(--color-brilho), transparent 70%), repeating-linear-gradient(to bottom, transparent 0 11px, var(--color-fio) 11px 12px);
+  -webkit-mask-image: radial-gradient(90% 90% at 60% 50%, #000 30%, transparent 80%); mask-image: radial-gradient(90% 90% at 60% 50%, #000 30%, transparent 80%); }
 .apoio { margin-top: var(--space-xs); color: var(--color-ink-2); }
 
 /* ---------- Entrar: texto à esquerda, formulário à direita ---------- */
@@ -20,23 +25,32 @@
 .etapas-amostra li::before { content: ""; height: 6px; border-radius: var(--radius-pill); background: var(--color-accent); }
 .etapas-amostra li.agora { color: var(--color-ink); font-weight: 600; }
 .etapas-amostra li.agora ~ li::before { background: var(--color-rule); }
+/* A régua de exemplo enche traço a traço até "Imprimindo" quando a tela aparece */
+.mov .etapas-amostra li::before { clip-path: inset(0 100% 0 0 round var(--radius-pill)); transition: clip-path 520ms var(--ease-out-forte); }
+.mov .visto .etapas-amostra li::before { clip-path: inset(0 0 0 0 round var(--radius-pill)); }
+.mov .etapas-amostra li.agora ~ li::before { clip-path: none; }
+.etapas-amostra li:nth-child(2)::before { transition-delay: 380ms; } .etapas-amostra li:nth-child(3)::before { transition-delay: 460ms; }
+.etapas-amostra li:nth-child(4)::before { transition-delay: 540ms; } .etapas-amostra li:nth-child(1)::before { transition-delay: 300ms; }
 
-.cartao-conta { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-xl); border-radius: var(--radius-card); background: var(--color-paper-2); }
+.cartao-conta { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-xl); border-radius: calc(var(--radius-card) + 8px); background: color-mix(in oklab, var(--color-paper-2) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: var(--shadow-palco), inset 0 0 0 1px color-mix(in oklab, var(--color-ink) 9%, transparent); }
+.mov .cartao-conta[data-revelar] { --atraso: 120ms; }
 .botao-google { width: 100%; background: var(--color-google); color: var(--color-google-ink); }
 .botao-google:hover { background: var(--color-google-hover); }
 .ou { display: flex; align-items: center; gap: var(--space-sm); color: var(--color-muted); font-size: var(--text-sm); }
 .ou::before, .ou::after { content: ""; flex: 1; height: var(--rule-hair); background: var(--color-rule); }
 
 .alternar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: var(--space-2xs); border-radius: var(--radius-pill); background: var(--color-paper); }
-.alternar button { min-height: 44px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--color-ink-2); font: 600 var(--text-sm) var(--font-body); cursor: pointer; transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out); }
+.alternar button { min-height: 44px; border: 0; border-radius: var(--radius-pill); background: none; color: var(--color-ink-2); font: 600 var(--text-sm) var(--font-body); cursor: pointer; transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), transform var(--dur-press) var(--ease-out-forte); }
+.alternar button:active { transform: scale(0.97); }
 .alternar button:hover { color: var(--color-ink); }
 .alternar button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .alternar button[aria-selected="true"] { background: var(--color-paper-3); color: var(--color-ink); }
 
 .campos-conta { display: flex; flex-direction: column; gap: var(--space-md); }
 .campo-conta { display: flex; flex-direction: column; gap: var(--space-xs); font-size: var(--text-sm); font-weight: 600; }
-.campo-conta input { width: 100%; min-width: 0; min-height: 52px; padding: 0 var(--space-md); border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-input); background: var(--color-paper); color: var(--color-ink); font: 400 var(--text-md) var(--font-body); outline: 2px solid transparent; outline-offset: -2px; }
-.campo-conta input:focus-visible { outline-color: var(--color-focus); }
+.campo-conta input { transition: border-color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out); width: 100%; min-width: 0; min-height: 52px; padding: 0 var(--space-md); border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-input); background: var(--color-paper); color: var(--color-ink); font: 400 var(--text-md) var(--font-body); outline: 2px solid transparent; outline-offset: -2px; }
+.campo-conta input:hover { border-color: var(--color-ink-2); }
+.campo-conta input:focus-visible { outline-color: var(--color-focus); border-color: var(--color-focus); box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-accent) 22%, transparent); background: var(--color-paper-2); }
 .campo-conta input:user-invalid { border-color: var(--color-error); }
 .botao-link { align-self: center; min-height: 44px; padding: 0 var(--space-xs); border: 0; background: none; color: var(--color-link); font: 400 var(--text-sm) var(--font-body); text-decoration: underline; cursor: pointer; }
 .botao-link:hover { color: var(--color-ink); }
@@ -50,7 +64,7 @@
 .lista-conta { display: flex; flex-direction: column; gap: var(--space-lg); }
 .lista-conta > .apoio { color: var(--color-muted); }
 
-.pedido-conta { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-xl); border-radius: var(--radius-card); background: var(--color-paper-2); }
+.pedido-conta { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-xl); border-radius: calc(var(--radius-card) + 4px); background: var(--color-paper-2); box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-ink) 7%, transparent); }
 .pedido-conta.cancelado { background: transparent; border: var(--rule-hair) dashed var(--color-rule); }
 .pedido-conta.cancelado h2 { color: var(--color-ink-2); }
 .pc-topo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-md); font-size: var(--text-sm); color: var(--color-muted); }
@@ -69,6 +83,18 @@
 .etapas .ponto { display: none; }
 .etapas .quando { font-size: var(--text-xs); font-weight: 400; color: var(--color-muted); font-variant-numeric: tabular-nums; }
 .pedido-conta.cancelado .etapas li::before { background: var(--color-rule); }
+/* Quando o pedido aparece, a régua enche da esquerda até a etapa atual (estado, não enfeite) */
+.mov .pedido-conta .etapas li::before { clip-path: inset(0 100% 0 0 round var(--radius-pill)); transition: clip-path 560ms var(--ease-out-forte) calc(var(--atraso, 0ms) + 200ms + var(--k, 0) * 70ms); }
+.mov .pedido-conta.visto .etapas li::before { clip-path: inset(0 0 0 0 round var(--radius-pill)); }
+.etapas li:nth-child(2) { --k: 1; } .etapas li:nth-child(3) { --k: 2; } .etapas li:nth-child(4) { --k: 3; } .etapas li:nth-child(5) { --k: 4; } .etapas li:nth-child(6) { --k: 5; } .etapas li:nth-child(7) { --k: 6; }
+/* A etapa atual tem um brilho que corre devagar: diz "em andamento" sem precisar ler */
+.etapas li.atual { position: relative; }
+@media (prefers-reduced-motion: no-preference) {
+  .pedido-conta:not(.cancelado) .etapas li.atual::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; border-radius: var(--radius-pill); background: linear-gradient(90deg, transparent, oklch(100% 0 0 / 0.55), transparent) 0 0 / 40% 100% no-repeat; animation: andando 2.4s linear infinite; }
+}
+@keyframes andando { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+.mov .pedido-conta .barra-prod i { transform: scaleX(0); transform-origin: left; transition: transform 900ms var(--ease-out-forte) calc(var(--atraso, 0ms) + 350ms); }
+.mov .pedido-conta.visto .barra-prod i { transform: none; }
 
 /* Fatos do pedido em uma faixa */
 .pc-info { display: flex; flex-wrap: wrap; gap: var(--space-md) var(--space-xl); margin: var(--space-md) 0 0; padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); }
@@ -119,6 +145,8 @@
   .etapas { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .etapas li { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; column-gap: var(--space-sm); align-items: center; padding-block: var(--space-2xs); }
   .etapas li::before { height: 100%; min-height: 24px; margin: 0; }
+  .mov .pedido-conta .etapas li::before { clip-path: inset(0 0 100% 0 round var(--radius-pill)); }
+  .pedido-conta:not(.cancelado) .etapas li.atual::after { display: none; }
   .etapas .nome { grid-column: 2; }
   .etapas .quando { grid-column: 3; }
   .pc-rastreio, .pc-producao { padding: var(--space-md); }

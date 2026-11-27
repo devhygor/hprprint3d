@@ -21,12 +21,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@800&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/tokens.css?v=202611241434">
-  <link rel="stylesheet" href="assets/base.css?v=202611241434">
-  <link rel="stylesheet" href="assets/comum.css?v=202611241434">
-  <link rel="stylesheet" href="assets/vitrine.css?v=202611241434">
+  <link rel="stylesheet" href="assets/tokens.css?v=202611271310">
+  <link rel="stylesheet" href="assets/base.css?v=202611271310">
+  <link rel="stylesheet" href="assets/comum.css?v=202611271310">
+  <link rel="stylesheet" href="assets/vitrine.css?v=202611271310">
+  <script src="assets/movimento.js?v=202611271310"></script>
 </head>
-<body>
+<body class="com-grao">
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <header class="topo">
     <div class="container topo-linha">
@@ -60,9 +61,9 @@
       <div class="container heroi-grade">
         <div class="heroi-texto">
           <h1>
-            <span class="camada">Feito camada</span>
-            <span class="camada">por camada,</span>
-            <span class="camada">aqui em casa.</span>
+            <span class="camada"><span>Feito camada</span></span>
+            <span class="camada"><span>por camada,</span></span>
+            <span class="camada"><span>aqui em casa.</span></span>
           </h1>
           <p class="lead">Decoração, presentes e peças úteis impressos em 3D por encomenda.</p>
           <div class="heroi-acoes">
@@ -74,6 +75,7 @@
           <div class="heroi-moldura">
             <img src="img/heroi.jpg" width="700" height="700" alt="Kit Sagrada Família impresso em 3D, branco perolado, sobre bandeja com vela" fetchpriority="high">
             <span class="bico" aria-hidden="true"></span>
+            <span class="heroi-status" aria-hidden="true"><i></i><span>Imprimindo</span> <b>0%</b></span>
           </div>
           <figcaption>Kit Sagrada Família, com bandeja e vela.</figcaption>
         </figure>
@@ -83,11 +85,11 @@
     <section class="secao" id="pecas">
       <div class="container">
         <div class="secao-cabeca">
-          <div>
+          <div data-revelar>
             <h2>Nossas peças</h2>
             <p>Os preços podem mudar conforme cor, tamanho e quantidade.</p>
           </div>
-          <div class="filtros" id="filtros" role="group" aria-label="Filtrar por categoria"></div>
+          <div class="filtros" data-revelar id="filtros" role="group" aria-label="Filtrar por categoria"></div>
         </div>
         <div class="grade-pecas" id="grade" aria-live="polite"></div>
       </div>
@@ -96,7 +98,7 @@
     <section class="secao" id="instagram" hidden>
       <div class="container">
         <div class="secao-cabeca">
-          <div>
+          <div data-revelar>
             <h2>Saiu da impressora</h2>
             <p>Destaques do nosso Instagram.</p>
           </div>
@@ -108,17 +110,17 @@
 
     <section class="secao" id="como-pedir">
       <div class="container">
-        <div class="secao-cabeca"><h2>Como pedir</h2></div>
+        <div class="secao-cabeca" data-revelar><div><h2>Como pedir</h2><p>Três passos, e a gente confirma valor e prazo antes de começar a imprimir.</p></div></div>
         <ol class="passos">
-          <li>
+          <li data-revelar>
             <h3>Escolha a peça</h3>
             <p>Pode ser uma daqui ou uma ideia sua. Manda foto, link ou descreve.</p>
           </li>
-          <li>
+          <li data-revelar>
             <h3>Combine cor e tamanho</h3>
             <p>A gente confirma o valor e o prazo antes de começar a imprimir.</p>
           </li>
-          <li>
+          <li data-revelar>
             <h3>Receba em casa</h3>
             <p>Entregamos ou enviamos. A peça sai da impressora direto pra você.</p>
           </li>
@@ -129,7 +131,7 @@
     <section class="secao" id="pedido">
       <div class="container">
         <div class="sob-medida">
-          <div class="pedido-cabeca">
+          <div class="pedido-cabeca" data-revelar>
             <h2>Faça seu pedido</h2>
             <p class="lead">Preencha o que já sabe e toque em enviar.</p>
             <ul class="pedido-fatos">
@@ -138,7 +140,7 @@
               <li>Vale peça do catálogo ou uma ideia sua: chaveiro com nome, caneca temática, lembrancinha de festa, peça de reposição.</li>
             </ul>
           </div>
-          <form id="form-pedido" class="pedido" novalidate>
+          <form id="form-pedido" class="pedido" data-revelar novalidate>
             <div class="pedido-duas">
               <label class="campo-pedido">Seu nome<input name="nome" autocomplete="name" required></label>
               <label class="campo-pedido">Seu WhatsApp<input name="telefone" type="tel" inputmode="tel" autocomplete="tel" placeholder="61 99999-9999"></label>
@@ -220,7 +222,7 @@
     <button type="button" id="toast-carrinho-ver">Ver carrinho</button>
   </div>
 
-  <footer class="rodape">
+  <footer class="rodape" data-revelar>
     <div class="container rodape-grade">
       <p class="rodape-marca">HPR Print 3D</p>
       <span class="rodape-linha">Impressão 3D por encomenda.</span>
@@ -228,11 +230,11 @@
     </div>
   </footer>
 
-  <script src="assets/supabase-config.js?v=202611241434"></script>
-  <script src="assets/metricas.js?v=202611241434" defer></script>
-  <script src="assets/email.js?v=202611241434"></script>
-  <script src="assets/frete.js?v=202611241434"></script>
-  <script src="assets/itens.js?v=202611241434"></script>
-  <script src="assets/app.js?v=202611241434"></script>
+  <script src="assets/supabase-config.js?v=202611271310"></script>
+  <script src="assets/metricas.js?v=202611271310" defer></script>
+  <script src="assets/email.js?v=202611271310"></script>
+  <script src="assets/frete.js?v=202611271310"></script>
+  <script src="assets/itens.js?v=202611271310"></script>
+  <script src="assets/app.js?v=202611271310"></script>
 </body>
 </html>

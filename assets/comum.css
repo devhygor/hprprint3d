@@ -14,9 +14,9 @@
   min-height: 52px; padding: 0 var(--space-lg);
   border: 1px solid transparent; border-radius: var(--radius-pill);
   font: 600 var(--text-md)/1 var(--font-body); white-space: nowrap; text-decoration: none; cursor: pointer;
-  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out), transform var(--dur-press) var(--ease-out-forte);
 }
-.botao:active { transform: translateY(1px); }
+.botao:active { transform: scale(0.97); }
 .botao:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .botao:disabled, .botao[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
 .botao[aria-busy="true"] { cursor: progress; }
@@ -29,7 +29,9 @@
 .botao-entrar { white-space: nowrap; }
 
 /* ---------- Topo ---------- */
-.topo { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule); }
+.topo { position: sticky; top: 0; z-index: var(--z-sticky-nav); background: transparent; border-bottom: var(--rule-hair) solid transparent; transition: background-color var(--dur-long) var(--ease-out), border-color var(--dur-long) var(--ease-out); }
+/* Depois de rolar a página o topo vira vidro escuro com uma linha embaixo */
+[data-rolou] .topo, html:not(.mov) .topo { background: color-mix(in oklab, var(--color-paper) 78%, transparent); border-bottom-color: var(--color-rule); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); }
 .topo-linha { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 72px; }
 .marca { display: flex; align-items: center; gap: var(--space-sm); text-decoration: none; font: var(--display-weight) var(--text-lg)/1 var(--font-display); letter-spacing: -0.01em; }
 .marca:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; }
@@ -37,19 +39,24 @@
 .marca-foto { border-radius: 50%; object-fit: cover; }
 .topo nav { display: flex; align-items: center; gap: var(--space-xs); }
 .topo nav a.discreto { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-sm); color: var(--color-ink-2); text-decoration: none; transition: color var(--dur-short) var(--ease-out); }
-.topo nav a.discreto:hover { color: var(--color-ink); text-decoration: underline; }
+.topo nav a.discreto { position: relative; }
+.topo nav a.discreto::after { content: ""; position: absolute; left: var(--space-sm); right: var(--space-sm); bottom: 10px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform var(--dur-short) var(--ease-out-forte); }
+.topo nav a.discreto:hover { color: var(--color-ink); }
+@media (hover: hover) and (pointer: fine) { .topo nav a.discreto:hover::after { transform: scaleX(1); transform-origin: left; } }
 .topo nav a.discreto:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
 /* ---------- Espera, vazio e aviso ---------- */
 .carregando { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-md); min-height: 52vh; color: var(--color-ink-2); text-align: center; }
 .giro { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--color-rule); border-top-color: var(--color-focus); }
-@media (prefers-reduced-motion: no-preference) { .giro { animation: gira 0.8s linear infinite; } }
+@media (prefers-reduced-motion: no-preference) { .giro { animation: gira 0.7s linear infinite; } }
 @keyframes gira { to { transform: rotate(360deg); } }
 .vazio { grid-column: 1 / -1; padding: var(--space-2xl) var(--space-xl); border: var(--rule-hair) dashed var(--color-muted); border-radius: var(--radius-card); color: var(--color-ink-2); }
 .vazio strong { display: block; margin-bottom: var(--space-xs); color: var(--color-ink); font: var(--display-weight) var(--text-xl)/1.2 var(--font-display); }
 .vazio .botao { display: flex; width: fit-content; margin-top: var(--space-lg); }
 .aviso { position: fixed; left: var(--space-sm); right: var(--space-sm); bottom: var(--space-lg); z-index: var(--z-toast); width: fit-content; max-width: 40rem; margin-inline: auto; padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-card); background: var(--color-paper-3); color: var(--color-ink); box-shadow: var(--shadow-float); font-weight: 600; }
 .aviso.erro { background: var(--color-error-field); color: var(--color-error); }
+.aviso { transition: opacity 320ms var(--ease-out-forte), transform 320ms var(--ease-out-forte); }
+@starting-style { .aviso { opacity: 0; transform: translateY(12px) scale(0.98); } }
 
 /* ---------- Rodapé: a marca grande sobre os links ---------- */
 .rodape { padding-block: var(--space-3xl) var(--space-2xl); border-top: var(--rule-hair) solid var(--color-rule); color: var(--color-ink-2); }
@@ -76,3 +83,18 @@
   .botao-entrar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .botao-entrar { padding: 0 var(--space-sm); }
 }
+
+/* ---------- Movimento compartilhado (movimento.js põe .mov no html só quando dá para animar) ---------- */
+/* Revelar ao entrar na tela: sobe 16px e acende. Uma vez só; a cascata vem do --atraso calculado no JS. */
+.mov [data-revelar] { opacity: 0; transform: translateY(16px); transition: opacity var(--dur-revela) var(--ease-out-forte) var(--atraso, 0ms), transform var(--dur-revela) var(--ease-out-forte) var(--atraso, 0ms); }
+.mov [data-revelar].visto { opacity: 1; transform: none; }
+@media print { .mov [data-revelar] { opacity: 1 !important; transform: none !important; } }
+
+/* Grão de filme bem leve por cima de tudo: tira o aspecto de tela chapada (vitrine e conta) */
+.com-grao::after { content: ""; position: fixed; inset: 0; z-index: var(--z-sticky-nav); pointer-events: none; opacity: 0.06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"); }
+
+/* Rodapé: a marca "sai da impressora" em 12 camadas quando aparece (observa o rodapé, porque o recorte zera a área da marca) */
+.mov .rodape[data-revelar] { opacity: 1; transform: none; }
+.mov .rodape[data-revelar] .rodape-marca { clip-path: inset(100% 0 0 0); transition: clip-path 1.1s steps(12, end) 150ms; }
+.mov .rodape[data-revelar].visto .rodape-marca { clip-path: inset(-10% 0 -10% 0); }

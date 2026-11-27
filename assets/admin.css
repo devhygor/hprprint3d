@@ -5,7 +5,7 @@
 
 .aba { font: 500 .95rem var(--fonte-texto); color: var(--texto-2); background: none; border: 0; padding: 8px 14px; border-radius: 999px; cursor: pointer; }
 .aba:hover { color: var(--texto); }
-.aba[aria-current="page"] { background: var(--noite-3); color: var(--texto); }
+.aba[aria-current="page"] { color: var(--texto); }
 #abas { gap: 2px; overflow-x: auto; }
 
 .painel { background: var(--noite-2); border: 1px solid var(--linha); border-radius: var(--raio-m); padding: 20px; margin: 0; min-width: 0; }
@@ -621,3 +621,38 @@ fieldset.painel > .rotulo { margin-top: 10px; padding-top: 18px; border-top: 1px
   .ac-tiles { grid-template-columns: 1fr; }
   #tela-acessos .duas { grid-template-columns: 1fr; }
 }
+
+/* ---------- Oficina: acabamento e movimento (tela de trabalho: rápido, discreto, nada que atrase o uso) ---------- */
+/* Abas: o marcador desliza para a aba escolhida (o conteúdo troca na hora, sem animação) */
+#abas { position: relative; isolation: isolate; }
+.aba { position: relative; transition: color var(--dur-short) var(--ease-out), transform var(--dur-press) var(--ease-out-forte); }
+.aba:active { transform: scale(0.96); }
+.aba-marca { position: absolute; left: 0; top: 0; z-index: -1; border-radius: var(--radius-pill); background: var(--color-paper-3); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-ink) 8%, transparent); opacity: 0; pointer-events: none;
+  transition: transform 240ms var(--ease-out-forte), width 240ms var(--ease-out-forte), opacity var(--dur-short) var(--ease-out); }
+/* Sem o marcador (JS desligado), a aba atual mantém o fundo */
+html:not(.mov) .aba[aria-current="page"] { background: var(--noite-3); }
+
+/* Painéis e cartões com fio de luz em cima, no lugar de borda chapada */
+.painel, .cartao-pedido { box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-ink) 7%, transparent); }
+.cartao-pedido { transition: background-color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) {
+  .cartao-pedido:hover { background: color-mix(in oklab, var(--color-paper-2) 70%, var(--color-paper-3)); box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-ink) 10%, transparent), 0 18px 40px -24px oklch(5% 0.04 293 / 0.9); }
+  .tabela-pecas tbody tr { transition: background-color var(--dur-micro) var(--ease-out); }
+  .tabela-pecas tbody tr:hover { background: color-mix(in oklab, var(--color-paper-3) 45%, transparent); }
+}
+
+/* Campos: foco com anel de luz, igual à vitrine */
+.campo input, .campo select, .campo textarea { transition: border-color var(--dur-short) var(--ease-out), box-shadow var(--dur-short) var(--ease-out); }
+.campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--color-focus); box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 22%, transparent); }
+
+/* Botões pequenos da oficina também respondem ao toque */
+.galeria-btn, .alca, .botao-texto, .fin-abas button { transition: background-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out), transform var(--dur-press) var(--ease-out-forte); }
+.galeria-btn:active, .botao-texto:active, .fin-abas button:active { transform: scale(0.95); }
+
+/* Aviso do WhatsApp sobe ao aparecer */
+.aviso-zap { transition: opacity 320ms var(--ease-out-forte), transform 320ms var(--ease-out-forte); }
+@starting-style { .aviso-zap { opacity: 0; transform: translateY(12px); } }
+
+/* Entrada da oficina: só a tela de login ganha luz e chega com calma (é vista poucas vezes) */
+#tela-conectar { margin-top: var(--space-2xl); margin-inline: auto; padding: var(--space-xl); border-radius: calc(var(--radius-card) + 8px); box-shadow: var(--shadow-palco), inset 0 0 0 1px color-mix(in oklab, var(--color-ink) 9%, transparent); }
+#tela-conectar > .campos { margin-top: var(--space-lg); }

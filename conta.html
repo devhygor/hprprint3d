@@ -16,12 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@800&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/tokens.css?v=202611241434">
-  <link rel="stylesheet" href="assets/base.css?v=202611241434">
-  <link rel="stylesheet" href="assets/comum.css?v=202611241434">
-  <link rel="stylesheet" href="assets/conta.css?v=202611241434">
+  <link rel="stylesheet" href="assets/tokens.css?v=202611271310">
+  <link rel="stylesheet" href="assets/base.css?v=202611271310">
+  <link rel="stylesheet" href="assets/comum.css?v=202611271310">
+  <link rel="stylesheet" href="assets/conta.css?v=202611271310">
+  <script src="assets/movimento.js?v=202611271310"></script>
 </head>
-<body>
+<body class="com-grao">
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <header class="topo">
     <div class="container topo-linha">
@@ -44,7 +45,7 @@
 
     <!-- Entrar / criar conta -->
     <section id="tela-entrar" class="entrar-grade" hidden>
-      <div class="entrar-texto">
+      <div class="entrar-texto" data-revelar>
         <h1>Acompanhe seus pedidos</h1>
         <p class="lead">Entre para ver em que etapa está cada pedido. Pedidos feitos com o mesmo e-mail aparecem aqui.</p>
         <ol class="etapas-amostra" aria-label="As etapas de um pedido">
@@ -52,7 +53,7 @@
         </ol>
       </div>
 
-      <div class="cartao-conta">
+      <div class="cartao-conta" data-revelar>
         <button class="botao botao-google" type="button" id="entrar-google">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.2 14.6 2.2 12 2.2 6.6 2.2 2.2 6.6 2.2 12s4.4 9.8 9.8 9.8c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z"/></svg>
           Continuar com Google
@@ -89,7 +90,7 @@
 
     <!-- Pedidos -->
     <section id="tela-pedidos" hidden>
-      <div class="conta-cabeca">
+      <div class="conta-cabeca" data-revelar>
         <div>
           <h1 id="ola">Seus pedidos</h1>
           <p class="apoio" id="conta-email"></p>
@@ -112,10 +113,10 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="assets/supabase-config.js?v=202611241434"></script>
-  <script src="assets/metricas.js?v=202611241434" defer></script>
-  <script src="assets/rastreio.js?v=202611241434"></script>
-  <script src="assets/itens.js?v=202611241434"></script>
-  <script src="assets/conta.js?v=202611241434"></script>
+  <script src="assets/supabase-config.js?v=202611271310"></script>
+  <script src="assets/metricas.js?v=202611271310" defer></script>
+  <script src="assets/rastreio.js?v=202611271310"></script>
+  <script src="assets/itens.js?v=202611271310"></script>
+  <script src="assets/conta.js?v=202611271310"></script>
 </body>
 </html>

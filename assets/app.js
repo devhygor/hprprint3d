@@ -70,7 +70,7 @@
           : `<span class="sem-foto">Foto em breve</span>`;
         const preco = p.preco ? `<span class="preco"><small>a partir de</small>${brl(Number(p.preco))}</span>` : `<span class="preco"><small>valor</small>Sob consulta</span>`;
         return `<article class="peca" data-peca="${esc(p.id)}">
-          <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}${p.fotos.length > 1 ? `<span class="peca-qtd-fotos" aria-label="${p.fotos.length} fotos">${p.fotos.length} fotos</span>` : ""}</a>
+          <a class="peca-foto" href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}" aria-label="Ver detalhes de ${esc(p.nome)}">${foto}${p.fotos.length > 1 ? `<span class="peca-qtd-fotos" aria-label="${p.fotos.length} fotos">${p.fotos.length} fotos</span>` : ""}<span class="peca-ver" aria-hidden="true">Ver detalhes</span></a>
           <div class="peca-corpo">
             ${categoriasHtml(p)}
             <h3><a href="#peca-${encodeURIComponent(p.id)}" data-detalhe="${esc(p.id)}">${esc(p.nome)}</a></h3>
@@ -362,6 +362,7 @@
     else carrinho.push({ id, nome: p.nome, qtd: 1, cor: "" });
     guardarCarrinho();
     desenharCarrinho();
+    window.hprMov?.pulsar(document.getElementById("carrinho-qtd"));
     avisarCarrinho(`${p.nome} está no carrinho`, true);
   }
   let tempoToast;
